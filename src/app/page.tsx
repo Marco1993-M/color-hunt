@@ -3,6 +3,7 @@ import { Fredoka } from "next/font/google";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { createClient } from "@/lib/supabase/server";
+import { isAnonymousUser } from "@/lib/user-state";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -62,10 +63,14 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const isGuest = isAnonymousUser(user);
 
   return (
     <main className="app-shell landing-shell">
-      <EventOnView eventName="landing_viewed" metadata={{ isAuthenticated: Boolean(user) }} />
+      <EventOnView
+        eventName="landing_viewed"
+        metadata={{ isAuthenticated: Boolean(user), isAnonymous: isGuest }}
+      />
       <section className="mx-auto flex min-h-screen max-w-7xl flex-col gap-10 px-4 py-5 sm:gap-12 sm:px-10 sm:py-8 lg:px-16">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -78,7 +83,7 @@ export default async function Home() {
             <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[rgba(67,58,97,0.56)]">colorhunt.quest · See places differently</p>
           </div>
           <Link className="header-utility-link" href={user ? "/dashboard" : "#start"}>
-            {user ? "Go to dashboard" : "Jump to the hunt"}
+            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Jump to the hunt"}
           </Link>
         </header>
 
@@ -120,9 +125,9 @@ export default async function Home() {
 
               <div className="game-start-rail">
                 <Link className="button-primary w-full sm:w-auto" href={user ? "/dashboard" : "#start"}>
-                  {user ? "Start your next hunt" : "Start your first hunt"}
+                  {user ? (isGuest ? "Resume your guest hunt" : "Start your next hunt") : "Start your first hunt"}
                 </Link>
-                <p className="micro-copy text-[rgba(67,58,97,0.66)]">No app. One magic link. Start in seconds.</p>
+                <p className="micro-copy text-[rgba(67,58,97,0.66)]">No app. Start as a guest. Save with Google or Apple later.</p>
               </div>
             </div>
           </div>
@@ -174,13 +179,17 @@ export default async function Home() {
             <div id="start" className="space-y-4">
               {user ? (
                 <div className="playful-card rounded-[2rem] p-6 sm:p-8">
-                  <p className="eyebrow mb-3">Back for another round?</p>
-                  <h2 className="panel-title text-3xl font-semibold">Your next poster is waiting.</h2>
+                  <p className="eyebrow mb-3">{isGuest ? "You already started" : "Back for another round?"}</p>
+                  <h2 className="panel-title text-3xl font-semibold">
+                    {isGuest ? "Your guest hunt is still waiting." : "Your next poster is waiting."}
+                  </h2>
                   <p className="body-copy mt-3 text-base">
-                    Head to your dashboard, choose a place, and start building a nine-frame story that feels worth keeping.
+                    {isGuest
+                      ? "Jump back in, finish the poster, and then attach Google or Apple when you want to save it properly."
+                      : "Head to your dashboard, choose a place, and start building a nine-frame story that feels worth keeping."}
                   </p>
                   <Link className="button-primary mt-6 w-full sm:w-auto" href="/dashboard">
-                    Open dashboard
+                    {isGuest ? "Resume guest hunt" : "Open dashboard"}
                   </Link>
                 </div>
               ) : (

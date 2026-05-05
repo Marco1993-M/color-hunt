@@ -492,6 +492,25 @@ img {
   font-weight: 600;
 }
 
+.guest-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: rgba(67, 58, 97, 0.54);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.guest-auth-divider::before,
+.guest-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(88, 58, 134, 0.12);
+}
+
 .reason-pill {
   display: flex;
   align-items: start;
@@ -1031,6 +1050,19 @@ img {
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.88);
   border-color: rgba(88, 58, 134, 0.22);
+}
+
+.social-auth-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.social-auth-buttons-stack {
+  flex-direction: column;
+}
+
+.social-auth-buttons-inline {
+  flex-wrap: wrap;
 }
 
 .drag-handle {

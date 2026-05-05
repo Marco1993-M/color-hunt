@@ -1,0 +1,116 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { FeedbackToast } from "@/components/ui/feedback-toast";
+import { trackEvent } from "@/lib/analytics";
+import { getAppOrigin } from "@/lib/app-url";
+import { createClient } from "@/lib/supabase/client";
+
+type SocialAuthButtonsProps = {
+  mode: "sign-in" | "upgrade";
+  nextPath: string;
+  source: string;
+  tripId?: string;
+  layout?: "stack" | "inline";
+};
+
+type ProviderName = "google" | "apple";
+
+const providerLabels: Record<ProviderName, string> = {
+  google: "Google",
+  apple: "Apple",
+};
+
+export function SocialAuthButtons({
+  mode,
+  nextPath,
+  source,
+  tripId,
+  layout = "stack",
+}: SocialAuthButtonsProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [activeProvider, setActiveProvider] = useState<ProviderName | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleProvider(provider: ProviderName) {
+    setError(null);
+
+    startTransition(async () => {
+      const supabase = createClient();
+      const appOrigin = getAppOrigin();
+
+      if (!appOrigin) {
+        setError("We couldn't determine the app URL for sign-in.");
+        return;
+      }
+
+      setActiveProvider(provider);
+
+      const redirectTo = `${appOrigin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+      const credentials = {
+        provider,
+        options: {
+          redirectTo,
+        },
+      } as const;
+
+      const result =
+        mode === "upgrade"
+          ? await supabase.auth.linkIdentity(credentials)
+          : await supabase.auth.signInWithOAuth(credentials);
+
+      if (result.error) {
+        trackEvent({
+          eventName: "social_auth_failed",
+          tripId,
+          metadata: {
+            source,
+            mode,
+            provider,
+            message: result.error.message,
+          },
+        });
+        setActiveProvider(null);
+        setError(result.error.message);
+        return;
+      }
+
+      trackEvent({
+        eventName: "social_auth_started",
+        tripId,
+        metadata: {
+          source,
+          mode,
+          provider,
+        },
+      });
+    });
+  }
+
+  return (
+    <div className={`social-auth-buttons social-auth-buttons-${layout}`}>
+      <button
+        className="button-secondary w-full sm:w-auto"
+        type="button"
+        disabled={isPending}
+        onClick={() => handleProvider("google")}
+      >
+        {isPending && activeProvider === "google"
+          ? `${mode === "upgrade" ? "Connecting" : "Opening"} Google...`
+          : `Continue with ${providerLabels.google}`}
+      </button>
+      <button
+        className="button-secondary w-full sm:w-auto"
+        type="button"
+        disabled={isPending}
+        onClick={() => handleProvider("apple")}
+      >
+        {isPending && activeProvider === "apple"
+          ? `${mode === "upgrade" ? "Connecting" : "Opening"} Apple...`
+          : `Continue with ${providerLabels.apple}`}
+      </button>
+
+      {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
+    </div>
+  );
+}

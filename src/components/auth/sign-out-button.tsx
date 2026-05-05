@@ -1,10 +1,14 @@
 import { signOutAction } from "@/app/actions";
 
-export function SignOutButton() {
+type SignOutButtonProps = {
+  isAnonymous?: boolean;
+};
+
+export function SignOutButton({ isAnonymous = false }: SignOutButtonProps) {
   return (
     <form action={signOutAction} className="w-full sm:w-auto">
       <button className="button-secondary w-full sm:w-auto" type="submit">
-        Sign out
+        {isAnonymous ? "End guest session" : "Sign out"}
       </button>
     </form>
   );

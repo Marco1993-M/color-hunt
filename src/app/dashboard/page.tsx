@@ -3,29 +3,38 @@ import { EventOnView } from "@/components/analytics/event-on-view";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile, getTripsForUser } from "@/lib/data";
+import { isAnonymousUser } from "@/lib/user-state";
 
 export default async function DashboardPage() {
   const { user } = await requireUser();
   await ensureProfile(user);
   const trips = await getTripsForUser(user.id);
+  const isGuest = isAnonymousUser(user);
 
   return (
     <main className="app-shell page-frame">
-      <EventOnView eventName="dashboard_viewed" metadata={{ tripCount: trips.length }} />
+      <EventOnView eventName="dashboard_viewed" metadata={{ tripCount: trips.length, isAnonymous: isGuest }} />
       <div className="mx-auto max-w-6xl">
         <header className="playful-card flex flex-col gap-6 rounded-[2rem] p-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="eyebrow">Dashboard</p>
+            <p className="eyebrow">{isGuest ? "Guest dashboard" : "Dashboard"}</p>
             <h1 className="panel-title mt-2 text-3xl font-semibold sm:text-4xl">Your color hunts</h1>
             <p className="body-copy mt-3 max-w-2xl text-base">
-              Keep the loop tight: choose a place, finish the nine-frame challenge, and shape the result into a poster.
+              {isGuest
+                ? "Start fast, finish the nine-frame challenge, and attach Google or Apple once the poster feels worth keeping."
+                : "Keep the loop tight: choose a place, finish the nine-frame challenge, and shape the result into a poster."}
             </p>
+            {isGuest ? (
+              <p className="mt-4 inline-flex rounded-full border border-[rgba(47,97,223,0.14)] bg-[rgba(47,97,223,0.08)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[rgba(47,97,223,0.86)]">
+                Guest session · Save with Google or Apple from the poster page
+              </p>
+            ) : null}
           </div>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <Link className="button-primary w-full sm:w-auto" href="/trips/new">
               Create a new trip
             </Link>
-            <SignOutButton />
+            <SignOutButton isAnonymous={isGuest} />
           </div>
         </header>
 

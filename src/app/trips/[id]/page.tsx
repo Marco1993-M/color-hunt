@@ -5,6 +5,7 @@ import { UploadPanel } from "@/components/trips/upload-panel";
 import { requireUser } from "@/lib/auth";
 import { getPhotoUrl, getTripBundle } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
+import { isAnonymousUser } from "@/lib/user-state";
 
 type TripDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -14,6 +15,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
   const { user } = await requireUser();
   const bundle = await getTripBundle(id, user.id);
+  const isGuest = isAnonymousUser(user);
 
   if (!bundle) {
     notFound();
@@ -43,7 +45,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
             href={`/trips/${trip.id}/poster`}
             className={`${filledSlots === mission.max_photos ? "button-primary" : "button-secondary"} w-full sm:w-auto`}
           >
-            {filledSlots === mission.max_photos ? "Download & share" : "Preview poster"}
+            {filledSlots === mission.max_photos ? (isGuest ? "Save & share" : "Share poster") : "Preview poster"}
           </Link>
         </div>
 
@@ -74,7 +76,11 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
                 <div>
                   <p className="eyebrow">Progress</p>
                   <p className="mt-1 text-2xl font-semibold">{progress}</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">A small, complete visual story beats an endless camera roll.</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {isGuest
+                      ? "Finish the nine first. You can attach Google or Apple once the poster is ready to keep."
+                      : "A small, complete visual story beats an endless camera roll."}
+                  </p>
                 </div>
                 <div className="w-full rounded-full bg-white/70 p-1 sm:w-36">
                   <div

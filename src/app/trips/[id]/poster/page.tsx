@@ -2,10 +2,12 @@ import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
 import { PosterSheet } from "@/components/trips/poster-sheet";
+import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { requireUser } from "@/lib/auth";
 import { getTripBundle, getTripShareState } from "@/lib/data";
 import { isPosterComplete } from "@/lib/poster";
+import { isAnonymousUser } from "@/lib/user-state";
 
 type PosterPageProps = {
   params: Promise<{ id: string }>;
@@ -15,6 +17,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
   const { id } = await params;
   const { user } = await requireUser();
   const [bundle, shareState] = await Promise.all([getTripBundle(id, user.id), getTripShareState(id, user.id)]);
+  const isGuest = isAnonymousUser(user);
 
   if (!bundle) {
     notFound();
@@ -40,7 +43,9 @@ export default async function PosterPage({ params }: PosterPageProps) {
           <Link href={`/trips/${trip.id}`} className="text-sm text-[var(--muted)]">
             ← Back to trip
           </Link>
-          <p className="text-sm text-[var(--muted)]">{isComplete ? "Poster ready to share" : "Poster preview"}</p>
+          <p className="text-sm text-[var(--muted)]">
+            {isComplete ? (isGuest ? "Poster ready to save" : "Poster ready to share") : "Poster preview"}
+          </p>
         </div>
 
         {!isComplete ? (
@@ -55,14 +60,28 @@ export default async function PosterPage({ params }: PosterPageProps) {
         <PosterSheet trip={trip} mission={mission} photos={photos} />
 
         <div className="mt-6">
-          <SharePosterPanel
-            tripId={trip.id}
-            initialShareId={shareState.shareId}
-            initialIsPublic={shareState.isPublic}
-            schemaReady={shareState.schemaReady}
-            currentPhotoCount={photos.length}
-            maxPhotos={mission.max_photos}
-          />
+          {isGuest ? (
+            isComplete ? (
+              <SocialUpgradePanel tripId={trip.id} nextPath={`/trips/${trip.id}/poster`} />
+            ) : (
+              <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
+                <p className="eyebrow">Guest mode</p>
+                <h3 className="panel-title mt-2 text-2xl font-semibold">Finish the nine first.</h3>
+                <p className="body-copy mt-3 text-sm sm:text-base">
+                  You can preview the poster as a guest, then attach Google or Apple once all {mission.max_photos} frames are filled and the poster is ready to keep.
+                </p>
+              </div>
+            )
+          ) : (
+            <SharePosterPanel
+              tripId={trip.id}
+              initialShareId={shareState.shareId}
+              initialIsPublic={shareState.isPublic}
+              schemaReady={shareState.schemaReady}
+              currentPhotoCount={photos.length}
+              maxPhotos={mission.max_photos}
+            />
+          )}
         </div>
       </div>
     </main>
