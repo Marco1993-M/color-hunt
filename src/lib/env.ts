@@ -1,6 +1,7 @@
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const supabaseStorageBucket = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET;
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
 export function getSupabaseEnv() {
   if (!supabaseUrl) {
@@ -15,5 +16,6 @@ export function getSupabaseEnv() {
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
     storageBucket: supabaseStorageBucket || "trip-photos",
+    siteUrl: siteUrl || null,
   };
 }

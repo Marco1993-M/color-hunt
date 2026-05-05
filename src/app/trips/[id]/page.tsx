@@ -43,7 +43,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
             href={`/trips/${trip.id}/poster`}
             className={`${filledSlots === mission.max_photos ? "button-primary" : "button-secondary"} w-full sm:w-auto`}
           >
-            {filledSlots === mission.max_photos ? "Generate poster" : "Preview poster"}
+            {filledSlots === mission.max_photos ? "Download & share" : "Preview poster"}
           </Link>
         </div>
 

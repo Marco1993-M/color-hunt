@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DownloadPosterButton } from "@/components/trips/download-poster-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
+import { ShareStoryButton } from "@/components/trips/share-story-button";
 import { getPublicTripBundleByShareId } from "@/lib/data";
 import { isPosterComplete } from "@/lib/poster";
 
@@ -30,6 +31,7 @@ export default async function PublicPosterPage({ params }: PublicPosterPageProps
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--muted)]">Color Hunt public poster</p>
           <div className="flex flex-col gap-3 sm:flex-row">
+            <ShareStoryButton shareId={shareId} locationLabel={trip.location} />
             <DownloadPosterButton shareId={shareId} />
             <PublicPosterCtaLink shareId={shareId} />
           </div>

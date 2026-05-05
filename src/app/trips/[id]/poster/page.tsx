@@ -40,7 +40,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
           <Link href={`/trips/${trip.id}`} className="text-sm text-[var(--muted)]">
             ← Back to trip
           </Link>
-          <p className="text-sm text-[var(--muted)]">Poster preview MVP</p>
+          <p className="text-sm text-[var(--muted)]">{isComplete ? "Poster ready to share" : "Poster preview"}</p>
         </div>
 
         {!isComplete ? (
