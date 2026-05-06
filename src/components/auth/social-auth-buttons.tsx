@@ -14,12 +14,7 @@ type SocialAuthButtonsProps = {
   layout?: "stack" | "inline";
 };
 
-type ProviderName = "google" | "apple";
-
-const providerLabels: Record<ProviderName, string> = {
-  google: "Google",
-  apple: "Apple",
-};
+type ProviderName = "google";
 
 export function SocialAuthButtons({
   mode,
@@ -97,17 +92,7 @@ export function SocialAuthButtons({
       >
         {isPending && activeProvider === "google"
           ? `${mode === "upgrade" ? "Connecting" : "Opening"} Google...`
-          : `Continue with ${providerLabels.google}`}
-      </button>
-      <button
-        className="button-secondary w-full sm:w-auto"
-        type="button"
-        disabled={isPending}
-        onClick={() => handleProvider("apple")}
-      >
-        {isPending && activeProvider === "apple"
-          ? `${mode === "upgrade" ? "Connecting" : "Opening"} Apple...`
-          : `Continue with ${providerLabels.apple}`}
+          : "Continue with Google"}
       </button>
 
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
