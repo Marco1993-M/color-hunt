@@ -40,6 +40,7 @@ export function UploadPanel({
   photos,
 }: UploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [selectedSource, setSelectedSource] = useState<"camera" | "library" | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [orderedPhotos, setOrderedPhotos] = useState(photos);
   const [draggingPhotoId, setDraggingPhotoId] = useState<string | null>(null);
@@ -48,6 +49,8 @@ export function UploadPanel({
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const touchDragRef = useRef<{ photoId: string; pointerId: number } | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const libraryInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
   const remaining = useMemo(() => Math.max(maxPhotos - currentCount, 0), [currentCount, maxPhotos]);
 
@@ -71,7 +74,18 @@ export function UploadPanel({
 
   function clearSelectedFile() {
     setFile(null);
+    setSelectedSource(null);
     setPreviewUrl(null);
+  }
+
+  function handleFileSelection(
+    event: React.ChangeEvent<HTMLInputElement>,
+    source: "camera" | "library",
+  ) {
+    const nextFile = event.target.files?.[0] ?? null;
+    setFile(nextFile);
+    setSelectedSource(nextFile ? source : null);
+    event.target.value = "";
   }
 
   function clearDragState() {
@@ -450,6 +464,7 @@ export function UploadPanel({
           metadata: {
             missionId,
             remainingAfterUpload: Math.max(remaining - 1, 0),
+            source: selectedSource ?? "unknown",
           },
         });
 
@@ -459,6 +474,7 @@ export function UploadPanel({
             tripId,
             metadata: {
               missionId,
+              source: selectedSource ?? "unknown",
             },
           });
         }
@@ -470,6 +486,7 @@ export function UploadPanel({
             metadata: {
               missionId,
               maxPhotos,
+              source: selectedSource ?? "unknown",
             },
           });
         }
@@ -512,20 +529,46 @@ export function UploadPanel({
 
       <form className="mt-6 space-y-4" onSubmit={handleUpload}>
         <div>
-          <label className="field-label" htmlFor="photo-file">
-            Photo
-          </label>
-          <input
-            id="photo-file"
-            className="field-input"
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp"
-            capture="environment"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            disabled={isPending || remaining <= 0}
-          />
+          <p className="field-label">Photo</p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              ref={cameraInputRef}
+              className="sr-only"
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              capture="environment"
+              onChange={(event) => handleFileSelection(event, "camera")}
+              disabled={isPending || remaining <= 0}
+              tabIndex={-1}
+            />
+            <input
+              ref={libraryInputRef}
+              className="sr-only"
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              onChange={(event) => handleFileSelection(event, "library")}
+              disabled={isPending || remaining <= 0}
+              tabIndex={-1}
+            />
+            <button
+              className="button-primary w-full sm:w-auto"
+              type="button"
+              disabled={isPending || remaining <= 0}
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              Take photo
+            </button>
+            <button
+              className="button-secondary w-full sm:w-auto"
+              type="button"
+              disabled={isPending || remaining <= 0}
+              onClick={() => libraryInputRef.current?.click()}
+            >
+              Choose from library
+            </button>
+          </div>
           <p className="body-copy mt-2 text-sm">
-            Use your camera or library. Images are compressed in the browser to target 800KB or less.
+            Take it live or pull it in later from your camera roll. Images are compressed in the browser to target 800KB or less.
           </p>
         </div>
 
@@ -535,7 +578,7 @@ export function UploadPanel({
               <div>
                 <p className="eyebrow">Selected Preview</p>
                 <p className="body-copy mt-2 text-sm">
-                  This is the next frame that will join your grid.
+                  This {selectedSource === "camera" ? "camera shot" : selectedSource === "library" ? "library photo" : "image"} is the next frame that will join your grid.
                 </p>
               </div>
               <button className="text-sm font-medium text-[var(--muted)]" type="button" onClick={clearSelectedFile}>
