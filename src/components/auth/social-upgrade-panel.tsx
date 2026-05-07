@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
+import { createClient } from "@/lib/supabase/client";
+import { isAnonymousUser } from "@/lib/user-state";
 
 type SocialUpgradePanelProps = {
   tripId: string;
@@ -8,6 +12,46 @@ type SocialUpgradePanelProps = {
 };
 
 export function SocialUpgradePanel({ tripId, nextPath }: SocialUpgradePanelProps) {
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function checkSession() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!isActive) {
+        return;
+      }
+
+      if (user && !isAnonymousUser(user)) {
+        router.refresh();
+        return;
+      }
+
+      setIsCheckingSession(false);
+    }
+
+    void checkSession();
+
+    return () => {
+      isActive = false;
+    };
+  }, [router]);
+
+  if (isCheckingSession) {
+    return (
+      <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
+        <p className="eyebrow">Checking sign-in</p>
+        <p className="body-copy mt-2 text-sm sm:text-base">Hold on while we confirm your account state.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
       <div className="space-y-3">

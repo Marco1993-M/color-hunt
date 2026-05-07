@@ -5,6 +5,7 @@ import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import { getAppOrigin } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/client";
+import { isAnonymousUser } from "@/lib/user-state";
 
 type SocialAuthButtonsProps = {
   mode: "sign-in" | "upgrade";
@@ -32,6 +33,24 @@ export function SocialAuthButtons({
 
     startTransition(async () => {
       const supabase = createClient();
+      const {
+        data: { user: existingUser },
+      } = await supabase.auth.getUser();
+
+      if (existingUser && !isAnonymousUser(existingUser)) {
+        trackEvent({
+          eventName: "social_auth_already_signed_in",
+          tripId,
+          metadata: {
+            source,
+            mode,
+            provider,
+          },
+        });
+        window.location.assign(nextPath);
+        return;
+      }
+
       const appOrigin = getAppOrigin();
 
       if (!appOrigin) {
