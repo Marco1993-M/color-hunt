@@ -19,10 +19,15 @@ export function PublicPosterEvents({ shareId }: PublicPosterEventsProps) {
   return null;
 }
 
-export function PublicPosterCtaLink({ shareId }: PublicPosterEventsProps) {
+type PublicPosterCtaLinkProps = PublicPosterEventsProps & {
+  href: string;
+  label: string;
+};
+
+export function PublicPosterCtaLink({ shareId, href, label }: PublicPosterCtaLinkProps) {
   return (
     <Link
-      href="/"
+      href={href}
       className="button-secondary w-full sm:w-auto"
       onClick={() =>
         trackEvent({
@@ -31,7 +36,7 @@ export function PublicPosterCtaLink({ shareId }: PublicPosterEventsProps) {
         })
       }
     >
-      Start your own color hunt
+      {label}
     </Link>
   );
 }

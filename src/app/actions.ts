@@ -13,6 +13,8 @@ export async function createTripAction(formData: FormData) {
   const startDate = String(formData.get("start_date") || "").trim();
   const endDate = String(formData.get("end_date") || "").trim();
   const selectedColor = String(formData.get("color_name") || "random").trim();
+  const challengeShareId = String(formData.get("challenge_share_id") || "").trim();
+  const challengeColorName = String(formData.get("challenge_color_name") || "").trim();
 
   if (!title || !location) {
     throw new Error("Trip title and location are required.");
@@ -67,6 +69,8 @@ export async function createTripAction(formData: FormData) {
       location,
       selectedColor,
       assignedColor: mission.color_name,
+      challengeColorName: challengeColorName || null,
+      challengeShareId: challengeShareId || null,
       maxPhotos: 9,
     },
   });

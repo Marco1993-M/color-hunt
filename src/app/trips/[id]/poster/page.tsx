@@ -80,6 +80,11 @@ export default async function PosterPage({ params }: PosterPageProps) {
               schemaReady={shareState.schemaReady}
               currentPhotoCount={photos.length}
               maxPhotos={mission.max_photos}
+              tripTitle={trip.title}
+              location={trip.location}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+              missionColorName={mission.color_name}
             />
           )}
         </div>

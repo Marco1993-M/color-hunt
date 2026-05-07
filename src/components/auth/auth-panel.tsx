@@ -6,7 +6,12 @@ import { trackEvent } from "@/lib/analytics";
 import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { createClient } from "@/lib/supabase/client";
 
-export function AuthPanel() {
+type AuthPanelProps = {
+  nextPath?: string;
+  challengeColorName?: string | null;
+};
+
+export function AuthPanel({ nextPath = "/trips/new", challengeColorName = null }: AuthPanelProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -35,10 +40,12 @@ export function AuthPanel() {
         eventName: "guest_session_started",
         metadata: {
           source: "landing_auth_panel",
+          nextPath,
+          challengeColorName,
         },
       });
       setMessage("Your guest hunt is ready. Opening the trip builder...");
-      window.location.assign("/trips/new");
+      window.location.assign(nextPath);
     });
   }
 
@@ -54,7 +61,11 @@ export function AuthPanel() {
       <p className="body-copy mt-3 max-w-lg text-sm sm:text-base">
         Pick a place, get a color mission, and start collecting the little details most people miss before any account friction shows up.
       </p>
-      <p className="game-start-note mt-3">Save with Google or Apple once your poster is worth keeping.</p>
+      <p className="game-start-note mt-3">
+        {challengeColorName
+          ? `Save with Google later if you want to keep this ${challengeColorName} challenge.`
+          : "Save with Google later once your poster is worth keeping."}
+      </p>
       <div className="game-start-points mt-5">
         <span>Pick a place</span>
         <span>Get a color</span>

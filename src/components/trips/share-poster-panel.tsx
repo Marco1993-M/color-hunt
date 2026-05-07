@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { missionSeeds } from "@/lib/missions";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import { getRetentionSummaryLabel } from "@/lib/retention";
+import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { createClient } from "@/lib/supabase/client";
 
 type SharePosterPanelProps = {
@@ -13,6 +15,11 @@ type SharePosterPanelProps = {
   schemaReady: boolean;
   currentPhotoCount: number;
   maxPhotos: number;
+  tripTitle: string;
+  location: string;
+  startDate: string | null;
+  endDate: string | null;
+  missionColorName: string;
 };
 
 type SupabaseErrorLike = {
@@ -31,9 +38,15 @@ export function SharePosterPanel({
   schemaReady,
   currentPhotoCount,
   maxPhotos,
+  tripTitle,
+  location,
+  startDate,
+  endDate,
+  missionColorName,
 }: SharePosterPanelProps) {
   const [shareId, setShareId] = useState(initialShareId);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [challengeColorName, setChallengeColorName] = useState(missionColorName);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -55,6 +68,25 @@ export function SharePosterPanel({
 
     return `${window.location.origin}/poster/${shareId}`;
   }, [shareId]);
+
+  const challengeUrl = useMemo(() => {
+    if (!shareUrl) {
+      return null;
+    }
+
+    const url = new URL(shareUrl);
+    url.searchParams.set("challengeColor", challengeColorName);
+    url.searchParams.set("challengeLocation", location);
+    url.searchParams.set("challengeTitle", tripTitle);
+    if (startDate) {
+      url.searchParams.set("challengeStartDate", startDate);
+    }
+    if (endDate) {
+      url.searchParams.set("challengeEndDate", endDate);
+    }
+    url.searchParams.set("challengeShareId", shareId ?? "");
+    return url.toString();
+  }, [challengeColorName, endDate, location, shareId, shareUrl, startDate, tripTitle]);
 
   function handleToggle(nextValue: boolean) {
     setError(null);
@@ -184,7 +216,16 @@ export function SharePosterPanel({
           <p className="eyebrow">Public Link</p>
           <p className="body-copy mt-2 break-all text-sm">{shareUrl}</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <button className="button-primary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
+            <ShareLinkButton
+              tripId={tripId}
+              shareId={shareId}
+              url={shareUrl}
+              title={`Color Hunt · ${location}`}
+              text={`One place. One color. Nine moments. ${location}`}
+              buttonLabel="Share now"
+              buttonDescription="Open your phone’s share sheet"
+            />
+            <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
               Copy link
             </button>
             <a
@@ -202,6 +243,68 @@ export function SharePosterPanel({
             >
               Open public page
             </a>
+          </div>
+
+          <div className="mt-5 rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/55 p-4">
+            <p className="eyebrow">Challenge a friend</p>
+            <p className="body-copy mt-2 text-sm">
+              Send this poster as a new mission. Keep the place and dates, but choose the color they should hunt for.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <label className="field-label" htmlFor="challenge-color-name">
+                  Challenge color
+                </label>
+                <select
+                  id="challenge-color-name"
+                  className="field-input"
+                  value={challengeColorName}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setChallengeColorName(nextValue);
+                    trackEvent({
+                      eventName: "challenge_color_changed",
+                      tripId,
+                      shareId,
+                      metadata: {
+                        challengeColorName: nextValue,
+                      },
+                    });
+                  }}
+                >
+                  {missionSeeds.map((mission) => (
+                    <option key={mission.color_name} value={mission.color_name}>
+                      {mission.color_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {challengeUrl ? (
+                <button
+                  className="button-primary w-full sm:w-auto"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(challengeUrl);
+                      trackEvent({
+                        eventName: "challenge_link_copied",
+                        tripId,
+                        shareId,
+                        metadata: {
+                          challengeColorName,
+                        },
+                      });
+                      setMessage("Challenge link copied.");
+                      setError(null);
+                    } catch {
+                      setError("Could not copy the challenge link automatically.");
+                    }
+                  }}
+                >
+                  Copy challenge link
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}

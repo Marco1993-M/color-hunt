@@ -39,9 +39,9 @@ export function UploadPanel({
   bucketName,
   photos,
 }: UploadPanelProps) {
-  const [file, setFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedSource, setSelectedSource] = useState<"camera" | "library" | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [orderedPhotos, setOrderedPhotos] = useState(photos);
   const [draggingPhotoId, setDraggingPhotoId] = useState<string | null>(null);
   const [dragTargetPhotoId, setDragTargetPhotoId] = useState<string | null>(null);
@@ -59,32 +59,50 @@ export function UploadPanel({
   }, [photos]);
 
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
+    if (selectedFiles.length === 0) {
+      setPreviewUrls([]);
       return;
     }
 
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl(nextPreviewUrl);
+    const nextPreviewUrls = selectedFiles.map((selectedFile) => URL.createObjectURL(selectedFile));
+    setPreviewUrls(nextPreviewUrls);
 
     return () => {
-      URL.revokeObjectURL(nextPreviewUrl);
+      nextPreviewUrls.forEach((nextPreviewUrl) => URL.revokeObjectURL(nextPreviewUrl));
     };
-  }, [file]);
+  }, [selectedFiles]);
 
   function clearSelectedFile() {
-    setFile(null);
+    setSelectedFiles([]);
     setSelectedSource(null);
-    setPreviewUrl(null);
+    setPreviewUrls([]);
   }
 
   function handleFileSelection(
     event: React.ChangeEvent<HTMLInputElement>,
     source: "camera" | "library",
   ) {
-    const nextFile = event.target.files?.[0] ?? null;
-    setFile(nextFile);
-    setSelectedSource(nextFile ? source : null);
+    const nextFiles = Array.from(event.target.files ?? []).filter((candidate) =>
+      acceptedFileTypes.includes(candidate.type),
+    );
+
+    if (nextFiles.length > 0) {
+      const remainingCapacity = Math.max(maxPhotos - currentCount, 0);
+      const limitedFiles = nextFiles.slice(0, remainingCapacity);
+      setSelectedFiles(limitedFiles);
+      setSelectedSource(source);
+
+      if (nextFiles.length > limitedFiles.length) {
+        setStatus(`Only the first ${limitedFiles.length} images were kept because this poster has limited space left.`);
+      } else {
+        setStatus(null);
+      }
+      setError(null);
+    } else {
+      setSelectedFiles([]);
+      setSelectedSource(null);
+    }
+
     event.target.value = "";
   }
 
@@ -356,13 +374,13 @@ export function UploadPanel({
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!file) {
+    if (selectedFiles.length === 0) {
       setError("Choose a JPG, PNG, or WebP image first.");
       trackEvent({
         eventName: "photo_upload_failed",
         tripId,
         metadata: {
-          reason: "missing_file",
+          reason: "missing_files",
         },
       });
       return;
@@ -385,88 +403,107 @@ export function UploadPanel({
 
     startTransition(async () => {
       try {
-        if (!acceptedFileTypes.includes(file.type)) {
-          throw new Error("Unsupported file type. Use JPG, PNG, or WebP.");
-        }
-
-        const compressed = await imageCompression(file, {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 2400,
-          useWebWorker: true,
-          fileType: "image/webp",
-          initialQuality: 0.82,
-        });
-
-        const photoId = crypto.randomUUID();
-        const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
-        const uploadFile = new File([compressed], `${photoId}.webp`, {
-          type: "image/webp",
-        });
-
-        setStatus("Uploading to storage...");
-
         const supabase = createClient();
-        const { error: uploadError } = await supabase.storage.from(bucketName).upload(storagePath, uploadFile, {
-          cacheControl: "3600",
-          contentType: "image/webp",
-          upsert: false,
-        });
+        const filesToUpload = selectedFiles.slice(0, remaining);
 
-        if (uploadError) {
-          throw uploadError;
-        }
+        for (const [index, file] of filesToUpload.entries()) {
+          if (!acceptedFileTypes.includes(file.type)) {
+            throw new Error("Unsupported file type. Use JPG, PNG, or WebP.");
+          }
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
+          setStatus(
+            filesToUpload.length > 1
+              ? `Compressing image ${index + 1} of ${filesToUpload.length}...`
+              : "Compressing image...",
+          );
 
-        setStatus("Saving photo details...");
+          const compressed = await imageCompression(file, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 2400,
+            useWebWorker: true,
+            fileType: "image/webp",
+            initialQuality: 0.82,
+          });
 
-        const { error: insertError } = await supabase.from("photos").insert({
-          id: photoId,
-          trip_id: tripId,
-          mission_id: missionId,
-          user_id: userId,
-          image_url: publicUrl,
-          storage_path: storagePath,
-          sort_order: currentCount,
-          caption: null,
-          dominant_color: null,
-          color_match_score: null,
-        });
+          const photoId = crypto.randomUUID();
+          const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
+          const uploadFile = new File([compressed], `${photoId}.webp`, {
+            type: "image/webp",
+          });
 
-        let finalInsertError = insertError as SupabaseErrorLike | null;
+          setStatus(
+            filesToUpload.length > 1
+              ? `Uploading image ${index + 1} of ${filesToUpload.length}...`
+              : "Uploading to storage...",
+          );
 
-        if (isMissingSortOrderColumn(finalInsertError)) {
-          const fallbackInsert = await supabase.from("photos").insert({
+          const { error: uploadError } = await supabase.storage.from(bucketName).upload(storagePath, uploadFile, {
+            cacheControl: "3600",
+            contentType: "image/webp",
+            upsert: false,
+          });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
+
+          setStatus(
+            filesToUpload.length > 1
+              ? `Saving image ${index + 1} of ${filesToUpload.length}...`
+              : "Saving photo details...",
+          );
+
+          const { error: insertError } = await supabase.from("photos").insert({
             id: photoId,
             trip_id: tripId,
             mission_id: missionId,
             user_id: userId,
             image_url: publicUrl,
             storage_path: storagePath,
+            sort_order: currentCount + index,
             caption: null,
             dominant_color: null,
             color_match_score: null,
           });
 
-          finalInsertError = fallbackInsert.error;
-        }
+          let finalInsertError = insertError as SupabaseErrorLike | null;
 
-        if (finalInsertError) {
-          throw finalInsertError;
+          if (isMissingSortOrderColumn(finalInsertError)) {
+            const fallbackInsert = await supabase.from("photos").insert({
+              id: photoId,
+              trip_id: tripId,
+              mission_id: missionId,
+              user_id: userId,
+              image_url: publicUrl,
+              storage_path: storagePath,
+              caption: null,
+              dominant_color: null,
+              color_match_score: null,
+            });
+
+            finalInsertError = fallbackInsert.error;
+          }
+
+          if (finalInsertError) {
+            throw finalInsertError;
+          }
+
+          trackEvent({
+            eventName: "photo_uploaded",
+            tripId,
+            metadata: {
+              missionId,
+              remainingAfterUpload: Math.max(remaining - (index + 1), 0),
+              source: selectedSource ?? "unknown",
+            },
+          });
         }
 
         clearSelectedFile();
-        trackEvent({
-          eventName: "photo_uploaded",
-          tripId,
-          metadata: {
-            missionId,
-            remainingAfterUpload: Math.max(remaining - 1, 0),
-            source: selectedSource ?? "unknown",
-          },
-        });
 
         if (currentCount === 0) {
           trackEvent({
@@ -479,7 +516,7 @@ export function UploadPanel({
           });
         }
 
-        if (currentCount + 1 >= maxPhotos) {
+        if (currentCount + filesToUpload.length >= maxPhotos) {
           trackEvent({
             eventName: "poster_completed",
             tripId,
@@ -490,7 +527,7 @@ export function UploadPanel({
             },
           });
         }
-        setStatus("Photo added to your grid.");
+        setStatus(filesToUpload.length > 1 ? `${filesToUpload.length} photos added to your grid.` : "Photo added to your grid.");
         router.refresh();
       } catch (uploadFailure) {
         const message =
@@ -546,6 +583,7 @@ export function UploadPanel({
               className="sr-only"
               type="file"
               accept=".jpg,.jpeg,.png,.webp"
+              multiple
               onChange={(event) => handleFileSelection(event, "library")}
               disabled={isPending || remaining <= 0}
               tabIndex={-1}
@@ -572,28 +610,47 @@ export function UploadPanel({
           </p>
         </div>
 
-        {previewUrl ? (
+        {previewUrls.length > 0 ? (
           <div className="rounded-[1.5rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.55)] p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="eyebrow">Selected Preview</p>
                 <p className="body-copy mt-2 text-sm">
-                  This {selectedSource === "camera" ? "camera shot" : selectedSource === "library" ? "library photo" : "image"} is the next frame that will join your grid.
+                  {previewUrls.length > 1
+                    ? `${previewUrls.length} ${
+                        selectedSource === "library" ? "library photos are" : "images are"
+                      } queued to join your grid.`
+                    : `This ${selectedSource === "camera" ? "camera shot" : selectedSource === "library" ? "library photo" : "image"} is the next frame that will join your grid.`}
                 </p>
               </div>
               <button className="text-sm font-medium text-[var(--muted)]" type="button" onClick={clearSelectedFile}>
                 Remove
               </button>
             </div>
-            <div className="mt-3 overflow-hidden rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/70">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewUrl} alt="Selected photo preview" className="aspect-[4/5] w-full object-cover" />
+            <div className={`mt-3 ${previewUrls.length > 1 ? "grid grid-cols-3 gap-2" : "overflow-hidden rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/70"}`}>
+              {previewUrls.map((previewUrl, index) => (
+                <div
+                  key={previewUrl}
+                  className={
+                    previewUrls.length > 1
+                      ? "overflow-hidden rounded-[1rem] border border-[rgba(53,37,30,0.08)] bg-white/70"
+                      : ""
+                  }
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewUrl}
+                    alt={`Selected photo preview ${index + 1}`}
+                    className={`${previewUrls.length > 1 ? "aspect-square" : "aspect-[4/5]"} w-full object-cover`}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         ) : null}
 
         <button className="button-primary w-full sm:w-auto" type="submit" disabled={isPending || remaining <= 0}>
-          {isPending ? "Uploading..." : remaining <= 0 ? "Mission Complete" : "Upload photo"}
+          {isPending ? "Uploading..." : remaining <= 0 ? "Mission Complete" : previewUrls.length > 1 ? `Upload ${previewUrls.length} photos` : "Upload photo"}
         </button>
       </form>
 

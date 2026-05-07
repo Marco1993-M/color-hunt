@@ -58,18 +58,58 @@ const payoffPoster = {
   tone: "from-[#f7e8ae] via-[#edc34d] to-[#d89c23]",
 };
 
-export default async function Home() {
+type HomeProps = {
+  searchParams: Promise<{
+    challengeColor?: string;
+    challengeLocation?: string;
+    challengeTitle?: string;
+    challengeStartDate?: string;
+    challengeEndDate?: string;
+    challengeShareId?: string;
+  }>;
+};
+
+function buildChallengeNextPath(params: {
+  challengeColor?: string;
+  challengeLocation?: string;
+  challengeTitle?: string;
+  challengeStartDate?: string;
+  challengeEndDate?: string;
+  challengeShareId?: string;
+}) {
+  const nextParams = new URLSearchParams();
+
+  if (params.challengeColor) nextParams.set("challengeColor", params.challengeColor);
+  if (params.challengeLocation) nextParams.set("challengeLocation", params.challengeLocation);
+  if (params.challengeTitle) nextParams.set("challengeTitle", params.challengeTitle);
+  if (params.challengeStartDate) nextParams.set("challengeStartDate", params.challengeStartDate);
+  if (params.challengeEndDate) nextParams.set("challengeEndDate", params.challengeEndDate);
+  if (params.challengeShareId) nextParams.set("challengeShareId", params.challengeShareId);
+
+  const query = nextParams.toString();
+  return query ? `/trips/new?${query}` : "/trips/new";
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  const challengeParams = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const isGuest = isAnonymousUser(user);
+  const challengeNextPath = buildChallengeNextPath(challengeParams);
+  const challengeColorName = challengeParams.challengeColor?.trim() || null;
+  const isChallengeFlow = Boolean(challengeColorName);
 
   return (
     <main className="app-shell landing-shell">
       <EventOnView
         eventName="landing_viewed"
-        metadata={{ isAuthenticated: Boolean(user), isAnonymous: isGuest }}
+        metadata={{
+          isAuthenticated: Boolean(user),
+          isAnonymous: isGuest,
+          challengeColorName,
+        }}
       />
       <section className="mx-auto flex min-h-screen max-w-7xl flex-col gap-10 px-4 py-5 sm:gap-12 sm:px-10 sm:py-8 lg:px-16">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -124,10 +164,23 @@ export default async function Home() {
               </div>
 
               <div className="game-start-rail">
-                <Link className="button-primary w-full sm:w-auto" href={user ? "/dashboard" : "#start"}>
-                  {user ? (isGuest ? "Resume your guest hunt" : "Start your next hunt") : "Start your first hunt"}
+                <Link
+                  className="button-primary w-full sm:w-auto"
+                  href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+                >
+                  {user
+                    ? isChallengeFlow
+                      ? `Start the ${challengeColorName} challenge`
+                      : isGuest
+                        ? "Resume your guest hunt"
+                        : "Start your next hunt"
+                    : "Start your first hunt"}
                 </Link>
-                <p className="micro-copy text-[rgba(67,58,97,0.66)]">No app. Start as a guest. Save with Google or Apple later.</p>
+                <p className="micro-copy text-[rgba(67,58,97,0.66)]">
+                  {isChallengeFlow
+                    ? `Start as a guest and take on this ${challengeColorName} poster challenge.`
+                    : "No app. Start as a guest. Save with Google later."}
+                </p>
               </div>
             </div>
           </div>
@@ -193,7 +246,7 @@ export default async function Home() {
                   </Link>
                 </div>
               ) : (
-                <AuthPanel />
+                <AuthPanel nextPath={challengeNextPath} challengeColorName={challengeColorName} />
               )}
               <div className="playful-card rounded-[2rem] p-5">
                 <div className="flex items-center justify-between gap-4">
