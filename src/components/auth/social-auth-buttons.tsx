@@ -17,18 +17,6 @@ type SocialAuthButtonsProps = {
 
 type ProviderName = "google";
 
-const UPGRADE_CONTEXT_KEY = "colorhunt-upgrade-context";
-
-function persistUpgradeContext(context: { nextPath: string; tripId: string; guestUserId: string }) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const serialized = JSON.stringify(context);
-  window.sessionStorage.setItem(UPGRADE_CONTEXT_KEY, serialized);
-  document.cookie = `${UPGRADE_CONTEXT_KEY}=${encodeURIComponent(serialized)}; path=/; max-age=600; SameSite=Lax`;
-}
-
 export function SocialAuthButtons({
   mode,
   nextPath,
@@ -70,28 +58,12 @@ export function SocialAuthButtons({
         return;
       }
 
-      if (mode === "upgrade" && tripId && existingUser?.id && typeof window !== "undefined") {
-        persistUpgradeContext({
-          nextPath,
-          tripId,
-          guestUserId: existingUser.id,
-        });
-      }
-
       setActiveProvider(provider);
 
-      const callbackParams = new URLSearchParams({
-        next: nextPath,
-      });
-
-      if (mode === "upgrade" && tripId) {
-        callbackParams.set("transferTripId", tripId);
-        if (existingUser?.id) {
-          callbackParams.set("guestUserId", existingUser.id);
-        }
-      }
-
-      const redirectTo = `${appOrigin}/auth/callback?${callbackParams.toString()}`;
+      const redirectTo =
+        mode === "upgrade" && tripId && existingUser?.id
+          ? `${appOrigin}/auth/callback/upgrade/${encodeURIComponent(tripId)}/${encodeURIComponent(existingUser.id)}`
+          : `${appOrigin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const credentials = {
         provider,
         options: {
