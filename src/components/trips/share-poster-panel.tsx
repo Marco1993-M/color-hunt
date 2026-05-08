@@ -4,8 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { missionSeeds } from "@/lib/missions";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
+import { DownloadPosterButton } from "@/components/trips/download-poster-button";
 import { getRetentionSummaryLabel } from "@/lib/retention";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
+import { ShareStoryButton } from "@/components/trips/share-story-button";
 import { createClient } from "@/lib/supabase/client";
 
 type SharePosterPanelProps = {
@@ -213,8 +215,10 @@ export function SharePosterPanel({
 
       {isPublic && shareUrl ? (
         <div className="mt-5 rounded-[1.4rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.55)] p-4">
-          <p className="eyebrow">Public Link</p>
-          <p className="body-copy mt-2 break-all text-sm">{shareUrl}</p>
+          <p className="eyebrow">Share and Download</p>
+          <p className="body-copy mt-2 text-sm">
+            Your poster is live. Share it straight from here, download the best format, or open the public version if you want to preview what others will see.
+          </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <ShareLinkButton
               tripId={tripId}
@@ -222,28 +226,36 @@ export function SharePosterPanel({
               url={shareUrl}
               title={`Color Hunt · ${location}`}
               text={`One place. One color. Nine moments. ${location}`}
-              buttonLabel="Share now"
+              buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
+            <ShareStoryButton shareId={shareId!} locationLabel={location} />
             <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
               Copy link
             </button>
-            <a
-              className="button-secondary w-full sm:w-auto"
-              href={shareUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() =>
-                trackEvent({
-                  eventName: "share_link_opened_from_dashboard",
-                  tripId,
-                  shareId,
-                })
-              }
-            >
-              Open public page
-            </a>
           </div>
+
+          <div className="mt-5">
+            <DownloadPosterButton shareId={shareId!} />
+          </div>
+
+          <p className="eyebrow mt-5">Public Link</p>
+          <p className="body-copy mt-2 break-all text-sm">{shareUrl}</p>
+          <a
+            className="button-secondary mt-4 w-full sm:w-auto"
+            href={shareUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() =>
+              trackEvent({
+                eventName: "share_link_opened_from_dashboard",
+                tripId,
+                shareId,
+              })
+            }
+          >
+            View public poster
+          </a>
 
           <div className="mt-5 rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/55 p-4">
             <p className="eyebrow">Challenge a friend</p>
