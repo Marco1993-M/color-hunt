@@ -216,7 +216,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[rgba(67,58,97,0.56)]">colorhunt.quest · See places differently</p>
           </div>
           <Link className="header-utility-link" href={user ? "/dashboard" : "#start"}>
-            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Jump to the hunt"}
+            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Start with Google"}
           </Link>
         </header>
 
@@ -271,8 +271,8 @@ export default async function Home({ searchParams }: HomeProps) {
                 </Link>
                 <p className="micro-copy text-[rgba(67,58,97,0.66)]">
                   {isChallengeFlow
-                    ? `Start as a guest and take on this ${challengeColorName} poster challenge.`
-                    : "No app. Start as a guest. Save with Google later."}
+                    ? `Sign in with Google and take on this ${challengeColorName} poster challenge.`
+                    : "Continue with Google. Start in seconds. Save and share without extra steps."}
                 </p>
               </div>
             </div>
@@ -331,7 +331,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </h2>
                   <p className="body-copy mt-3 text-base">
                     {isGuest
-                      ? "Jump back in, finish the poster, and then attach Google or Apple when you want to save it properly."
+                      ? "Jump back in, finish the poster, and then attach Google when you want to save it properly."
                       : "Head to your dashboard, choose a place, and start building a nine-frame story that feels worth keeping."}
                   </p>
                   <Link className="button-primary mt-6 w-full sm:w-auto" href="/dashboard">
