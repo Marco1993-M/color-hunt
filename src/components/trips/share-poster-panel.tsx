@@ -58,6 +58,36 @@ export function SharePosterPanel({
     maxPhotos,
   });
 
+  async function warmPosterExports() {
+    try {
+      const response = await fetch("/api/poster-exports/generate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ tripId }),
+        keepalive: true,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Poster export warmup failed with status ${response.status}.`);
+      }
+
+      trackEvent({
+        eventName: "poster_exports_warmed",
+        tripId,
+      });
+    } catch (failure) {
+      trackEvent({
+        eventName: "poster_exports_warm_failed",
+        tripId,
+        metadata: {
+          message: failure instanceof Error ? failure.message : "unknown_failure",
+        },
+      });
+    }
+  }
+
   const shareUrl = useMemo(() => {
     if (!shareId) {
       return null;
@@ -132,6 +162,9 @@ export function SharePosterPanel({
 
         setShareId(result.data?.share_id ?? nextShareId);
         setIsPublic(result.data?.is_public ?? nextValue);
+        if (nextValue) {
+          void warmPosterExports();
+        }
         trackEvent({
           eventName: nextValue ? "poster_published" : "poster_unpublished",
           tripId,

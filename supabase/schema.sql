@@ -77,6 +77,16 @@ create table if not exists public.collages (
   created_at timestamptz not null default timezone('utc'::text, now())
 );
 
+create table if not exists public.poster_exports (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references public.trips(id) on delete cascade,
+  format text not null check (format in ('post', 'story', 'square')),
+  storage_path text not null,
+  image_url text not null,
+  generated_at timestamptz not null default timezone('utc'::text, now()),
+  unique (trip_id, format)
+);
+
 create table if not exists public.analytics_events (
   id uuid primary key default gen_random_uuid(),
   event_name text not null,
@@ -94,6 +104,7 @@ alter table public.trips enable row level security;
 alter table public.missions enable row level security;
 alter table public.photos enable row level security;
 alter table public.collages enable row level security;
+alter table public.poster_exports enable row level security;
 alter table public.analytics_events enable row level security;
 
 drop policy if exists "users can view own profile" on public.users;
@@ -205,6 +216,41 @@ with check (
   )
 );
 
+drop policy if exists "users can manage poster exports on own trips" on public.poster_exports;
+create policy "users can manage poster exports on own trips"
+on public.poster_exports for all
+to authenticated
+using (
+  exists (
+    select 1
+    from public.trips
+    where trips.id = poster_exports.trip_id
+      and trips.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.trips
+    where trips.id = poster_exports.trip_id
+      and trips.user_id = auth.uid()
+  )
+);
+
+drop policy if exists "public can view poster exports on shared trips" on public.poster_exports;
+create policy "public can view poster exports on shared trips"
+on public.poster_exports for select
+to public
+using (
+  exists (
+    select 1
+    from public.trips
+    where trips.id = poster_exports.trip_id
+      and trips.is_public = true
+      and trips.share_id is not null
+  )
+);
+
 drop policy if exists "public can insert analytics events" on public.analytics_events;
 create policy "public can insert analytics events"
 on public.analytics_events for insert
@@ -213,6 +259,10 @@ with check (char_length(event_name) > 0);
 
 insert into storage.buckets (id, name, public)
 values ('trip-photos', 'trip-photos', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('poster-exports', 'poster-exports', true)
 on conflict (id) do nothing;
 
 drop policy if exists "users can upload own trip photos" on storage.objects;
@@ -251,3 +301,40 @@ create policy "public can view trip photos"
 on storage.objects for select
 to public
 using (bucket_id = 'trip-photos');
+
+drop policy if exists "users can upload own poster exports" on storage.objects;
+create policy "users can upload own poster exports"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'poster-exports'
+  and split_part(name, '/', 1) = auth.uid()::text
+);
+
+drop policy if exists "users can update own poster exports" on storage.objects;
+create policy "users can update own poster exports"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'poster-exports'
+  and split_part(name, '/', 1) = auth.uid()::text
+)
+with check (
+  bucket_id = 'poster-exports'
+  and split_part(name, '/', 1) = auth.uid()::text
+);
+
+drop policy if exists "users can delete own poster exports" on storage.objects;
+create policy "users can delete own poster exports"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'poster-exports'
+  and split_part(name, '/', 1) = auth.uid()::text
+);
+
+drop policy if exists "public can view poster exports" on storage.objects;
+create policy "public can view poster exports"
+on storage.objects for select
+to public
+using (bucket_id = 'poster-exports');

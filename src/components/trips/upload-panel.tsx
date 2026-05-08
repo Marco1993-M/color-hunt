@@ -54,6 +54,36 @@ export function UploadPanel({
   const router = useRouter();
   const remaining = useMemo(() => Math.max(maxPhotos - currentCount, 0), [currentCount, maxPhotos]);
 
+  async function warmPosterExports() {
+    try {
+      const response = await fetch("/api/poster-exports/generate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ tripId }),
+        keepalive: true,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Poster export warmup failed with status ${response.status}.`);
+      }
+
+      trackEvent({
+        eventName: "poster_exports_warmed",
+        tripId,
+      });
+    } catch (error) {
+      trackEvent({
+        eventName: "poster_exports_warm_failed",
+        tripId,
+        metadata: {
+          message: error instanceof Error ? error.message : "unknown_failure",
+        },
+      });
+    }
+  }
+
   useEffect(() => {
     setOrderedPhotos(photos);
   }, [photos]);
@@ -176,6 +206,9 @@ export function UploadPanel({
             photoCount: nextPhotos.length,
           },
         });
+        if (nextPhotos.length >= maxPhotos) {
+          void warmPosterExports();
+        }
         setStatus(successMessage);
         router.refresh();
       } catch (reorderFailure) {
@@ -526,6 +559,7 @@ export function UploadPanel({
               source: selectedSource ?? "unknown",
             },
           });
+          void warmPosterExports();
         }
         setStatus(filesToUpload.length > 1 ? `${filesToUpload.length} photos added to your grid.` : "Photo added to your grid.");
         router.refresh();

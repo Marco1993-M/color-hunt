@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/admin-supabase";
 import { getSupabaseEnv } from "@/lib/env";
+import { getPosterExportBucketName } from "@/lib/poster-cache";
 import { getRetentionDays, retentionPolicy } from "@/lib/retention";
 
 export const runtime = "nodejs";
@@ -10,6 +11,7 @@ type CleanupTripRecord = {
   created_at: string;
   is_public: boolean;
   photos: Array<{ id: string; storage_path: string; created_at: string }> | null;
+  poster_exports: Array<{ storage_path: string }> | null;
   missions: Array<{ max_photos: number }> | null;
 };
 
@@ -61,11 +63,12 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
     const bucketName = getSupabaseEnv().storageBucket;
+    const posterExportBucketName = getPosterExportBucketName();
     const now = new Date();
 
     const { data, error } = await supabase
       .from("trips")
-      .select("id, created_at, is_public, photos(id, storage_path, created_at), missions(max_photos)")
+      .select("id, created_at, is_public, photos(id, storage_path, created_at), poster_exports(storage_path), missions(max_photos)")
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -86,6 +89,7 @@ export async function GET(request: NextRequest) {
 
     for (const entry of expiredTrips) {
       const storagePaths = (entry.trip.photos ?? []).map((photo) => photo.storage_path);
+      const posterExportPaths = (entry.trip.poster_exports ?? []).map((posterExport) => posterExport.storage_path);
 
       if (storagePaths.length > 0) {
         const { error: storageError } = await supabase.storage.from(bucketName).remove(storagePaths);
@@ -94,6 +98,18 @@ export async function GET(request: NextRequest) {
           failures.push({
             tripId: entry.trip.id,
             message: storageError.message,
+          });
+          continue;
+        }
+      }
+
+      if (posterExportPaths.length > 0) {
+        const { error: exportStorageError } = await supabase.storage.from(posterExportBucketName).remove(posterExportPaths);
+
+        if (exportStorageError) {
+          failures.push({
+            tripId: entry.trip.id,
+            message: exportStorageError.message,
           });
           continue;
         }

@@ -33,3 +33,12 @@ export type Photo = {
   color_match_score: number | null;
   created_at: string;
 };
+
+export type PosterExport = {
+  id: string;
+  trip_id: string;
+  format: "post" | "story" | "square";
+  storage_path: string;
+  image_url: string;
+  generated_at: string;
+};

@@ -3,6 +3,7 @@ import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
 import { PosterSheet } from "@/components/trips/poster-sheet";
 import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
+import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { requireUser } from "@/lib/auth";
 import { getTripBundle, getTripShareState } from "@/lib/data";
@@ -58,6 +59,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
         ) : null}
 
         <PosterSheet trip={trip} mission={mission} photos={photos} />
+        <PosterExportWarmup tripId={trip.id} enabled={isComplete} />
 
         <div className="mt-6">
           {isGuest ? (
@@ -68,7 +70,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
                 <p className="eyebrow">Guest mode</p>
                 <h3 className="panel-title mt-2 text-2xl font-semibold">Finish the nine first.</h3>
                 <p className="body-copy mt-3 text-sm sm:text-base">
-                  You can preview the poster as a guest, then attach Google or Apple once all {mission.max_photos} frames are filled and the poster is ready to keep.
+                  You can preview the poster as a guest, then attach Google once all {mission.max_photos} frames are filled and the poster is ready to keep.
                 </p>
               </div>
             )

@@ -1,5 +1,5 @@
 import { getSupabaseEnv } from "@/lib/env";
-import type { Mission, Photo, Trip } from "@/lib/types";
+import type { Mission, Photo, PosterExport, Trip } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseErrorLike = {
@@ -231,6 +231,22 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
     mission: mission as Mission,
     photos: sortPhotosByDisplayOrder((photos ?? []) as Photo[]),
   };
+}
+
+export async function getPosterExportForTrip(tripId: string, format: PosterExport["format"]) {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("poster_exports")
+    .select("id, trip_id, format, storage_path, image_url, generated_at")
+    .eq("trip_id", tripId)
+    .eq("format", format)
+    .maybeSingle();
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return (result.data as PosterExport | null) ?? null;
 }
 
 export function getPhotoUrl(photo: Photo) {
