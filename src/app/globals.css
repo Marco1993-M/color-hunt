@@ -1052,6 +1052,96 @@ img {
   border-color: rgba(88, 58, 134, 0.22);
 }
 
+.download-format-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.download-format-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: center;
+  border-radius: 1.4rem;
+  border: 1px solid rgba(53, 37, 30, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.85rem 0.8rem;
+  text-align: center;
+  color: var(--foreground);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.download-format-card:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(53, 37, 30, 0.22);
+  box-shadow: 0 14px 35px rgba(73, 47, 115, 0.1);
+}
+
+.download-format-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.download-format-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 6.6rem);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 231, 0.92));
+  border: 1px solid rgba(53, 37, 30, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.download-format-preview-post {
+  aspect-ratio: 4 / 5;
+}
+
+.download-format-preview-story {
+  aspect-ratio: 9 / 16;
+}
+
+.download-format-preview-square {
+  aspect-ratio: 1 / 1;
+}
+
+.download-format-preview-inner {
+  width: 76%;
+  height: 76%;
+  border-radius: 0.7rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.18)),
+    linear-gradient(135deg, rgba(255, 214, 50, 0.92), rgba(240, 123, 212, 0.78), rgba(47, 97, 223, 0.82));
+  box-shadow: 0 10px 24px rgba(73, 47, 115, 0.12);
+}
+
+.download-format-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.download-format-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.download-format-description {
+  display: block;
+  font-size: 0.74rem;
+  color: rgba(31, 25, 52, 0.74);
+}
+
 .social-auth-buttons {
   display: flex;
   gap: 0.75rem;

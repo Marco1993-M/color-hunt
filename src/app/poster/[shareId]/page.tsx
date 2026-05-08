@@ -3,7 +3,6 @@ import { DownloadPosterButton } from "@/components/trips/download-poster-button"
 import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
-import { ShareStoryButton } from "@/components/trips/share-story-button";
 import { getPublicTripBundleByShareId } from "@/lib/data";
 import { isPosterComplete } from "@/lib/poster";
 
@@ -90,7 +89,6 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
               buttonLabel="Share poster"
               buttonDescription="Send this poster to someone quickly"
             />
-            <ShareStoryButton shareId={shareId} locationLabel={trip.location} />
             <DownloadPosterButton shareId={shareId} />
             <PublicPosterCtaLink
               shareId={shareId}
