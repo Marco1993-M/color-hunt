@@ -54,8 +54,11 @@ async function transferGuestTripToUser({
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") || "/dashboard";
   const transferTripId = requestUrl.searchParams.get("transferTripId");
+  const guestUserId = requestUrl.searchParams.get("guestUserId");
+  const next =
+    requestUrl.searchParams.get("next") ||
+    (transferTripId ? `/trips/${transferTripId}/poster` : "/dashboard");
   const handoffUrl = new URL("/auth/finish", request.url);
   handoffUrl.searchParams.set("next", next);
   const response = NextResponse.redirect(handoffUrl);
@@ -85,18 +88,22 @@ export async function GET(request: NextRequest) {
       data: { user: nextUser },
     } = await supabase.auth.getUser();
 
+    const guestOwnerId = previousUser?.id ?? guestUserId;
+    const canTransferFromPreviousSession =
+      previousUser && guestOwnerId === previousUser.id ? isAnonymousUser(previousUser) : true;
+
     if (
       transferTripId &&
-      previousUser &&
+      guestOwnerId &&
       nextUser &&
-      previousUser.id !== nextUser.id &&
-      isAnonymousUser(previousUser) &&
+      guestOwnerId !== nextUser.id &&
+      canTransferFromPreviousSession &&
       !isAnonymousUser(nextUser)
     ) {
       try {
         await transferGuestTripToUser({
           tripId: transferTripId,
-          fromUserId: previousUser.id,
+          fromUserId: guestOwnerId,
           toUserId: nextUser.id,
         });
       } catch (error) {
