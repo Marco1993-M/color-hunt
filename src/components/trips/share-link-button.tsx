@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
@@ -40,10 +40,52 @@ export function ShareLinkButton({
   className = "button-primary w-full sm:w-auto",
 }: ShareLinkButtonProps) {
   const [isPending, setIsPending] = useState(false);
+  const [prefetchedFile, setPrefetchedFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fallbackLabel = useMemo(() => (buttonDescription ? buttonDescription : null), [buttonDescription]);
+
+  useEffect(() => {
+    if (!fileUrl || typeof window === "undefined") {
+      return;
+    }
+
+    let isActive = true;
+    const controller = new AbortController();
+    const fileUrlToPrefetch = fileUrl;
+
+    async function prefetchShareFile() {
+      try {
+        const response = await fetch(fileUrlToPrefetch, { signal: controller.signal });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const blob = await response.blob();
+
+        if (!isActive) {
+          return;
+        }
+
+        setPrefetchedFile(
+          new File([blob], parseFileName(response, fileName), {
+            type: blob.type || "image/png",
+          }),
+        );
+      } catch {
+        // Silent by design. This is only a performance warm-up.
+      }
+    }
+
+    void prefetchShareFile();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [fileName, fileUrl]);
 
   async function handleShare() {
     setIsPending(true);
@@ -64,16 +106,21 @@ export function ShareLinkButton({
       }
 
       if (fileUrl) {
-        const response = await fetch(fileUrl);
+        let file = prefetchedFile;
 
-        if (!response.ok) {
-          throw new Error("Couldn't prepare the poster image.");
+        if (!file) {
+          const response = await fetch(fileUrl);
+
+          if (!response.ok) {
+            throw new Error("Couldn't prepare the poster image.");
+          }
+
+          const blob = await response.blob();
+          file = new File([blob], parseFileName(response, fileName), {
+            type: blob.type || "image/png",
+          });
+          setPrefetchedFile(file);
         }
-
-        const blob = await response.blob();
-        const file = new File([blob], parseFileName(response, fileName), {
-          type: blob.type || "image/png",
-        });
 
         if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
           await navigator.share({
