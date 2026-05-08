@@ -101,11 +101,11 @@ export function SharePosterPanel({
   }, [shareId]);
 
   const challengeUrl = useMemo(() => {
-    if (!shareUrl) {
+    if (typeof window === "undefined") {
       return null;
     }
 
-    const url = new URL(shareUrl);
+    const url = new URL("/", window.location.origin);
     url.searchParams.set("challengeColor", challengeColorName);
     url.searchParams.set("challengeLocation", location);
     url.searchParams.set("challengeTitle", tripTitle);
@@ -116,8 +116,9 @@ export function SharePosterPanel({
       url.searchParams.set("challengeEndDate", endDate);
     }
     url.searchParams.set("challengeShareId", shareId ?? "");
+    url.hash = "start";
     return url.toString();
-  }, [challengeColorName, endDate, location, shareId, shareUrl, startDate, tripTitle]);
+  }, [challengeColorName, endDate, location, shareId, startDate, tripTitle]);
 
   function handleToggle(nextValue: boolean) {
     setError(null);
