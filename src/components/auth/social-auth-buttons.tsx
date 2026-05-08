@@ -60,7 +60,15 @@ export function SocialAuthButtons({
 
       setActiveProvider(provider);
 
-      const redirectTo = `${appOrigin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+      const callbackParams = new URLSearchParams({
+        next: nextPath,
+      });
+
+      if (mode === "upgrade" && tripId) {
+        callbackParams.set("transferTripId", tripId);
+      }
+
+      const redirectTo = `${appOrigin}/auth/callback?${callbackParams.toString()}`;
       const credentials = {
         provider,
         options: {
@@ -68,10 +76,7 @@ export function SocialAuthButtons({
         },
       } as const;
 
-      const result =
-        mode === "upgrade"
-          ? await supabase.auth.linkIdentity(credentials)
-          : await supabase.auth.signInWithOAuth(credentials);
+      const result = await supabase.auth.signInWithOAuth(credentials);
 
       if (result.error) {
         trackEvent({
