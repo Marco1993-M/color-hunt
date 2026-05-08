@@ -62,7 +62,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
         <div className="mt-6">
           {isGuest ? (
             isComplete ? (
-              <SocialUpgradePanel tripId={trip.id} nextPath={`/trips/${trip.id}/poster`} />
+              <SocialUpgradePanel tripId={trip.id} nextPath="/dashboard" />
             ) : (
               <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
                 <p className="eyebrow">Guest mode</p>
