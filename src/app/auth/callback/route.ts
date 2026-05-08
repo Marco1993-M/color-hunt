@@ -61,6 +61,12 @@ export async function GET(request: NextRequest) {
     (transferTripId ? `/trips/${transferTripId}/poster` : "/dashboard");
   const handoffUrl = new URL("/auth/finish", request.url);
   handoffUrl.searchParams.set("next", next);
+  if (transferTripId) {
+    handoffUrl.searchParams.set("transferTripId", transferTripId);
+  }
+  if (guestUserId) {
+    handoffUrl.searchParams.set("guestUserId", guestUserId);
+  }
   const response = NextResponse.redirect(handoffUrl);
 
   if (code) {
