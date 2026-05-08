@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fredoka } from "next/font/google";
+import { redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { createClient } from "@/lib/supabase/server";
@@ -100,6 +101,10 @@ export default async function Home({ searchParams }: HomeProps) {
   const challengeNextPath = buildChallengeNextPath(challengeParams);
   const challengeColorName = challengeParams.challengeColor?.trim() || null;
   const isChallengeFlow = Boolean(challengeColorName);
+
+  if (user && !isGuest && !isChallengeFlow) {
+    redirect("/dashboard");
+  }
 
   return (
     <main className="app-shell landing-shell">
