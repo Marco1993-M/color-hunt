@@ -7,6 +7,8 @@ import { isAnonymousUser } from "@/lib/user-state";
 
 type AuthFinishClientProps = {
   nextPath: string;
+  transferTripId: string | null;
+  guestUserId: string | null;
 };
 
 const UPGRADE_CONTEXT_KEY = "colorhunt-upgrade-context";
@@ -59,7 +61,7 @@ function clearUpgradeContext() {
   document.cookie = `${UPGRADE_CONTEXT_KEY}=; path=/; max-age=0; SameSite=Lax`;
 }
 
-export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
+export function AuthFinishClient({ nextPath, transferTripId, guestUserId }: AuthFinishClientProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -85,15 +87,18 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
               resolvedNextPath = context.nextPath;
             }
 
-            if (context.tripId && context.guestUserId) {
+            const tripIdToClaim = transferTripId ?? context.tripId;
+            const guestUserIdToClaim = guestUserId ?? context.guestUserId;
+
+            if (tripIdToClaim && guestUserIdToClaim) {
               const response = await fetch("/api/trips/claim-guest", {
                 method: "POST",
                 headers: {
                   "content-type": "application/json",
                 },
                 body: JSON.stringify({
-                  tripId: context.tripId,
-                  guestUserId: context.guestUserId,
+                  tripId: tripIdToClaim,
+                  guestUserId: guestUserIdToClaim,
                 }),
               });
 
@@ -107,6 +112,22 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
           } catch (finishFailure) {
             hasResolved = false;
             throw finishFailure;
+          }
+        } else if (transferTripId && guestUserId) {
+          const response = await fetch("/api/trips/claim-guest", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              tripId: transferTripId,
+              guestUserId,
+            }),
+          });
+
+          if (!response.ok) {
+            const result = (await response.json()) as { error?: string };
+            throw new Error(result.error || "We couldn't attach your guest poster.");
           }
         }
       }
@@ -172,7 +193,7 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
       window.clearInterval(interval);
       window.clearTimeout(timeout);
     };
-  }, [nextPath]);
+  }, [guestUserId, nextPath, transferTripId]);
 
   return (
     <div className="playful-card rounded-[2rem] p-6 text-center sm:p-8">
