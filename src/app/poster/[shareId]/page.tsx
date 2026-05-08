@@ -86,8 +86,9 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
               url={shareUrl}
               title={`Color Hunt · ${trip.location}`}
               text={`One place. One color. Nine moments. ${trip.location}`}
-              buttonLabel="Share poster"
-              buttonDescription="Send this poster to someone quickly"
+              fileUrl={`/poster/${shareId}/download?format=post`}
+              buttonLabel="Save image"
+              buttonDescription="Open your phone’s share sheet to save the poster image"
             />
             <DownloadPosterButton shareId={shareId} />
             <PublicPosterCtaLink
