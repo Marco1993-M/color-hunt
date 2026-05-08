@@ -9,12 +9,68 @@ type AuthFinishClientProps = {
   nextPath: string;
 };
 
+const UPGRADE_CONTEXT_KEY = "colorhunt-upgrade-context";
+
 export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
+    let hasResolved = false;
     const supabase = createClient();
+
+    async function finishSignIn() {
+      if (hasResolved) {
+        return;
+      }
+
+      hasResolved = true;
+      const fallbackNextPath = nextPath;
+      let resolvedNextPath = fallbackNextPath;
+
+      if (typeof window !== "undefined") {
+        const rawContext = window.sessionStorage.getItem(UPGRADE_CONTEXT_KEY);
+
+        if (rawContext) {
+          try {
+            const context = JSON.parse(rawContext) as {
+              nextPath?: string;
+              tripId?: string;
+              guestUserId?: string;
+            };
+
+            if (context.nextPath) {
+              resolvedNextPath = context.nextPath;
+            }
+
+            if (context.tripId && context.guestUserId) {
+              const response = await fetch("/api/trips/claim-guest", {
+                method: "POST",
+                headers: {
+                  "content-type": "application/json",
+                },
+                body: JSON.stringify({
+                  tripId: context.tripId,
+                  guestUserId: context.guestUserId,
+                }),
+              });
+
+              if (!response.ok) {
+                const result = (await response.json()) as { error?: string };
+                throw new Error(result.error || "We couldn't attach your guest poster.");
+              }
+            }
+
+            window.sessionStorage.removeItem(UPGRADE_CONTEXT_KEY);
+          } catch (finishFailure) {
+            hasResolved = false;
+            throw finishFailure;
+          }
+        }
+      }
+
+      window.location.replace(resolvedNextPath);
+    }
 
     async function resolveUser() {
       const {
@@ -26,7 +82,19 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
       }
 
       if (user && !isAnonymousUser(user)) {
-        window.location.replace(nextPath);
+        try {
+          await finishSignIn();
+        } catch (finishFailure) {
+          if (!isActive) {
+            return;
+          }
+
+          setError(
+            finishFailure instanceof Error
+              ? finishFailure.message
+              : "We signed you in, but couldn't attach your guest poster yet.",
+          );
+        }
       }
     }
 
@@ -39,7 +107,7 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
         return;
       }
 
-      window.location.replace(nextPath);
+      void resolveUser();
     });
 
     const interval = window.setInterval(() => {

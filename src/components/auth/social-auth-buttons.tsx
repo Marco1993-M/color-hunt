@@ -17,6 +17,8 @@ type SocialAuthButtonsProps = {
 
 type ProviderName = "google";
 
+const UPGRADE_CONTEXT_KEY = "colorhunt-upgrade-context";
+
 export function SocialAuthButtons({
   mode,
   nextPath,
@@ -56,6 +58,17 @@ export function SocialAuthButtons({
       if (!appOrigin) {
         setError("We couldn't determine the app URL for sign-in.");
         return;
+      }
+
+      if (mode === "upgrade" && tripId && existingUser?.id && typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          UPGRADE_CONTEXT_KEY,
+          JSON.stringify({
+            nextPath,
+            tripId,
+            guestUserId: existingUser.id,
+          }),
+        );
       }
 
       setActiveProvider(provider);
