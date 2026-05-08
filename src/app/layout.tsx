@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getSupabaseEnv } from "@/lib/env";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,7 +13,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = getSupabaseEnv().siteUrl;
+
 export const metadata: Metadata = {
+  metadataBase: siteUrl ? new URL(siteUrl) : undefined,
   title: "Color Hunt",
   description: "Color Hunt by colorhunt.quest — See places differently. Pick a place, get a color mission, capture 9 moments, and generate a poster worth sharing.",
   icons: {

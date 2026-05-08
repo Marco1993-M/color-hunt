@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Fredoka } from "next/font/google";
 import { redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
@@ -71,6 +72,70 @@ type HomeProps = {
   }>;
 };
 
+function buildChallengeMetadataCopy(params: {
+  challengeColor?: string;
+  challengeLocation?: string;
+  challengeTitle?: string;
+}) {
+  const challengeColor = params.challengeColor?.trim() || "";
+  const challengeLocation = params.challengeLocation?.trim() || "";
+  const challengeTitle = params.challengeTitle?.trim() || "";
+  const hasChallenge = Boolean(challengeColor);
+
+  if (!hasChallenge) {
+    return {
+      title: "Color Hunt",
+      description:
+        "Color Hunt by colorhunt.quest — See places differently. Pick a place, get a color mission, capture 9 moments, and generate a poster worth sharing.",
+    };
+  }
+
+  const locationLabel = challengeLocation || "this place";
+  const challengeContext = challengeTitle ? `${challengeTitle} · ` : "";
+
+  return {
+    title: `You've been challenged to hunt ${challengeColor} in ${locationLabel} | Color Hunt`,
+    description: `${challengeContext}Take on the ${challengeColor} challenge in ${locationLabel}. Collect nine moments, make your own poster, and see the place differently.`,
+  };
+}
+
+export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
+  const params = await searchParams;
+  const copy = buildChallengeMetadataCopy(params);
+  const challengeColor = params.challengeColor?.trim() || "";
+  const challengeLocation = params.challengeLocation?.trim() || "";
+  const challengeTitle = params.challengeTitle?.trim() || "";
+  const challengeUrl = buildChallengeLandingPath(params);
+
+  return {
+    title: copy.title,
+    description: copy.description,
+    openGraph: {
+      title: copy.title,
+      description: copy.description,
+      type: "website",
+      url: challengeUrl,
+      siteName: "Color Hunt",
+      images: [
+        {
+          url: "/favicon.png",
+          width: 512,
+          height: 512,
+          alt: challengeColor
+            ? `${challengeColor} Color Hunt challenge${challengeLocation ? ` in ${challengeLocation}` : ""}`
+            : challengeTitle || "Color Hunt",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title: copy.title,
+      description: copy.description,
+      images: ["/favicon.png"],
+    },
+  };
+}
+
 function buildChallengeNextPath(params: {
   challengeColor?: string;
   challengeLocation?: string;
@@ -90,6 +155,27 @@ function buildChallengeNextPath(params: {
 
   const query = nextParams.toString();
   return query ? `/trips/new?${query}` : "/trips/new";
+}
+
+function buildChallengeLandingPath(params: {
+  challengeColor?: string;
+  challengeLocation?: string;
+  challengeTitle?: string;
+  challengeStartDate?: string;
+  challengeEndDate?: string;
+  challengeShareId?: string;
+}) {
+  const nextParams = new URLSearchParams();
+
+  if (params.challengeColor) nextParams.set("challengeColor", params.challengeColor);
+  if (params.challengeLocation) nextParams.set("challengeLocation", params.challengeLocation);
+  if (params.challengeTitle) nextParams.set("challengeTitle", params.challengeTitle);
+  if (params.challengeStartDate) nextParams.set("challengeStartDate", params.challengeStartDate);
+  if (params.challengeEndDate) nextParams.set("challengeEndDate", params.challengeEndDate);
+  if (params.challengeShareId) nextParams.set("challengeShareId", params.challengeShareId);
+
+  const query = nextParams.toString();
+  return query ? `/?${query}` : "/";
 }
 
 export default async function Home({ searchParams }: HomeProps) {
