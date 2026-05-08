@@ -23,12 +23,12 @@ export default async function DashboardPage() {
             <h1 className="panel-title mt-2 text-3xl font-semibold sm:text-4xl">Your color hunts</h1>
             <p className="body-copy mt-3 max-w-2xl text-base">
               {isGuest
-                ? "Start fast, finish the nine-frame challenge, and attach Google or Apple once the poster feels worth keeping."
+                ? "Finish the nine-frame challenge, then attach Google so this poster is properly saved to your account."
                 : "Keep the loop tight: choose a place, finish the nine-frame challenge, and shape the result into a poster."}
             </p>
             {isGuest ? (
               <p className="mt-4 inline-flex rounded-full border border-[rgba(47,97,223,0.14)] bg-[rgba(47,97,223,0.08)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[rgba(47,97,223,0.86)]">
-                Guest session · Save with Google or Apple from the poster page
+                Guest session · Save with Google from the poster page
               </p>
             ) : null}
           </div>
