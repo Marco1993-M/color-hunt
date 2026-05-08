@@ -19,6 +19,16 @@ type ProviderName = "google";
 
 const UPGRADE_CONTEXT_KEY = "colorhunt-upgrade-context";
 
+function persistUpgradeContext(context: { nextPath: string; tripId: string; guestUserId: string }) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const serialized = JSON.stringify(context);
+  window.sessionStorage.setItem(UPGRADE_CONTEXT_KEY, serialized);
+  document.cookie = `${UPGRADE_CONTEXT_KEY}=${encodeURIComponent(serialized)}; path=/; max-age=600; SameSite=Lax`;
+}
+
 export function SocialAuthButtons({
   mode,
   nextPath,
@@ -61,14 +71,11 @@ export function SocialAuthButtons({
       }
 
       if (mode === "upgrade" && tripId && existingUser?.id && typeof window !== "undefined") {
-        window.sessionStorage.setItem(
-          UPGRADE_CONTEXT_KEY,
-          JSON.stringify({
-            nextPath,
-            tripId,
-            guestUserId: existingUser.id,
-          }),
-        );
+        persistUpgradeContext({
+          nextPath,
+          tripId,
+          guestUserId: existingUser.id,
+        });
       }
 
       setActiveProvider(provider);

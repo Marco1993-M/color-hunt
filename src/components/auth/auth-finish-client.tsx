@@ -11,6 +11,54 @@ type AuthFinishClientProps = {
 
 const UPGRADE_CONTEXT_KEY = "colorhunt-upgrade-context";
 
+function readUpgradeContext() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const fromSession = window.sessionStorage.getItem(UPGRADE_CONTEXT_KEY);
+
+  if (fromSession) {
+    try {
+      return JSON.parse(fromSession) as {
+        nextPath?: string;
+        tripId?: string;
+        guestUserId?: string;
+      };
+    } catch {
+      // Fall through to cookie parsing.
+    }
+  }
+
+  const cookieValue = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith(`${UPGRADE_CONTEXT_KEY}=`))
+    ?.split("=")[1];
+
+  if (!cookieValue) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(decodeURIComponent(cookieValue)) as {
+      nextPath?: string;
+      tripId?: string;
+      guestUserId?: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearUpgradeContext() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(UPGRADE_CONTEXT_KEY);
+  document.cookie = `${UPGRADE_CONTEXT_KEY}=; path=/; max-age=0; SameSite=Lax`;
+}
+
 export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
   const [error, setError] = useState<string | null>(null);
 
@@ -29,16 +77,10 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
       let resolvedNextPath = fallbackNextPath;
 
       if (typeof window !== "undefined") {
-        const rawContext = window.sessionStorage.getItem(UPGRADE_CONTEXT_KEY);
+        const context = readUpgradeContext();
 
-        if (rawContext) {
+        if (context) {
           try {
-            const context = JSON.parse(rawContext) as {
-              nextPath?: string;
-              tripId?: string;
-              guestUserId?: string;
-            };
-
             if (context.nextPath) {
               resolvedNextPath = context.nextPath;
             }
@@ -61,7 +103,7 @@ export function AuthFinishClient({ nextPath }: AuthFinishClientProps) {
               }
             }
 
-            window.sessionStorage.removeItem(UPGRADE_CONTEXT_KEY);
+            clearUpgradeContext();
           } catch (finishFailure) {
             hasResolved = false;
             throw finishFailure;
