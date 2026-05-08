@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
+import { PostAuthUpgradeResume } from "@/components/auth/post-auth-upgrade-resume";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile, getTripsForUser } from "@/lib/data";
@@ -13,6 +14,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="app-shell page-frame">
+      <PostAuthUpgradeResume />
       <EventOnView eventName="dashboard_viewed" metadata={{ tripCount: trips.length, isAnonymous: isGuest }} />
       <div className="mx-auto max-w-6xl">
         <header className="playful-card flex flex-col gap-6 rounded-[2rem] p-6 sm:flex-row sm:items-end sm:justify-between">
