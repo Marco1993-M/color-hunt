@@ -3,6 +3,7 @@ import { Fredoka } from "next/font/google";
 import { redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
+import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { isAnonymousUser } from "@/lib/user-state";
 
@@ -108,6 +109,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="app-shell landing-shell">
+      <SessionLandingRedirect enabled={!isChallengeFlow} />
       <EventOnView
         eventName="landing_viewed"
         metadata={{
