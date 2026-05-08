@@ -7,7 +7,6 @@ import { trackEvent } from "@/lib/analytics";
 import { DownloadPosterButton } from "@/components/trips/download-poster-button";
 import { getRetentionSummaryLabel } from "@/lib/retention";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
-import { ShareStoryButton } from "@/components/trips/share-story-button";
 import { createClient } from "@/lib/supabase/client";
 
 type SharePosterPanelProps = {
@@ -229,7 +228,6 @@ export function SharePosterPanel({
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
-            <ShareStoryButton shareId={shareId!} locationLabel={location} />
             <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
               Copy link
             </button>
