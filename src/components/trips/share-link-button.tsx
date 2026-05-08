@@ -4,12 +4,20 @@ import { useMemo, useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
+function parseFileName(response: Response, fallback: string) {
+  const disposition = response.headers.get("content-disposition");
+  const match = disposition?.match(/filename="([^"]+)"/);
+  return match?.[1] ?? fallback;
+}
+
 type ShareLinkButtonProps = {
   shareId?: string | null;
   tripId?: string;
   url: string;
   title: string;
   text: string;
+  fileUrl?: string | null;
+  fileName?: string;
   buttonLabel?: string;
   buttonDescription?: string;
   eventName?: string;
@@ -23,6 +31,8 @@ export function ShareLinkButton({
   url,
   title,
   text,
+  fileUrl = null,
+  fileName = "color-hunt-poster.png",
   buttonLabel = "Share poster",
   buttonDescription = "Open your phone’s share sheet",
   eventName = "poster_link_shared_native",
@@ -53,12 +63,47 @@ export function ShareLinkButton({
         return;
       }
 
+      if (fileUrl) {
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+          throw new Error("Couldn't prepare the poster image.");
+        }
+
+        const blob = await response.blob();
+        const file = new File([blob], parseFileName(response, fileName), {
+          type: blob.type || "image/png",
+        });
+
+        if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title,
+            text,
+            files: [file],
+          });
+          trackEvent({
+            eventName,
+            tripId,
+            shareId,
+            metadata: {
+              ...metadata,
+              mode: "file",
+            },
+          });
+          setMessage("Share sheet opened.");
+          return;
+        }
+      }
+
       await navigator.share({ title, text, url });
       trackEvent({
         eventName,
         tripId,
         shareId,
-        metadata,
+        metadata: {
+          ...metadata,
+          mode: "url",
+        },
       });
       setMessage("Share sheet opened.");
     } catch (shareFailure) {

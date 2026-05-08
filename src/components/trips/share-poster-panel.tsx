@@ -225,8 +225,9 @@ export function SharePosterPanel({
               url={shareUrl}
               title={`Color Hunt · ${location}`}
               text={`One place. One color. Nine moments. ${location}`}
-              buttonLabel="Share poster"
-              buttonDescription="Open your phone’s share sheet"
+              fileUrl={`/poster/${shareId}/download?format=post`}
+              buttonLabel="Save image"
+              buttonDescription="Open your phone’s share sheet to save the poster image"
             />
             <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
               Copy link
