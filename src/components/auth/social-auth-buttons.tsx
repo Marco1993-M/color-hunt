@@ -66,6 +66,9 @@ export function SocialAuthButtons({
 
       if (mode === "upgrade" && tripId) {
         callbackParams.set("transferTripId", tripId);
+        if (existingUser?.id) {
+          callbackParams.set("guestUserId", existingUser.id);
+        }
       }
 
       const redirectTo = `${appOrigin}/auth/callback?${callbackParams.toString()}`;
