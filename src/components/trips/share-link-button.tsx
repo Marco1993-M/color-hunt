@@ -135,20 +135,22 @@ export function ShareLinkButton({
         let file = prefetchedFile;
 
         if (!file) {
-          const response = await fetch(fileUrl);
+          try {
+            const response = await fetch(fileUrl);
 
-          if (!response.ok) {
-            throw new Error("Couldn't prepare the poster image.");
+            if (response.ok) {
+              const blob = await response.blob();
+              file = new File([blob], parseFileName(response, fileName), {
+                type: blob.type || "image/png",
+              });
+              setPrefetchedFile(file);
+            }
+          } catch {
+            // Fall through to URL share / direct open below.
           }
-
-          const blob = await response.blob();
-          file = new File([blob], parseFileName(response, fileName), {
-            type: blob.type || "image/png",
-          });
-          setPrefetchedFile(file);
         }
 
-        if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        if (file && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               title,
