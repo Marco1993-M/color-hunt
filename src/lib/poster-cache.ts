@@ -28,11 +28,13 @@ export async function generatePosterExports({
   trip,
   mission,
   photos,
+  formats,
 }: {
   origin: string;
   trip: Trip;
   mission: Mission;
   photos: Photo[];
+  formats?: PosterExportFormatId[];
 }) {
   const supabase = createAdminClient();
   const {
@@ -54,8 +56,12 @@ export async function generatePosterExports({
   const generatedAt = new Date().toISOString();
   const nextRows: PosterExport[] = [];
   const oldPathsToDelete: string[] = [];
+  const formatsToGenerate =
+    formats && formats.length > 0
+      ? posterExportFormats.filter((format) => formats.includes(format.id))
+      : posterExportFormats;
 
-  for (const format of posterExportFormats) {
+  for (const format of formatsToGenerate) {
     const imageResponse = await createPosterImageResponse({
       origin,
       trip,
