@@ -216,7 +216,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[rgba(67,58,97,0.56)]">colorhunt.quest · See places differently</p>
           </div>
           <Link className="header-utility-link" href={user ? "/dashboard" : "#start"}>
-            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Start with Google"}
+            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Jump to the hunt"}
           </Link>
         </header>
 
@@ -272,7 +272,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 <p className="micro-copy text-[rgba(67,58,97,0.66)]">
                   {isChallengeFlow
                     ? `Sign in with Google and take on this ${challengeColorName} poster challenge.`
-                    : "Continue with Google. Start in seconds. Save and share without extra steps."}
+                    : "No app. Start as a guest. Save with Google later."}
                 </p>
               </div>
             </div>
@@ -339,7 +339,11 @@ export default async function Home({ searchParams }: HomeProps) {
                   </Link>
                 </div>
               ) : (
-                <AuthPanel nextPath={challengeNextPath} challengeColorName={challengeColorName} />
+                <AuthPanel
+                  nextPath={challengeNextPath}
+                  challengeColorName={challengeColorName}
+                  requireSignIn={isChallengeFlow}
+                />
               )}
               <div className="playful-card rounded-[2rem] p-5">
                 <div className="flex items-center justify-between gap-4">
