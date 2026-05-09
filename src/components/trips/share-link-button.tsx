@@ -10,6 +10,18 @@ function parseFileName(response: Response, fallback: string) {
   return match?.[1] ?? fallback;
 }
 
+function isShareCancelled(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === "AbortError" ||
+    error.message.toLowerCase().includes("cancel") ||
+    error.message.toLowerCase().includes("abort")
+  );
+}
+
 type ShareLinkButtonProps = {
   shareId?: string | null;
   tripId?: string;
@@ -105,6 +117,20 @@ export function ShareLinkButton({
         return;
       }
 
+      const tryUrlShare = async () => {
+        await navigator.share({ title, text, url });
+        trackEvent({
+          eventName,
+          tripId,
+          shareId,
+          metadata: {
+            ...metadata,
+            mode: "url",
+          },
+        });
+        setMessage("Share sheet opened.");
+      };
+
       if (fileUrl) {
         let file = prefetchedFile;
 
@@ -123,37 +149,65 @@ export function ShareLinkButton({
         }
 
         if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title,
-            text,
-            files: [file],
-          });
+          try {
+            await navigator.share({
+              title,
+              text,
+              files: [file],
+            });
+            trackEvent({
+              eventName,
+              tripId,
+              shareId,
+              metadata: {
+                ...metadata,
+                mode: "file",
+              },
+            });
+            setMessage("Share sheet opened.");
+            return;
+          } catch (shareFailure) {
+            if (isShareCancelled(shareFailure)) {
+              return;
+            }
+          }
+        }
+
+        try {
+          await tryUrlShare();
+          return;
+        } catch (urlShareFailure) {
+          if (isShareCancelled(urlShareFailure)) {
+            return;
+          }
+        }
+
+        if (typeof window !== "undefined") {
+          const link = document.createElement("a");
+          link.href = fileUrl;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          link.click();
           trackEvent({
-            eventName,
+            eventName: `${eventName}_fallback_download`,
             tripId,
             shareId,
             metadata: {
               ...metadata,
-              mode: "file",
+              mode: "download",
             },
           });
-          setMessage("Share sheet opened.");
+          setMessage("Poster image opened.");
           return;
         }
       }
 
-      await navigator.share({ title, text, url });
-      trackEvent({
-        eventName,
-        tripId,
-        shareId,
-        metadata: {
-          ...metadata,
-          mode: "url",
-        },
-      });
-      setMessage("Share sheet opened.");
+      await tryUrlShare();
     } catch (shareFailure) {
+      if (isShareCancelled(shareFailure)) {
+        return;
+      }
+
       const nextError = shareFailure instanceof Error ? shareFailure.message : "Couldn't open the share sheet.";
       trackEvent({
         eventName: `${eventName}_failed`,
