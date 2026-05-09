@@ -10,13 +10,18 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     const { user } = await requireUser();
-    const payload = (await request.json()) as { tripId?: string; formats?: PosterExportFormatId[] };
+    const payload = (await request.json()) as {
+      tripId?: string;
+      formats?: PosterExportFormatId[];
+      force?: boolean;
+    };
     const tripId = payload.tripId?.trim();
     const formats = Array.isArray(payload.formats)
       ? payload.formats.filter((format): format is PosterExportFormatId =>
           format === "post" || format === "story" || format === "square",
         )
       : undefined;
+    const force = payload.force === true;
 
     if (!tripId) {
       return NextResponse.json({ ok: false, error: "Missing tripId." }, { status: 400 });
@@ -32,13 +37,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Poster is not complete yet." }, { status: 409 });
     }
 
-    const origin = new URL(request.url).origin;
     const exports = await generatePosterExports({
-      origin,
       trip: bundle.trip,
       mission: bundle.mission,
       photos: bundle.photos,
       formats,
+      force,
     });
 
     return NextResponse.json({

@@ -49,7 +49,6 @@ export async function GET(request: Request, { params }: RouteProps) {
     }
 
     const imageResponse = await createPosterImageResponse({
-      origin: new URL(request.url).origin,
       trip: bundle.trip,
       mission: bundle.mission,
       photos: bundle.photos,
