@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { DownloadPosterButton } from "@/components/trips/download-poster-button";
+import { SaveImageButton } from "@/components/trips/save-image-button";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
@@ -81,14 +82,18 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--muted)]">Color Hunt public poster</p>
           <div className="flex flex-col gap-3 sm:flex-row">
+            <SaveImageButton
+              shareId={shareId}
+              fileUrl={`/poster/${shareId}/download?format=post&disposition=inline`}
+            />
             <ShareLinkButton
               shareId={shareId}
               url={shareUrl}
               title={`Color Hunt · ${trip.location}`}
               text={`One place. One color. Nine moments. ${trip.location}`}
               fileUrl={`/poster/${shareId}/download?format=post`}
-              buttonLabel="Save image"
-              buttonDescription="Open your phone’s share sheet to save the poster image"
+              buttonLabel="Share poster"
+              buttonDescription="Open your phone’s share sheet"
             />
             <DownloadPosterButton shareId={shareId} />
             <PublicPosterCtaLink

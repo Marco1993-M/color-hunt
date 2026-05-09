@@ -24,6 +24,7 @@ export async function GET(request: Request, { params }: RouteProps) {
 
     const { searchParams } = new URL(request.url);
     const format = getPosterExportFormat(searchParams.get("format"));
+    const disposition = searchParams.get("disposition") === "inline" ? "inline" : "attachment";
     const fileName = getPosterExportFileName(bundle.trip.location, format.id);
     const cachedExport = await getPosterExportForTrip(bundle.trip.id, format.id);
 
@@ -37,7 +38,7 @@ export async function GET(request: Request, { params }: RouteProps) {
           return new Response(await cachedResponse.arrayBuffer(), {
             headers: {
               "content-type": cachedResponse.headers.get("content-type") ?? "image/png",
-              "content-disposition": `attachment; filename="${fileName}"`,
+              "content-disposition": `${disposition}; filename="${fileName}"`,
               "cache-control": "public, max-age=300",
             },
           });
@@ -58,7 +59,7 @@ export async function GET(request: Request, { params }: RouteProps) {
     return new Response(await imageResponse.arrayBuffer(), {
       headers: {
         "content-type": "image/png",
-        "content-disposition": `attachment; filename="${fileName}"`,
+        "content-disposition": `${disposition}; filename="${fileName}"`,
         "cache-control": "public, max-age=300",
       },
     });
