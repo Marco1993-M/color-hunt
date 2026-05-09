@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: PublicPosterPageProps): Promi
   const { trip, mission } = bundle;
   const title = `${trip.location} ${mission.color_name} poster`;
   const description = `A public Color Hunt poster from ${trip.location}. Hunt ${mission.color_name}, collect nine moments, and see the place differently.`;
-  const imageUrl = `/poster/${shareId}/download?format=post`;
+  const imageUrl = `/poster/${shareId}/opengraph-image`;
   const canonicalUrl = `/poster/${shareId}`;
 
   return {
@@ -131,7 +131,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
     name: `${trip.location} ${mission.color_name} poster`,
     description: `A public Color Hunt poster from ${trip.location}, built from nine ${mission.color_name} moments.`,
     url: `https://colorhunt.quest/poster/${shareId}`,
-    image: `https://colorhunt.quest/poster/${shareId}/download?format=post`,
+    image: `https://colorhunt.quest/poster/${shareId}/opengraph-image`,
     creator: {
       "@type": "Organization",
       name: "Color Hunt",

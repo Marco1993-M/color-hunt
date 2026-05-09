@@ -106,6 +106,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   const challengeLocation = params.challengeLocation?.trim() || "";
   const challengeTitle = params.challengeTitle?.trim() || "";
   const challengeUrl = buildChallengeLandingPath(params);
+  const ogImageUrl = buildChallengeOgImageUrl(params);
 
   return {
     title: copy.title,
@@ -121,9 +122,9 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
       siteName: "Color Hunt",
       images: [
         {
-          url: "/favicon.png",
-          width: 512,
-          height: 512,
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
           alt: challengeColor
             ? `${challengeColor} Color Hunt challenge${challengeLocation ? ` in ${challengeLocation}` : ""}`
             : challengeTitle || "Color Hunt",
@@ -134,7 +135,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
       card: "summary",
       title: copy.title,
       description: copy.description,
-      images: ["/favicon.png"],
+      images: [ogImageUrl],
     },
   };
 }
@@ -179,6 +180,37 @@ function buildChallengeLandingPath(params: {
 
   const query = nextParams.toString();
   return query ? `/?${query}` : "/";
+}
+
+function buildChallengeOgImageUrl(params: {
+  challengeColor?: string;
+  challengeLocation?: string;
+}) {
+  const imageParams = new URLSearchParams();
+  const challengeColor = params.challengeColor?.trim() || "";
+  const challengeLocation = params.challengeLocation?.trim() || "";
+
+  if (challengeColor) {
+    imageParams.set("title", `You've been challenged to hunt ${challengeColor}.`);
+    imageParams.set(
+      "subtitle",
+      challengeLocation
+        ? `Take on the ${challengeColor} Color Hunt in ${challengeLocation} and turn nine moments into a poster worth sharing.`
+        : `Take on the ${challengeColor} Color Hunt and turn nine moments into a poster worth sharing.`,
+    );
+    imageParams.set("eyebrow", "Color Hunt challenge");
+    imageParams.set("accent", challengeColor.toLowerCase());
+  } else {
+    imageParams.set("title", "Turn travel into a color game.");
+    imageParams.set(
+      "subtitle",
+      "Pick a place, hunt one color, collect nine moments, and generate a poster worth sharing.",
+    );
+    imageParams.set("eyebrow", "Color Hunt");
+    imageParams.set("accent", "#2f61df");
+  }
+
+  return `/api/og?${imageParams.toString()}`;
 }
 
 export default async function Home({ searchParams }: HomeProps) {
