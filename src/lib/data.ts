@@ -249,6 +249,25 @@ export async function getPosterExportForTrip(tripId: string, format: PosterExpor
   return (result.data as PosterExport | null) ?? null;
 }
 
+export async function getPublicTripsForSitemap() {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("trips")
+    .select("share_id, created_at")
+    .eq("is_public", true)
+    .not("share_id", "is", null)
+    .order("created_at", { ascending: false });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return (result.data ?? []) as Array<{
+    share_id: string;
+    created_at: string;
+  }>;
+}
+
 export function getPhotoUrl(photo: Photo) {
   if (photo.image_url) {
     return photo.image_url;
