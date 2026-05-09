@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { posterExportFormats } from "@/lib/poster-export";
+import type { PosterExport } from "@/lib/types";
 
 type DownloadPosterButtonProps = {
   shareId: string;
+  exportUrls?: Partial<Record<PosterExport["format"], string>>;
 };
 
-export function DownloadPosterButton({ shareId }: DownloadPosterButtonProps) {
+export function DownloadPosterButton({ shareId, exportUrls }: DownloadPosterButtonProps) {
   const [isPending, setIsPending] = useState(false);
 
-  function handleDownload(formatId: string) {
+  function handleDownload(formatId: PosterExport["format"]) {
     setIsPending(true);
 
     trackEvent({
@@ -23,7 +25,9 @@ export function DownloadPosterButton({ shareId }: DownloadPosterButtonProps) {
     });
 
     const link = document.createElement("a");
-    link.href = `/poster/${shareId}/download?format=${encodeURIComponent(formatId)}`;
+    link.href = exportUrls?.[formatId] ?? `/poster/${shareId}/download?format=${encodeURIComponent(formatId)}`;
+    link.target = "_blank";
+    link.rel = "noreferrer";
     link.click();
 
     window.setTimeout(() => {

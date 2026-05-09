@@ -27,26 +27,17 @@ export function SaveImageButton({
     setIsPending(true);
 
     try {
-      const response = await fetch(fileUrl, { cache: "no-store" });
-
-      if (!response.ok) {
-        throw new Error("Couldn't open the poster image.");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
       trackEvent({
         eventName: "poster_image_opened",
         tripId,
         shareId,
       });
 
-      window.open(objectUrl, "_blank", "noopener,noreferrer");
+      const openedWindow = window.open(fileUrl, "_blank", "noopener,noreferrer");
 
-      window.setTimeout(() => {
-        URL.revokeObjectURL(objectUrl);
-      }, 60_000);
+      if (!openedWindow) {
+        throw new Error("Couldn't open the poster image.");
+      }
     } catch (openFailure) {
       const message = openFailure instanceof Error ? openFailure.message : "Couldn't open the poster image.";
       trackEvent({
@@ -59,7 +50,9 @@ export function SaveImageButton({
       });
       setError(message);
     } finally {
-      setIsPending(false);
+      window.setTimeout(() => {
+        setIsPending(false);
+      }, 350);
     }
   }
 

@@ -27,7 +27,7 @@ export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetPr
   return (
     <section
       id={id}
-      className={`${posterSerif.variable} poster-frame poster-layout poster-postcard rounded-[2.1rem] p-4 sm:rounded-[2.5rem] sm:p-8 lg:p-10`}
+      className={`${posterSerif.variable} poster-frame poster-layout poster-postcard rounded-[0.85rem] p-4 sm:rounded-[1rem] sm:p-8 lg:p-10`}
     >
       <div className="poster-topline">
         <p className="poster-kicker">Color Hunt</p>
@@ -51,7 +51,7 @@ export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetPr
         <div className="grid-poster poster-grid">
           {posterSlots.map((photo, index) => {
             return (
-              <div key={photo?.id ?? `poster-slot-${index}`} className="photo-tile poster-photo-tile rounded-[1.1rem] sm:rounded-[1.25rem]">
+              <div key={photo?.id ?? `poster-slot-${index}`} className="photo-tile poster-photo-tile rounded-[0.45rem] sm:rounded-[0.55rem]">
                 {photo ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}

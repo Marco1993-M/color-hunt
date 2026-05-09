@@ -9,6 +9,7 @@ import { getRetentionSummaryLabel } from "@/lib/retention";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { SaveImageButton } from "@/components/trips/save-image-button";
 import { createClient } from "@/lib/supabase/client";
+import type { PosterExport } from "@/lib/types";
 
 type SharePosterPanelProps = {
   tripId: string;
@@ -22,6 +23,7 @@ type SharePosterPanelProps = {
   startDate: string | null;
   endDate: string | null;
   missionColorName: string;
+  exportUrls?: Partial<Record<PosterExport["format"], string>>;
 };
 
 type SupabaseErrorLike = {
@@ -45,6 +47,7 @@ export function SharePosterPanel({
   startDate,
   endDate,
   missionColorName,
+  exportUrls,
 }: SharePosterPanelProps) {
   const [shareId, setShareId] = useState(initialShareId);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -257,7 +260,7 @@ export function SharePosterPanel({
             <SaveImageButton
               tripId={tripId}
               shareId={shareId}
-              fileUrl={`/poster/${shareId}/download?format=post&disposition=inline`}
+              fileUrl={exportUrls?.post ?? `/poster/${shareId}/download?format=post&disposition=inline`}
             />
             <ShareLinkButton
               tripId={tripId}
@@ -275,7 +278,7 @@ export function SharePosterPanel({
           </div>
 
           <div className="mt-5">
-            <DownloadPosterButton shareId={shareId!} />
+            <DownloadPosterButton shareId={shareId!} exportUrls={exportUrls} />
           </div>
 
           <p className="eyebrow mt-5">Public Link</p>
