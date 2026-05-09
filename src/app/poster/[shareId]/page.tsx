@@ -163,7 +163,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
           <div className="flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
               shareId={shareId}
-              fileUrl={exportUrls.post ?? `/poster/${shareId}/download?format=post&disposition=inline`}
+              fileUrl={exportUrls.post ?? null}
               buttonLabel="Save poster"
             />
             <ShareLinkButton
@@ -171,7 +171,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
               url={shareUrl}
               title={`Color Hunt · ${trip.location}`}
               text={`One place. One color. Nine moments. ${trip.location}`}
-              fileUrl={exportUrls.post ?? `/poster/${shareId}/download?format=post`}
+              fileUrl={exportUrls.post ?? null}
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
