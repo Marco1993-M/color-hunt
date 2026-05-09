@@ -26,7 +26,6 @@ export function DownloadPosterButton({ shareId, exportUrls }: DownloadPosterButt
 
     const link = document.createElement("a");
     link.href = exportUrls?.[formatId] ?? `/poster/${shareId}/download?format=${encodeURIComponent(formatId)}`;
-    link.target = "_blank";
     link.rel = "noreferrer";
     link.click();
 

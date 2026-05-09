@@ -187,7 +187,6 @@ export function ShareLinkButton({
         if (typeof window !== "undefined") {
           const link = document.createElement("a");
           link.href = fileUrl;
-          link.target = "_blank";
           link.rel = "noreferrer";
           link.click();
           trackEvent({

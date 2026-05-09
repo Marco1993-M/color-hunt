@@ -33,11 +33,10 @@ export function SaveImageButton({
         shareId,
       });
 
-      const openedWindow = window.open(fileUrl, "_blank", "noopener,noreferrer");
-
-      if (!openedWindow) {
-        throw new Error("Couldn't open the poster image.");
-      }
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.rel = "noreferrer";
+      link.click();
     } catch (openFailure) {
       const message = openFailure instanceof Error ? openFailure.message : "Couldn't open the poster image.";
       trackEvent({
@@ -64,7 +63,7 @@ export function SaveImageButton({
       <p className="mt-2 text-xs text-[var(--muted)]">
         {isPending
           ? "Opening the poster image so you can save it directly."
-          : "Open the actual poster image in a new tab so you can save it directly."}
+          : "Open the actual poster image directly so you can save it."}
       </p>
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>
