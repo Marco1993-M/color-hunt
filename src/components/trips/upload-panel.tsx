@@ -55,27 +55,49 @@ export function UploadPanel({
   const remaining = useMemo(() => Math.max(maxPhotos - currentCount, 0), [currentCount, maxPhotos]);
 
   async function warmPosterExports() {
-    try {
+    async function generateFormats(formats: ("post" | "story" | "square")[]) {
       const response = await fetch("/api/poster-exports/generate", {
         method: "POST",
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ tripId }),
+        body: JSON.stringify({ tripId, formats }),
         keepalive: true,
       });
 
       if (!response.ok) {
         throw new Error(`Poster export warmup failed with status ${response.status}.`);
       }
+    }
+
+    try {
+      await generateFormats(["post"]);
 
       trackEvent({
-        eventName: "poster_exports_warmed",
+        eventName: "poster_export_post_warmed",
         tripId,
       });
+
+      void generateFormats(["story", "square"]).then(
+        () => {
+          trackEvent({
+            eventName: "poster_export_secondary_warmed",
+            tripId,
+          });
+        },
+        (error) => {
+          trackEvent({
+            eventName: "poster_export_secondary_warm_failed",
+            tripId,
+            metadata: {
+              message: error instanceof Error ? error.message : "unknown_failure",
+            },
+          });
+        },
+      );
     } catch (error) {
       trackEvent({
-        eventName: "poster_exports_warm_failed",
+        eventName: "poster_export_post_warm_failed",
         tripId,
         metadata: {
           message: error instanceof Error ? error.message : "unknown_failure",
