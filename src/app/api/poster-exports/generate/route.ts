@@ -3,14 +3,20 @@ import { requireUser } from "@/lib/auth";
 import { getTripBundle } from "@/lib/data";
 import { generatePosterExports } from "@/lib/poster-cache";
 import { isPosterComplete } from "@/lib/poster";
+import type { PosterExportFormatId } from "@/lib/poster-export";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
     const { user } = await requireUser();
-    const payload = (await request.json()) as { tripId?: string };
+    const payload = (await request.json()) as { tripId?: string; formats?: PosterExportFormatId[] };
     const tripId = payload.tripId?.trim();
+    const formats = Array.isArray(payload.formats)
+      ? payload.formats.filter((format): format is PosterExportFormatId =>
+          format === "post" || format === "story" || format === "square",
+        )
+      : undefined;
 
     if (!tripId) {
       return NextResponse.json({ ok: false, error: "Missing tripId." }, { status: 400 });
@@ -32,6 +38,7 @@ export async function POST(request: Request) {
       trip: bundle.trip,
       mission: bundle.mission,
       photos: bundle.photos,
+      formats,
     });
 
     return NextResponse.json({
