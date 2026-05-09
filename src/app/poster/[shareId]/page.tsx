@@ -164,17 +164,18 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
             <SaveImageButton
               shareId={shareId}
               fileUrl={exportUrls.post ?? `/poster/${shareId}/download?format=post&disposition=inline`}
+              buttonLabel="Save poster"
             />
             <ShareLinkButton
               shareId={shareId}
               url={shareUrl}
               title={`Color Hunt · ${trip.location}`}
               text={`One place. One color. Nine moments. ${trip.location}`}
-              fileUrl={`/poster/${shareId}/download?format=post`}
+              fileUrl={exportUrls.post ?? `/poster/${shareId}/download?format=post`}
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
-            <DownloadPosterButton shareId={shareId} exportUrls={exportUrls} />
+            <DownloadPosterButton shareId={shareId} exportUrls={exportUrls} buttonLabel="More formats" />
             <PublicPosterCtaLink
               shareId={shareId}
               href={challengeHref}
