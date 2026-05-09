@@ -744,7 +744,7 @@ img {
 
 .poster-location {
   font-family: var(--font-poster-serif), Georgia, serif;
-  font-size: clamp(3.2rem, 14vw, 8rem);
+  font-size: clamp(3.5rem, 15vw, 8.8rem);
   font-weight: 600;
   line-height: 0.88;
   letter-spacing: -0.068em;
@@ -763,7 +763,7 @@ img {
 }
 
 .poster-meta-line-copy {
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: rgba(32, 26, 23, 0.56);
@@ -822,7 +822,7 @@ img {
 }
 
 .poster-frame[data-export-format="post"] .poster-location {
-  font-size: 6.8rem;
+  font-size: 7.35rem;
   line-height: 0.89;
 }
 
@@ -857,7 +857,7 @@ img {
 }
 
 .poster-frame[data-export-format="story"] .poster-location {
-  font-size: 7rem;
+  font-size: 7.45rem;
   line-height: 0.89;
   letter-spacing: -0.065em;
 }
@@ -868,7 +868,7 @@ img {
 }
 
 .poster-frame[data-export-format="story"] .poster-meta-line-copy {
-  font-size: 0.96rem;
+  font-size: 1.02rem;
   line-height: 1.5;
 }
 
@@ -915,7 +915,7 @@ img {
 }
 
 .poster-frame[data-export-format="square"] .poster-location {
-  font-size: 5.9rem;
+  font-size: 6.35rem;
   line-height: 0.9;
 }
 
@@ -925,7 +925,7 @@ img {
 }
 
 .poster-frame[data-export-format="square"] .poster-meta-line-copy {
-  font-size: 0.78rem;
+  font-size: 0.86rem;
 }
 
 .poster-frame[data-export-format="square"] .poster-grid-shell {
