@@ -7,6 +7,7 @@ import { trackEvent } from "@/lib/analytics";
 import { DownloadPosterButton } from "@/components/trips/download-poster-button";
 import { getRetentionSummaryLabel } from "@/lib/retention";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
+import { SaveImageButton } from "@/components/trips/save-image-button";
 import { createClient } from "@/lib/supabase/client";
 
 type SharePosterPanelProps = {
@@ -253,6 +254,11 @@ export function SharePosterPanel({
             Your poster is live. Share it straight from here, download the best format, or open the public version if you want to preview what others will see.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <SaveImageButton
+              tripId={tripId}
+              shareId={shareId}
+              fileUrl={`/poster/${shareId}/download?format=post&disposition=inline`}
+            />
             <ShareLinkButton
               tripId={tripId}
               shareId={shareId}
@@ -260,8 +266,8 @@ export function SharePosterPanel({
               title={`Color Hunt · ${location}`}
               text={`One place. One color. Nine moments. ${location}`}
               fileUrl={`/poster/${shareId}/download?format=post`}
-              buttonLabel="Save image"
-              buttonDescription="Open your phone’s share sheet to save the poster image"
+              buttonLabel="Share poster"
+              buttonDescription="Open your phone’s share sheet"
             />
             <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
               Copy link
