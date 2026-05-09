@@ -8,10 +8,16 @@ import type { PosterExport } from "@/lib/types";
 type DownloadPosterButtonProps = {
   shareId: string;
   exportUrls?: Partial<Record<PosterExport["format"], string>>;
+  buttonLabel?: string;
 };
 
-export function DownloadPosterButton({ shareId, exportUrls }: DownloadPosterButtonProps) {
+export function DownloadPosterButton({
+  shareId,
+  exportUrls,
+  buttonLabel = "More formats",
+}: DownloadPosterButtonProps) {
   const [isPending, setIsPending] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   function handleDownload(formatId: PosterExport["format"]) {
     setIsPending(true);
@@ -35,24 +41,37 @@ export function DownloadPosterButton({ shareId, exportUrls }: DownloadPosterButt
   }
 
   return (
-    <div className="download-format-grid">
-      {posterExportFormats.map((format) => (
-        <button
-          key={format.id}
-          type="button"
-          onClick={() => handleDownload(format.id)}
-          className="download-format-card"
-          disabled={isPending}
-        >
-          <span className={`download-format-preview download-format-preview-${format.id}`}>
-            <span className="download-format-preview-inner" />
-          </span>
-          <span className="download-format-copy">
-            <span className="download-format-label">{isPending ? "Preparing..." : format.label}</span>
-            <span className="download-format-description">{format.description}</span>
-          </span>
-        </button>
-      ))}
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        className="button-secondary w-full sm:w-auto"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        {isOpen ? "Hide formats" : buttonLabel}
+      </button>
+
+      {isOpen ? (
+        <div className="download-format-grid">
+          {posterExportFormats.map((format) => (
+            <button
+              key={format.id}
+              type="button"
+              onClick={() => handleDownload(format.id)}
+              className="download-format-card"
+              disabled={isPending}
+            >
+              <span className={`download-format-preview download-format-preview-${format.id}`}>
+                <span className="download-format-preview-inner" />
+              </span>
+              <span className="download-format-copy">
+                <span className="download-format-label">{isPending ? "Preparing..." : format.label}</span>
+                <span className="download-format-description">{format.description}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

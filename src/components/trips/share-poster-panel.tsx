@@ -261,6 +261,7 @@ export function SharePosterPanel({
               tripId={tripId}
               shareId={shareId}
               fileUrl={exportUrls?.post ?? `/poster/${shareId}/download?format=post&disposition=inline`}
+              buttonLabel="Save poster"
             />
             <ShareLinkButton
               tripId={tripId}
@@ -268,7 +269,7 @@ export function SharePosterPanel({
               url={shareUrl}
               title={`Color Hunt · ${location}`}
               text={`One place. One color. Nine moments. ${location}`}
-              fileUrl={`/poster/${shareId}/download?format=post`}
+              fileUrl={exportUrls?.post ?? `/poster/${shareId}/download?format=post`}
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
@@ -278,7 +279,7 @@ export function SharePosterPanel({
           </div>
 
           <div className="mt-5">
-            <DownloadPosterButton shareId={shareId!} exportUrls={exportUrls} />
+            <DownloadPosterButton shareId={shareId!} exportUrls={exportUrls} buttonLabel="More formats" />
           </div>
 
           <p className="eyebrow mt-5">Public Link</p>
