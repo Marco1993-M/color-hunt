@@ -5,7 +5,7 @@ import { SaveImageButton } from "@/components/trips/save-image-button";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
-import { getPublicTripBundleByShareId } from "@/lib/data";
+import { getPosterExportForTrip, getPublicTripBundleByShareId } from "@/lib/data";
 import { isPosterComplete } from "@/lib/poster";
 
 type PublicPosterPageProps = {
@@ -125,6 +125,16 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
     challengeShareId: shareId,
   });
   const shareUrl = `/poster/${shareId}`;
+  const [postExport, storyExport, squareExport] = await Promise.all([
+    getPosterExportForTrip(trip.id, "post"),
+    getPosterExportForTrip(trip.id, "story"),
+    getPosterExportForTrip(trip.id, "square"),
+  ]);
+  const exportUrls = {
+    post: postExport?.image_url,
+    story: storyExport?.image_url,
+    square: squareExport?.image_url,
+  };
   const posterJsonLd = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
@@ -153,7 +163,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
           <div className="flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
               shareId={shareId}
-              fileUrl={`/poster/${shareId}/download?format=post&disposition=inline`}
+              fileUrl={exportUrls.post ?? `/poster/${shareId}/download?format=post&disposition=inline`}
             />
             <ShareLinkButton
               shareId={shareId}
@@ -164,7 +174,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
-            <DownloadPosterButton shareId={shareId} />
+            <DownloadPosterButton shareId={shareId} exportUrls={exportUrls} />
             <PublicPosterCtaLink
               shareId={shareId}
               href={challengeHref}

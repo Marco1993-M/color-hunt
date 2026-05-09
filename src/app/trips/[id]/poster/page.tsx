@@ -6,7 +6,7 @@ import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { requireUser } from "@/lib/auth";
-import { getTripBundle, getTripShareState } from "@/lib/data";
+import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
 import { isPosterComplete } from "@/lib/poster";
 import { isAnonymousUser } from "@/lib/user-state";
 
@@ -26,6 +26,18 @@ export default async function PosterPage({ params }: PosterPageProps) {
 
   const { trip, mission, photos } = bundle;
   const isComplete = isPosterComplete(photos, mission.max_photos);
+  const [postExport, storyExport, squareExport] = isComplete
+    ? await Promise.all([
+        getPosterExportForTrip(trip.id, "post"),
+        getPosterExportForTrip(trip.id, "story"),
+        getPosterExportForTrip(trip.id, "square"),
+      ])
+    : [null, null, null];
+  const exportUrls = {
+    post: postExport?.image_url,
+    story: storyExport?.image_url,
+    square: squareExport?.image_url,
+  };
 
   return (
     <main className="app-shell page-frame">
@@ -87,6 +99,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
               startDate={trip.start_date}
               endDate={trip.end_date}
               missionColorName={mission.color_name}
+              exportUrls={exportUrls}
             />
           )}
         </div>
