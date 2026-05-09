@@ -84,9 +84,9 @@ function buildChallengeMetadataCopy(params: {
 
   if (!hasChallenge) {
     return {
-      title: "Color Hunt",
+      title: "Color Hunt | Travel photo challenge and color scavenger hunt",
       description:
-        "Color Hunt by colorhunt.quest — See places differently. Pick a place, get a color mission, capture 9 moments, and generate a poster worth sharing.",
+        "Turn travel into a color game. Pick a place, hunt one color, capture nine moments, and generate a poster worth sharing.",
     };
   }
 
@@ -110,6 +110,9 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   return {
     title: copy.title,
     description: copy.description,
+    alternates: {
+      canonical: challengeUrl,
+    },
     openGraph: {
       title: copy.title,
       description: copy.description,
@@ -188,6 +191,35 @@ export default async function Home({ searchParams }: HomeProps) {
   const challengeNextPath = buildChallengeNextPath(challengeParams);
   const challengeColorName = challengeParams.challengeColor?.trim() || null;
   const isChallengeFlow = Boolean(challengeColorName);
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Color Hunt",
+    alternateName: "colorhunt.quest",
+    url: "https://colorhunt.quest",
+    description:
+      "Turn travel into a color game. Pick a place, hunt one color, collect nine moments, and generate a poster worth sharing.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://colorhunt.quest/?challengeColor={challengeColor}",
+      "query-input": "required name=challengeColor",
+    },
+  };
+  const appJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Color Hunt",
+    applicationCategory: "PhotographyApplication",
+    operatingSystem: "Web",
+    url: "https://colorhunt.quest",
+    description:
+      "A playful travel photo challenge where one color leads the eye and nine moments become a poster.",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+  };
 
   if (user && !isGuest && !isChallengeFlow) {
     redirect("/dashboard");
@@ -195,6 +227,14 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="app-shell landing-shell">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }}
+      />
       <SessionLandingRedirect enabled={!isChallengeFlow} />
       <EventOnView
         eventName="landing_viewed"
