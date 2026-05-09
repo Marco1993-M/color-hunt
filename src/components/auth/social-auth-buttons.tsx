@@ -37,6 +37,25 @@ export function SocialAuthButtons({
         data: { user: existingUser },
       } = await supabase.auth.getUser();
 
+      if (mode === "sign-in" && existingUser && isAnonymousUser(existingUser)) {
+        const { error: signOutError } = await supabase.auth.signOut();
+
+        if (signOutError) {
+          trackEvent({
+            eventName: "social_auth_signout_failed",
+            tripId,
+            metadata: {
+              source,
+              mode,
+              provider,
+              message: signOutError.message,
+            },
+          });
+          setError(signOutError.message);
+          return;
+        }
+      }
+
       if (existingUser && !isAnonymousUser(existingUser)) {
         trackEvent({
           eventName: "social_auth_already_signed_in",
