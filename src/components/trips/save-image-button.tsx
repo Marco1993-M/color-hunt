@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
 type SaveImageButtonProps = {
@@ -19,24 +20,47 @@ export function SaveImageButton({
   className = "button-primary w-full sm:w-auto",
 }: SaveImageButtonProps) {
   const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleOpenImage() {
+  async function handleOpenImage() {
+    setError(null);
     setIsPending(true);
-    trackEvent({
-      eventName: "poster_image_opened",
-      tripId,
-      shareId,
-    });
 
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.click();
+    try {
+      const response = await fetch(fileUrl, { cache: "no-store" });
 
-    window.setTimeout(() => {
+      if (!response.ok) {
+        throw new Error("Couldn't open the poster image.");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      trackEvent({
+        eventName: "poster_image_opened",
+        tripId,
+        shareId,
+      });
+
+      window.open(objectUrl, "_blank", "noopener,noreferrer");
+
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+      }, 60_000);
+    } catch (openFailure) {
+      const message = openFailure instanceof Error ? openFailure.message : "Couldn't open the poster image.";
+      trackEvent({
+        eventName: "poster_image_open_failed",
+        tripId,
+        shareId,
+        metadata: {
+          message,
+        },
+      });
+      setError(message);
+    } finally {
       setIsPending(false);
-    }, 1800);
+    }
   }
 
   return (
@@ -49,6 +73,7 @@ export function SaveImageButton({
           ? "Opening the poster image so you can save it directly."
           : "Open the actual poster image in a new tab so you can save it directly."}
       </p>
+      {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>
   );
 }
