@@ -43,17 +43,17 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         canvasPaddingX: 36,
         canvasPaddingY: 44,
         posterPadding: 92,
-        titleSize: 220,
-        titleLeading: 0.86,
+        titleSize: 208,
+        titleLeading: 0.89,
         metaSize: 34,
         kickerSize: 22,
-        footerSize: 30,
-        gridTopMargin: 62,
-        footerTopPadding: 32,
-        gap: 22,
-        radius: 44,
+        footerSize: 26,
+        gridTopMargin: 72,
+        footerTopPadding: 40,
+        gap: 24,
+        radius: 16,
         gridHeightScale: 0.88,
-        tileRadius: 38,
+        tileRadius: 10,
         columns: 2,
       };
     case "square":
@@ -61,17 +61,17 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         canvasPaddingX: 30,
         canvasPaddingY: 30,
         posterPadding: 82,
-        titleSize: 164,
-        titleLeading: 0.88,
+        titleSize: 154,
+        titleLeading: 0.9,
         metaSize: 26,
         kickerSize: 18,
-        footerSize: 24,
-        gridTopMargin: 40,
-        footerTopPadding: 28,
-        gap: 18,
-        radius: 36,
+        footerSize: 21,
+        gridTopMargin: 48,
+        footerTopPadding: 34,
+        gap: 20,
+        radius: 14,
         gridHeightScale: 0.9,
-        tileRadius: 30,
+        tileRadius: 9,
         columns: 3,
       };
     default:
@@ -79,17 +79,17 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         canvasPaddingX: 18,
         canvasPaddingY: 18,
         posterPadding: 40,
-        titleSize: 118,
-        titleLeading: 0.9,
+        titleSize: 110,
+        titleLeading: 0.92,
         metaSize: 18,
         kickerSize: 12,
-        footerSize: 15,
-        gridTopMargin: 22,
-        footerTopPadding: 18,
-        gap: 12,
-        radius: 24,
+        footerSize: 13,
+        gridTopMargin: 28,
+        footerTopPadding: 24,
+        gap: 16,
+        radius: 10,
         gridHeightScale: 0.95,
-        tileRadius: 18,
+        tileRadius: 6,
         columns: 3,
       };
   }
@@ -151,7 +151,7 @@ export async function createPosterImageResponse({
           width: "100%",
           height: "100%",
           display: "flex",
-          background: "linear-gradient(180deg, #faf4eb 0%, #f3ebdf 100%)",
+          background: "linear-gradient(180deg, #faf6ef 0%, #f1e7db 100%)",
           padding: `${layout.canvasPaddingY}px ${layout.canvasPaddingX}px`,
           boxSizing: "border-box",
         }}
@@ -163,10 +163,10 @@ export async function createPosterImageResponse({
             display: "flex",
             flexDirection: "column",
             fontFamily: '"Cormorant Garamond", Georgia, serif',
-            background: "linear-gradient(180deg, rgba(255,252,246,0.99), rgba(247,241,233,0.96))",
+            background: "linear-gradient(180deg, rgba(255,253,249,0.99), rgba(246,240,233,0.97))",
             borderRadius: layout.radius,
-            border: "1px solid rgba(94,126,152,0.12)",
-            boxShadow: "0 18px 60px rgba(52,70,82,0.09)",
+            border: "1px solid rgba(94,126,152,0.1)",
+            boxShadow: "0 12px 34px rgba(52,70,82,0.06)",
             padding: layout.posterPadding,
             boxSizing: "border-box",
           }}
@@ -175,12 +175,12 @@ export async function createPosterImageResponse({
             style={{
               display: "flex",
               width: "100%",
-              paddingBottom: 22,
-              borderBottom: "1px solid rgba(94,126,152,0.16)",
-              color: "rgba(32,26,23,0.72)",
+              paddingBottom: 24,
+              borderBottom: "1px solid rgba(94,126,152,0.12)",
+              color: "rgba(32,26,23,0.6)",
               fontSize: layout.kickerSize,
-              fontWeight: 700,
-              letterSpacing: "0.18em",
+              fontWeight: 600,
+              letterSpacing: "0.16em",
               textTransform: "uppercase",
             }}
           >
@@ -190,10 +190,10 @@ export async function createPosterImageResponse({
           <div
             style={{
               display: "flex",
-              marginTop: 22,
+              marginTop: 28,
               fontSize: layout.titleSize,
               lineHeight: layout.titleLeading,
-              letterSpacing: "-0.075em",
+              letterSpacing: "-0.065em",
               textTransform: "uppercase",
               color: posterTone,
               fontWeight: 600,
@@ -205,17 +205,17 @@ export async function createPosterImageResponse({
           <div
             style={{
               display: "flex",
-              marginTop: 26,
+              marginTop: 30,
               paddingTop: 24,
-              borderTop: `1px solid ${posterTone}24`,
+              borderTop: `1px solid ${posterTone}18`,
               fontSize: layout.metaSize,
-              letterSpacing: "0.04em",
-              color: "rgba(32,26,23,0.64)",
+              letterSpacing: "0.08em",
+              color: "rgba(32,26,23,0.56)",
             }}
           >
-            <span style={{ fontWeight: 700, color: "rgba(32,26,23,0.88)" }}>Exploring</span>
+            <span style={{ fontWeight: 600, color: "rgba(32,26,23,0.82)" }}>Exploring</span>
             <span style={{ marginLeft: 14 }}>{trip.location}</span>
-            <span style={{ marginLeft: 14, fontWeight: 700, color: "rgba(32,26,23,0.52)" }}>{tripYear}</span>
+            <span style={{ marginLeft: 14, fontWeight: 600, color: "rgba(32,26,23,0.46)" }}>{tripYear}</span>
           </div>
 
           <div
@@ -248,9 +248,9 @@ export async function createPosterImageResponse({
                       display: "flex",
                       overflow: "hidden",
                       borderRadius: layout.tileRadius,
-                      background: "rgba(255,255,255,0.52)",
-                      border: "1px solid rgba(137,171,191,0.18)",
-                      boxShadow: "0 10px 24px rgba(52,70,82,0.08)",
+                      background: "rgba(255,255,255,0.42)",
+                      border: "1px solid rgba(137,171,191,0.12)",
+                      boxShadow: "0 6px 14px rgba(52,70,82,0.04)",
                     }}
                   >
                     {source ? (
@@ -293,11 +293,11 @@ export async function createPosterImageResponse({
               justifyContent: "center",
               paddingTop: layout.footerTopPadding,
               marginTop: "auto",
-              borderTop: "1px solid rgba(94,126,152,0.14)",
-              color: "rgba(74,116,148,0.76)",
+              borderTop: "1px solid rgba(94,126,152,0.1)",
+              color: "rgba(74,116,148,0.56)",
               fontSize: layout.footerSize,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
+              fontWeight: 600,
+              letterSpacing: "0.14em",
               textTransform: "uppercase",
               textAlign: "center",
             }}
