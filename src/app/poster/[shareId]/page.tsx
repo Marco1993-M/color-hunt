@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DownloadPosterButton } from "@/components/trips/download-poster-button";
 import { SaveImageButton } from "@/components/trips/save-image-button";
@@ -45,6 +46,56 @@ function buildChallengeStartHref({
   return query ? `/?${query}#start` : "/";
 }
 
+export async function generateMetadata({ params }: PublicPosterPageProps): Promise<Metadata> {
+  const { shareId } = await params;
+  const bundle = await getPublicTripBundleByShareId(shareId);
+
+  if (!bundle || !isPosterComplete(bundle.photos, bundle.mission.max_photos)) {
+    return {
+      title: "Poster not found",
+      description: "This Color Hunt poster is no longer available.",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const { trip, mission } = bundle;
+  const title = `${trip.location} ${mission.color_name} poster`;
+  const description = `A public Color Hunt poster from ${trip.location}. Hunt ${mission.color_name}, collect nine moments, and see the place differently.`;
+  const imageUrl = `/poster/${shareId}/download?format=post`;
+  const canonicalUrl = `/poster/${shareId}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${trip.location} · ${mission.color_name} | Color Hunt`,
+      description,
+      type: "article",
+      url: canonicalUrl,
+      images: [
+        {
+          url: imageUrl,
+          width: 1080,
+          height: 1350,
+          alt: `${mission.color_name} Color Hunt poster from ${trip.location}`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${trip.location} · ${mission.color_name} | Color Hunt`,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
 export default async function PublicPosterPage({ params, searchParams }: PublicPosterPageProps) {
   const { shareId } = await params;
   const challengeParams = await searchParams;
@@ -74,9 +125,27 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
     challengeShareId: shareId,
   });
   const shareUrl = `/poster/${shareId}`;
+  const posterJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: `${trip.location} ${mission.color_name} poster`,
+    description: `A public Color Hunt poster from ${trip.location}, built from nine ${mission.color_name} moments.`,
+    url: `https://colorhunt.quest/poster/${shareId}`,
+    image: `https://colorhunt.quest/poster/${shareId}/download?format=post`,
+    creator: {
+      "@type": "Organization",
+      name: "Color Hunt",
+      url: "https://colorhunt.quest",
+    },
+    keywords: [mission.color_name, trip.location, "color hunt", "travel poster", "photo challenge"],
+  };
 
   return (
     <main className="app-shell page-frame">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(posterJsonLd) }}
+      />
       <PublicPosterEvents shareId={shareId} />
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
