@@ -95,23 +95,17 @@ function getFormatLayout(formatId: PosterExportFormatId) {
   }
 }
 
-function getPosterImageProxyUrl(origin: string, sourceUrl: string) {
-  return `${origin}/api/poster-image?src=${encodeURIComponent(sourceUrl)}`;
-}
-
 export function getPosterExportFileName(location: string, formatId: PosterExportFormatId) {
   const format = getPosterExportFormat(formatId);
   return `${slugifyPosterFileLabel(location) || "see-places-differently-poster"}-${format.fileSuffix}.png`;
 }
 
 export async function createPosterImageResponse({
-  origin,
   trip,
   mission,
   photos,
   formatId,
 }: {
-  origin: string;
   trip: Trip;
   mission: Mission;
   photos: Photo[];
@@ -123,9 +117,7 @@ export async function createPosterImageResponse({
   const posterTone = mission.color_hex;
   const locationLabel = getPosterLocationLabel(trip.location);
   const posterFonts = await loadPosterFonts();
-  const photoUrls = buildPosterFrameSlots(photos).map((photo) => {
-    return photo ? getPosterImageProxyUrl(origin, getPhotoUrl(photo)) : null;
-  });
+  const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
 
   const posterWidth = format.width - layout.canvasPaddingX * 2;
   const posterHeight = format.height - layout.canvasPaddingY * 2;

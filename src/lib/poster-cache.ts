@@ -24,17 +24,17 @@ export function getPosterExportPublicUrl(storagePath: string) {
 }
 
 export async function generatePosterExports({
-  origin,
   trip,
   mission,
   photos,
   formats,
+  force = false,
 }: {
-  origin: string;
   trip: Trip;
   mission: Mission;
   photos: Photo[];
   formats?: PosterExportFormatId[];
+  force?: boolean;
 }) {
   const supabase = createAdminClient();
   const {
@@ -62,8 +62,14 @@ export async function generatePosterExports({
       : posterExportFormats;
 
   for (const format of formatsToGenerate) {
+    const existingRow = existingByFormat.get(format.id);
+
+    if (existingRow && !force) {
+      nextRows.push(existingRow);
+      continue;
+    }
+
     const imageResponse = await createPosterImageResponse({
-      origin,
       trip,
       mission,
       photos,
@@ -72,7 +78,6 @@ export async function generatePosterExports({
 
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     const storagePath = getPosterExportStoragePath(trip.user_id, trip.id, format.id, Date.now());
-    const existingRow = existingByFormat.get(format.id);
 
     const { error: uploadError } = await supabase.storage.from(POSTER_EXPORT_BUCKET).upload(storagePath, imageBuffer, {
       contentType: "image/png",
@@ -98,12 +103,19 @@ export async function generatePosterExports({
     });
   }
 
-  const { error: upsertError } = await supabase.from("poster_exports").upsert(nextRows, {
-    onConflict: "trip_id,format",
+  const rowsToUpsert = nextRows.filter((row) => {
+    const existingRow = existingByFormat.get(row.format);
+    return !existingRow || existingRow.storage_path !== row.storage_path;
   });
 
-  if (upsertError) {
-    throw upsertError;
+  if (rowsToUpsert.length > 0) {
+    const { error: upsertError } = await supabase.from("poster_exports").upsert(rowsToUpsert, {
+      onConflict: "trip_id,format",
+    });
+
+    if (upsertError) {
+      throw upsertError;
+    }
   }
 
   if (oldPathsToDelete.length > 0) {
