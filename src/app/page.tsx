@@ -55,6 +55,27 @@ const reasons = [
   "Turns tiny details into something worth keeping.",
 ];
 
+const seoTopicLinks = [
+  {
+    href: "/color-scavenger-hunt",
+    title: "Color scavenger hunt",
+    description: "Ideas for turning one color into a playful walk, market mission, or city-side game.",
+    tone: "bg-[#ffeddc] text-[#e66a2f]",
+  },
+  {
+    href: "/travel-photo-challenge",
+    title: "Travel photo challenge",
+    description: "A better way to give trips, day walks, and city breaks a creative point of view.",
+    tone: "bg-[#e4efff] text-[#2f61df]",
+  },
+  {
+    href: "/turn-travel-photos-into-a-poster",
+    title: "Turn travel photos into a poster",
+    description: "How to make a clean sharable artifact instead of letting the best shots vanish in your gallery.",
+    tone: "bg-[#ffe7f5] text-[#d85dac]",
+  },
+];
+
 const payoffPoster = {
   title: "Hoedspruit, South Africa",
   subtitle: "Exploring Hoedspruit, South Africa 2026",
@@ -478,6 +499,31 @@ export default async function Home({ searchParams }: HomeProps) {
                 <p className="body-copy max-w-xl text-sm sm:text-base">{step.description}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section className="grid gap-5">
+          <div className="playful-card rounded-[2.2rem] p-6 sm:p-8">
+            <p className="eyebrow">Keep exploring</p>
+            <h2 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">
+              More colorful ways into the idea.
+            </h2>
+            <p className="body-copy mt-4 max-w-3xl text-base sm:text-lg">
+              If you landed here looking for scavenger hunt ideas, travel photo prompts, or a cleaner way to turn a trip into something worth sharing, these guides are a good place to start.
+            </p>
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              {seoTopicLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="playful-card rounded-[1.8rem] p-5 transition hover:-translate-y-[1px]"
+                >
+                  <span className={`${fredoka.className} playful-chip ${link.tone}`}>{link.title}</span>
+                  <h3 className="panel-title mt-4 text-2xl font-semibold">{link.title}</h3>
+                  <p className="body-copy mt-2 text-sm sm:text-base">{link.description}</p>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       </section>

@@ -11,6 +11,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 1,
     },
+    {
+      url: `${origin}/color-scavenger-hunt`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${origin}/travel-photo-challenge`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${origin}/turn-travel-photos-into-a-poster`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.76,
+    },
   ];
 
   const publicTrips = await getPublicTripsForSitemap();
