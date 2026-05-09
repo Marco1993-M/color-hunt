@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -10,6 +11,8 @@ type PosterExportWarmupProps = {
 
 export function PosterExportWarmup({ tripId, enabled }: PosterExportWarmupProps) {
   const hasStartedRef = useRef(false);
+  const hasRefreshedRef = useRef(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (!enabled || hasStartedRef.current) {
@@ -43,6 +46,11 @@ export function PosterExportWarmup({ tripId, enabled }: PosterExportWarmupProps)
           eventName: "poster_export_post_warmed",
           tripId,
         });
+
+        if (!hasRefreshedRef.current) {
+          hasRefreshedRef.current = true;
+          router.refresh();
+        }
 
         void generateFormats(["story", "square"]).then(
           () => {
@@ -81,7 +89,7 @@ export function PosterExportWarmup({ tripId, enabled }: PosterExportWarmupProps)
     return () => {
       controller.abort();
     };
-  }, [enabled, tripId]);
+  }, [enabled, router, tripId]);
 
   return null;
 }
