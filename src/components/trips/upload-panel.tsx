@@ -54,14 +54,17 @@ export function UploadPanel({
   const router = useRouter();
   const remaining = useMemo(() => Math.max(maxPhotos - currentCount, 0), [currentCount, maxPhotos]);
 
-  async function warmPosterExports() {
+  async function warmPosterExports(options?: { force?: boolean; awaitPost?: boolean }) {
+    const force = options?.force === true;
+    const awaitPost = options?.awaitPost === true;
+
     async function generateFormats(formats: ("post" | "story" | "square")[]) {
       const response = await fetch("/api/poster-exports/generate", {
         method: "POST",
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ tripId, formats }),
+        body: JSON.stringify({ tripId, formats, force }),
         keepalive: true,
       });
 
@@ -71,6 +74,10 @@ export function UploadPanel({
     }
 
     try {
+      if (awaitPost) {
+        setStatus("Preparing your poster...");
+      }
+
       await generateFormats(["post"]);
 
       trackEvent({
@@ -229,7 +236,7 @@ export function UploadPanel({
           },
         });
         if (nextPhotos.length >= maxPhotos) {
-          void warmPosterExports();
+          void warmPosterExports({ force: true });
         }
         setStatus(successMessage);
         router.refresh();
@@ -581,7 +588,7 @@ export function UploadPanel({
               source: selectedSource ?? "unknown",
             },
           });
-          void warmPosterExports();
+          await warmPosterExports({ awaitPost: true });
         }
         setStatus(filesToUpload.length > 1 ? `${filesToUpload.length} photos added to your grid.` : "Photo added to your grid.");
         router.refresh();
