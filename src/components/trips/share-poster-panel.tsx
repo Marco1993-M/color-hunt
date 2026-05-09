@@ -260,7 +260,7 @@ export function SharePosterPanel({
             <SaveImageButton
               tripId={tripId}
               shareId={shareId}
-              fileUrl={exportUrls?.post ?? `/poster/${shareId}/download?format=post&disposition=inline`}
+              fileUrl={exportUrls?.post}
               buttonLabel="Save poster"
             />
             <ShareLinkButton
@@ -269,7 +269,7 @@ export function SharePosterPanel({
               url={shareUrl}
               title={`Color Hunt · ${location}`}
               text={`One place. One color. Nine moments. ${location}`}
-              fileUrl={exportUrls?.post ?? `/poster/${shareId}/download?format=post`}
+              fileUrl={exportUrls?.post ?? null}
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />

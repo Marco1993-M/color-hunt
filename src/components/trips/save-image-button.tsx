@@ -5,7 +5,7 @@ import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
 type SaveImageButtonProps = {
-  fileUrl: string;
+  fileUrl?: string | null;
   tripId?: string;
   shareId?: string | null;
   buttonLabel?: string;
@@ -23,6 +23,11 @@ export function SaveImageButton({
   const [error, setError] = useState<string | null>(null);
 
   async function handleOpenImage() {
+    if (!fileUrl) {
+      setError("Your poster image is still being prepared.");
+      return;
+    }
+
     setError(null);
     setIsPending(true);
 
@@ -58,10 +63,12 @@ export function SaveImageButton({
   return (
     <>
       <button type="button" onClick={handleOpenImage} className={className} disabled={isPending}>
-        {isPending ? "Preparing image..." : buttonLabel}
+        {isPending ? "Preparing image..." : fileUrl ? buttonLabel : "Preparing poster..."}
       </button>
       <p className="mt-2 text-xs text-[var(--muted)]">
-        {isPending
+        {!fileUrl
+          ? "The main poster asset is still being prepared. Try again in a moment."
+          : isPending
           ? "Opening the poster image so you can save it directly."
           : "Open the actual poster image directly so you can save it."}
       </p>

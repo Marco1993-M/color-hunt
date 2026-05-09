@@ -18,8 +18,16 @@ export function DownloadPosterButton({
 }: DownloadPosterButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const availableFormats = posterExportFormats.filter((format) => Boolean(exportUrls?.[format.id]));
+  const allFormatsReady = availableFormats.length === posterExportFormats.length;
 
   function handleDownload(formatId: PosterExport["format"]) {
+    const targetUrl = exportUrls?.[formatId];
+
+    if (!targetUrl) {
+      return;
+    }
+
     setIsPending(true);
 
     trackEvent({
@@ -31,7 +39,7 @@ export function DownloadPosterButton({
     });
 
     const link = document.createElement("a");
-    link.href = exportUrls?.[formatId] ?? `/poster/${shareId}/download?format=${encodeURIComponent(formatId)}`;
+    link.href = targetUrl;
     link.rel = "noreferrer";
     link.click();
 
@@ -47,8 +55,9 @@ export function DownloadPosterButton({
         className="button-secondary w-full sm:w-auto"
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}
+        disabled={!allFormatsReady}
       >
-        {isOpen ? "Hide formats" : buttonLabel}
+        {!allFormatsReady ? "Preparing formats..." : isOpen ? "Hide formats" : buttonLabel}
       </button>
 
       {isOpen ? (
@@ -59,7 +68,7 @@ export function DownloadPosterButton({
               type="button"
               onClick={() => handleDownload(format.id)}
               className="download-format-card"
-              disabled={isPending}
+              disabled={isPending || !exportUrls?.[format.id]}
             >
               <span className={`download-format-preview download-format-preview-${format.id}`}>
                 <span className="download-format-preview-inner" />
@@ -71,6 +80,12 @@ export function DownloadPosterButton({
             </button>
           ))}
         </div>
+      ) : null}
+
+      {!allFormatsReady ? (
+        <p className="text-xs text-[var(--muted)]">
+          Extra poster sizes are still being prepared. The default poster will be ready first.
+        </p>
       ) : null}
     </div>
   );
