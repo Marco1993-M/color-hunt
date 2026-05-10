@@ -4,6 +4,7 @@ import { getPosterExportFormat } from "@/lib/poster-export";
 import { createPosterImageResponse, getPosterExportFileName } from "@/lib/poster-render";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type RouteProps = {
   params: Promise<{ shareId: string }>;
