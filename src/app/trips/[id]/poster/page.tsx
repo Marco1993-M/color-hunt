@@ -71,7 +71,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
           </div>
         ) : null}
 
-        <PosterSheet trip={trip} mission={mission} photos={photos} />
+        <PosterSheet id="trip-poster-sheet" trip={trip} mission={mission} photos={photos} />
         <PosterExportWarmup tripId={trip.id} enabled={isComplete} />
         <PosterReadyWatcher tripId={trip.id} enabled={isComplete} hasPostExport={Boolean(exportUrls.post)} />
 

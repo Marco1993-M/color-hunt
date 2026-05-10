@@ -163,7 +163,9 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
           <div className="flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
               shareId={shareId}
+              captureTargetId="public-poster-sheet"
               fileUrl={exportUrls.post ?? null}
+              fileName={`${trip.location.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-post-4x5.png`}
               buttonLabel="Save poster"
             />
             <ShareLinkButton
