@@ -27,6 +27,39 @@ export function SaveImageButton({
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function waitForPosterImages(target: HTMLElement) {
+    const images = Array.from(target.querySelectorAll("img"));
+
+    await Promise.all(
+      images.map(async (image) => {
+        if (!image.currentSrc && !image.src) {
+          return;
+        }
+
+        if (!image.complete) {
+          await new Promise<void>((resolve) => {
+            const finish = () => {
+              image.removeEventListener("load", finish);
+              image.removeEventListener("error", finish);
+              resolve();
+            };
+
+            image.addEventListener("load", finish, { once: true });
+            image.addEventListener("error", finish, { once: true });
+          });
+        }
+
+        if (typeof image.decode === "function") {
+          try {
+            await image.decode();
+          } catch {
+            // Ignore decode failures and let the browser render whatever is available.
+          }
+        }
+      }),
+    );
+  }
+
   async function openBlob(blob: Blob) {
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -77,6 +110,8 @@ export function SaveImageButton({
         const target = document.getElementById(captureTargetId);
 
         if (target) {
+          await waitForPosterImages(target);
+
           const blob = await toBlob(target, {
             cacheBust: true,
             pixelRatio: 2,
