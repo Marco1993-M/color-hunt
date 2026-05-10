@@ -52,9 +52,9 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         gridTopMargin: 72,
         footerTopPadding: 40,
         gap: 24,
-        radius: 16,
+        radius: 4,
         gridHeightScale: 0.88,
-        tileRadius: 10,
+        tileRadius: 2,
         columns: 2,
       };
     case "square":
@@ -70,9 +70,9 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         gridTopMargin: 48,
         footerTopPadding: 34,
         gap: 20,
-        radius: 14,
+        radius: 4,
         gridHeightScale: 0.9,
-        tileRadius: 9,
+        tileRadius: 2,
         columns: 3,
       };
     default:
@@ -88,9 +88,9 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         gridTopMargin: 28,
         footerTopPadding: 24,
         gap: 16,
-        radius: 10,
+        radius: 3,
         gridHeightScale: 0.95,
-        tileRadius: 6,
+        tileRadius: 1,
         columns: 3,
       };
   }
