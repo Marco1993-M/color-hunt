@@ -185,7 +185,12 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
               buttonLabel="Share poster"
               buttonDescription="Open your phone’s share sheet"
             />
-            <DownloadPosterButton shareId={shareId} exportUrls={exportUrls} buttonLabel="More formats" />
+            <DownloadPosterButton
+              shareId={shareId}
+              exportUrls={exportUrls}
+              posterData={posterData}
+              buttonLabel="More formats"
+            />
             <PublicPosterCtaLink
               shareId={shareId}
               href={challengeHref}
