@@ -1,13 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { toBlob } from "html-to-image";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
+export type PosterCaptureData = {
+  locationLabel: string;
+  location: string;
+  tripYear: string;
+  posterTone: string;
+  photoUrls: Array<string | null>;
+};
+
 type SaveImageButtonProps = {
   fileUrl?: string | null;
-  captureTargetId?: string;
+  posterData?: PosterCaptureData | null;
   fileName?: string;
   tripId?: string;
   shareId?: string | null;
@@ -17,7 +24,7 @@ type SaveImageButtonProps = {
 
 export function SaveImageButton({
   fileUrl,
-  captureTargetId,
+  posterData,
   fileName = "color-hunt-poster.png",
   tripId,
   shareId = null,
@@ -27,124 +34,230 @@ export function SaveImageButton({
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function blobToDataUrl(blob: Blob) {
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          resolve(reader.result);
-          return;
-        }
-
-        reject(new Error("Couldn't convert poster image for capture."));
-      };
-      reader.onerror = () => {
-        reject(reader.error ?? new Error("Couldn't convert poster image for capture."));
-      };
-      reader.readAsDataURL(blob);
-    });
+  function buildRoundedRectPath(
+    context: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+  ) {
+    const nextRadius = Math.min(radius, width / 2, height / 2);
+    context.beginPath();
+    context.moveTo(x + nextRadius, y);
+    context.lineTo(x + width - nextRadius, y);
+    context.quadraticCurveTo(x + width, y, x + width, y + nextRadius);
+    context.lineTo(x + width, y + height - nextRadius);
+    context.quadraticCurveTo(x + width, y + height, x + width - nextRadius, y + height);
+    context.lineTo(x + nextRadius, y + height);
+    context.quadraticCurveTo(x, y + height, x, y + height - nextRadius);
+    context.lineTo(x, y + nextRadius);
+    context.quadraticCurveTo(x, y, x + nextRadius, y);
+    context.closePath();
   }
 
-  async function waitForRenderFrames(frameCount = 2) {
-    for (let index = 0; index < frameCount; index += 1) {
-      await new Promise<void>((resolve) => {
-        window.requestAnimationFrame(() => resolve());
-      });
+  function wrapPosterTitle(title: string, maxLineLength = 15) {
+    const words = title.trim().split(/\s+/).filter(Boolean);
+
+    if (words.length <= 1) {
+      return words;
+    }
+
+    const lines: string[] = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+      if (nextLine.length <= maxLineLength || currentLine.length === 0) {
+        currentLine = nextLine;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines.slice(0, 2);
+  }
+
+  async function loadPosterImage(sourceUrl: string) {
+    const response = await fetch(sourceUrl, { cache: "force-cache" });
+
+    if (!response.ok) {
+      throw new Error("Couldn't fetch the poster photo.");
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+      const image = new Image();
+      image.decoding = "async";
+      image.src = objectUrl;
+      await image.decode();
+      return image;
+    } finally {
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+      }, 2000);
     }
   }
 
-  async function inlinePosterImages(target: HTMLElement) {
-    const images = Array.from(target.querySelectorAll("img"));
-    const restorers: Array<() => void> = [];
+  async function renderPosterBlob(data: PosterCaptureData) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const context = canvas.getContext("2d");
 
-    await Promise.all(
-      images.map(async (image) => {
-        const sourceUrl = image.currentSrc || image.src;
+    if (!context) {
+      throw new Error("Couldn't prepare the poster canvas.");
+    }
 
+    if (document.fonts) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        // Fonts can still fall back gracefully.
+      }
+    }
+
+    context.fillStyle = "#faf6ef";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const panelX = 18;
+    const panelY = 18;
+    const panelWidth = 1044;
+    const panelHeight = 1314;
+    buildRoundedRectPath(context, panelX, panelY, panelWidth, panelHeight, 10);
+    context.fillStyle = "#fbf9f4";
+    context.fill();
+    context.strokeStyle = "rgba(94,126,152,0.12)";
+    context.lineWidth = 1;
+    context.stroke();
+
+    const posterPadding = 40;
+    const titleSize = 118;
+    const titleLeading = 0.92;
+    const metaSize = 20;
+    const kickerSize = 12;
+    const footerSize = 13;
+    const gap = 16;
+    const tileRadius = 6;
+    const contentWidth = panelWidth - posterPadding * 2;
+    const titleLines = wrapPosterTitle(data.locationLabel.toUpperCase());
+    const titleBaseY = panelY + posterPadding + 88;
+    const titleLineHeight = Math.round(titleSize * titleLeading);
+
+    context.fillStyle = "rgba(32,26,23,0.6)";
+    context.font = `600 ${kickerSize}px ui-sans-serif, system-ui, sans-serif`;
+    context.letterSpacing = "0.16em";
+    context.fillText("COLOR HUNT", panelX + posterPadding, panelY + 36);
+
+    context.strokeStyle = "rgba(94,126,152,0.14)";
+    context.beginPath();
+    context.moveTo(panelX + posterPadding, panelY + 64);
+    context.lineTo(panelX + panelWidth - posterPadding, panelY + 64);
+    context.stroke();
+
+    context.fillStyle = data.posterTone;
+    context.font = `600 ${titleSize}px "Cormorant Garamond", Georgia, serif`;
+    titleLines.forEach((line, index) => {
+      context.fillText(line, panelX + posterPadding, titleBaseY + index * titleLineHeight);
+    });
+
+    const metaY = titleBaseY + titleLines.length * titleLineHeight + 54;
+    context.strokeStyle = data.posterTone.replace(")", ", 0.16)").replace("rgb", "rgba");
+    context.strokeStyle = "rgba(90,120,150,0.16)";
+    context.beginPath();
+    context.moveTo(panelX + posterPadding, metaY - 18);
+    context.lineTo(panelX + panelWidth - posterPadding, metaY - 18);
+    context.stroke();
+
+    context.fillStyle = "rgba(32,26,23,0.84)";
+    context.font = `600 ${metaSize}px ui-sans-serif, system-ui, sans-serif`;
+    context.fillText("EXPLORING", panelX + posterPadding, metaY);
+
+    context.fillStyle = "rgba(32,26,23,0.58)";
+    context.font = `400 ${metaSize}px ui-sans-serif, system-ui, sans-serif`;
+    context.fillText(data.location.toUpperCase(), panelX + posterPadding + 198, metaY);
+
+    context.fillStyle = "rgba(32,26,23,0.46)";
+    context.font = `600 ${metaSize}px ui-sans-serif, system-ui, sans-serif`;
+    const locationMetrics = context.measureText(data.location.toUpperCase());
+    context.fillText(data.tripYear, panelX + posterPadding + 198 + locationMetrics.width + 24, metaY);
+
+    const gridTop = panelY + posterPadding + 284;
+    const tileWidth = Math.floor((contentWidth - gap * 2) / 3);
+    const tileHeight = tileWidth;
+
+    const loadedImages = await Promise.all(
+      data.photoUrls.map(async (sourceUrl) => {
         if (!sourceUrl) {
-          return;
+          return null;
         }
 
         try {
-          const response = await fetch(sourceUrl, { cache: "force-cache" });
-
-          if (!response.ok) {
-            return;
-          }
-
-          const dataUrl = await blobToDataUrl(await response.blob());
-          const previousSrc = image.getAttribute("src");
-          const previousSrcset = image.getAttribute("srcset");
-          const previousCrossOrigin = image.getAttribute("crossorigin");
-
-          restorers.push(() => {
-            if (previousSrc == null) {
-              image.removeAttribute("src");
-            } else {
-              image.setAttribute("src", previousSrc);
-            }
-
-            if (previousSrcset == null) {
-              image.removeAttribute("srcset");
-            } else {
-              image.setAttribute("srcset", previousSrcset);
-            }
-
-            if (previousCrossOrigin == null) {
-              image.removeAttribute("crossorigin");
-            } else {
-              image.setAttribute("crossorigin", previousCrossOrigin);
-            }
-          });
-
-          image.setAttribute("src", dataUrl);
-          image.setAttribute("srcset", "");
-          image.removeAttribute("crossorigin");
+          return await loadPosterImage(sourceUrl);
         } catch {
-          // Leave the existing src in place if inlining fails.
+          return null;
         }
       }),
     );
 
-    await waitForPosterImages(target);
-    await waitForRenderFrames(3);
+    loadedImages.forEach((image, index) => {
+      const column = index % 3;
+      const row = Math.floor(index / 3);
+      const x = panelX + posterPadding + column * (tileWidth + gap);
+      const y = gridTop + row * (tileHeight + gap);
 
-    return () => {
-      restorers.reverse().forEach((restore) => restore());
-    };
-  }
+      buildRoundedRectPath(context, x, y, tileWidth, tileHeight, tileRadius);
+      context.fillStyle = "rgba(255,255,255,0.42)";
+      context.fill();
+      context.strokeStyle = "rgba(137,171,191,0.12)";
+      context.stroke();
 
-  async function waitForPosterImages(target: HTMLElement) {
-    const images = Array.from(target.querySelectorAll("img"));
+      if (!image) {
+        return;
+      }
 
-    await Promise.all(
-      images.map(async (image) => {
-        if (!image.currentSrc && !image.src) {
+      const scale = Math.max(tileWidth / image.width, tileHeight / image.height);
+      const drawWidth = image.width * scale;
+      const drawHeight = image.height * scale;
+      const drawX = x + (tileWidth - drawWidth) / 2;
+      const drawY = y + (tileHeight - drawHeight) / 2;
+
+      context.save();
+      buildRoundedRectPath(context, x, y, tileWidth, tileHeight, tileRadius);
+      context.clip();
+      context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+      context.restore();
+    });
+
+    context.strokeStyle = "rgba(94,126,152,0.12)";
+    context.beginPath();
+    context.moveTo(panelX + posterPadding, panelY + panelHeight - 80);
+    context.lineTo(panelX + panelWidth - posterPadding, panelY + panelHeight - 80);
+    context.stroke();
+
+    context.fillStyle = "rgba(74,116,148,0.56)";
+    context.font = `600 ${footerSize}px ui-sans-serif, system-ui, sans-serif`;
+    context.textAlign = "center";
+    context.fillText("ONE PLACE. ONE COLOR. NINE MOMENTS.", canvas.width / 2, panelY + panelHeight - 32);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("Couldn't prepare the poster image."));
           return;
         }
 
-        if (!image.complete) {
-          await new Promise<void>((resolve) => {
-            const finish = () => {
-              image.removeEventListener("load", finish);
-              image.removeEventListener("error", finish);
-              resolve();
-            };
-
-            image.addEventListener("load", finish, { once: true });
-            image.addEventListener("error", finish, { once: true });
-          });
-        }
-
-        if (typeof image.decode === "function") {
-          try {
-            await image.decode();
-          } catch {
-            // Ignore decode failures and let the browser render whatever is available.
-          }
-        }
-      }),
-    );
+        resolve(blob);
+      }, "image/png");
+    });
   }
 
   async function openBlob(blob: Blob) {
@@ -193,40 +306,18 @@ export function SaveImageButton({
         shareId,
       });
 
-      if (captureTargetId) {
-        const target = document.getElementById(captureTargetId);
-
-        if (target) {
-          await waitForPosterImages(target);
-          const restoreImages = await inlinePosterImages(target);
-
-          try {
-            await waitForRenderFrames(2);
-
-            const blob = await toBlob(target, {
-              cacheBust: true,
-              pixelRatio: 2,
-              backgroundColor: "#faf6ef",
-            });
-
-            if (!blob) {
-              throw new Error("Couldn't prepare the poster image.");
-            }
-
-            const mode = await shareOrDownloadBlob(blob);
-            trackEvent({
-              eventName: mode === "shared" ? "poster_image_shared_native" : "poster_image_downloaded",
-              tripId,
-              shareId,
-              metadata: {
-                mode: "captured_dom",
-              },
-            });
-          } finally {
-            restoreImages();
-          }
-          return;
-        }
+      if (posterData) {
+        const blob = await renderPosterBlob(posterData);
+        const mode = await shareOrDownloadBlob(blob);
+        trackEvent({
+          eventName: mode === "shared" ? "poster_image_shared_native" : "poster_image_downloaded",
+          tripId,
+          shareId,
+          metadata: {
+            mode: "canvas_render",
+          },
+        });
+        return;
       }
 
       if (!fileUrl) {
@@ -271,10 +362,10 @@ export function SaveImageButton({
   return (
     <>
       <button type="button" onClick={handleOpenImage} className={className} disabled={isPending}>
-        {isPending ? "Preparing image..." : captureTargetId || fileUrl ? buttonLabel : "Preparing poster..."}
+        {isPending ? "Preparing image..." : posterData || fileUrl ? buttonLabel : "Preparing poster..."}
       </button>
       <p className="mt-2 text-xs text-[var(--muted)]">
-        {!captureTargetId && !fileUrl
+        {!posterData && !fileUrl
           ? "The main poster asset is still being prepared. Try again in a moment."
           : isPending
           ? "Preparing the poster image for your phone’s share and save options."

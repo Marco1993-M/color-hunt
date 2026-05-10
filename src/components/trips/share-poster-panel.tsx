@@ -7,7 +7,7 @@ import { trackEvent } from "@/lib/analytics";
 import { DownloadPosterButton } from "@/components/trips/download-poster-button";
 import { getRetentionSummaryLabel } from "@/lib/retention";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
-import { SaveImageButton } from "@/components/trips/save-image-button";
+import { SaveImageButton, type PosterCaptureData } from "@/components/trips/save-image-button";
 import { createClient } from "@/lib/supabase/client";
 import type { PosterExport } from "@/lib/types";
 
@@ -24,6 +24,7 @@ type SharePosterPanelProps = {
   endDate: string | null;
   missionColorName: string;
   exportUrls?: Partial<Record<PosterExport["format"], string>>;
+  posterData?: PosterCaptureData | null;
 };
 
 type SupabaseErrorLike = {
@@ -48,6 +49,7 @@ export function SharePosterPanel({
   endDate,
   missionColorName,
   exportUrls,
+  posterData,
 }: SharePosterPanelProps) {
   const [shareId, setShareId] = useState(initialShareId);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -281,7 +283,7 @@ export function SharePosterPanel({
             <SaveImageButton
               tripId={tripId}
               shareId={shareId}
-              captureTargetId="trip-poster-sheet"
+              posterData={posterData}
               fileUrl={exportUrls?.post}
               fileName={`${location.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-post-4x5.png`}
               buttonLabel="Save poster"
