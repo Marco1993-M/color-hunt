@@ -27,6 +27,41 @@ export function SaveImageButton({
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function openBlob(blob: Blob) {
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    link.rel = "noreferrer";
+    link.click();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 2000);
+  }
+
+  async function shareOrDownloadBlob(blob: Blob) {
+    const shareFile = new File([blob], fileName, {
+      type: blob.type || "image/png",
+    });
+
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function" &&
+      typeof navigator.canShare === "function" &&
+      navigator.canShare({ files: [shareFile] })
+    ) {
+      await navigator.share({
+        title: "Color Hunt poster",
+        files: [shareFile],
+      });
+      return "shared";
+    }
+
+    await openBlob(blob);
+    return "downloaded";
+  }
+
   async function handleOpenImage() {
     setError(null);
     setIsPending(true);
@@ -52,16 +87,15 @@ export function SaveImageButton({
             throw new Error("Couldn't prepare the poster image.");
           }
 
-          const objectUrl = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = objectUrl;
-          link.download = fileName;
-          link.rel = "noreferrer";
-          link.click();
-
-          window.setTimeout(() => {
-            URL.revokeObjectURL(objectUrl);
-          }, 2000);
+          const mode = await shareOrDownloadBlob(blob);
+          trackEvent({
+            eventName: mode === "shared" ? "poster_image_shared_native" : "poster_image_downloaded",
+            tripId,
+            shareId,
+            metadata: {
+              mode: "captured_dom",
+            },
+          });
           return;
         }
       }
@@ -71,11 +105,22 @@ export function SaveImageButton({
         return;
       }
 
-      const link = document.createElement("a");
-      link.href = fileUrl;
-      link.download = fileName;
-      link.rel = "noreferrer";
-      link.click();
+      const response = await fetch(fileUrl);
+
+      if (!response.ok) {
+        throw new Error("Couldn't fetch the poster image.");
+      }
+
+      const blob = await response.blob();
+      const mode = await shareOrDownloadBlob(blob);
+      trackEvent({
+        eventName: mode === "shared" ? "poster_image_shared_native" : "poster_image_downloaded",
+        tripId,
+        shareId,
+        metadata: {
+          mode: "cached_file",
+        },
+      });
     } catch (openFailure) {
       const message = openFailure instanceof Error ? openFailure.message : "Couldn't open the poster image.";
       trackEvent({
@@ -103,8 +148,8 @@ export function SaveImageButton({
         {!captureTargetId && !fileUrl
           ? "The main poster asset is still being prepared. Try again in a moment."
           : isPending
-          ? "Preparing the poster image so you can save it directly."
-          : "Save the poster image directly to your device."}
+          ? "Preparing the poster image for your phone’s share and save options."
+          : "Open your phone’s native save and share options for the poster."}
       </p>
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>
