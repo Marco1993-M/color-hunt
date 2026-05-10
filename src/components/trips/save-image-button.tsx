@@ -168,7 +168,7 @@ export function SaveImageButton({
     context.stroke();
 
     const posterPadding = 40;
-    const titleSize = 118;
+    const titleSize = 104;
     const titleLeading = 0.92;
     const metaSize = 20;
     const kickerSize = 12;
@@ -177,8 +177,8 @@ export function SaveImageButton({
     const tileRadius = 6;
     const contentWidth = panelWidth - posterPadding * 2;
     const titleLines = wrapPosterTitle(data.locationLabel.toUpperCase());
-    const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * 0.94, titleSize);
-    const titleBaseY = panelY + posterPadding + 108;
+    const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * 0.88, titleSize, 82);
+    const titleBaseY = panelY + posterPadding + 132;
     const titleLineHeight = Math.round(fittedTitleSize * titleLeading);
 
     context.fillStyle = "rgba(32,26,23,0.6)";
@@ -200,7 +200,7 @@ export function SaveImageButton({
       context.fillText(line, panelX + posterPadding, titleBaseY + index * titleLineHeight);
     });
 
-    const metaY = titleBaseY + titleLines.length * titleLineHeight + 62;
+    const metaY = titleBaseY + titleLines.length * titleLineHeight + 78;
     context.strokeStyle = data.posterTone.replace(")", ", 0.16)").replace("rgb", "rgba");
     context.strokeStyle = "rgba(90,120,150,0.16)";
     context.beginPath();
@@ -224,7 +224,7 @@ export function SaveImageButton({
     const locationMetrics = context.measureText(data.location.toUpperCase());
     context.fillText(data.tripYear, panelX + posterPadding + 198 + locationMetrics.width + 24, metaY);
 
-    const gridTop = metaY + 52;
+    const gridTop = metaY + 66;
     const tileWidth = Math.floor((contentWidth - gap * 2) / 3);
     const tileHeight = tileWidth;
 
