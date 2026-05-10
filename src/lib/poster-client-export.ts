@@ -387,10 +387,11 @@ async function renderManualPosterBlob({
   });
 
   const metaY = panelY + layout.posterPadding + titleBlockHeight + (formatId === "story" ? 46 : 42);
+  const metaDividerOffset = formatId === "story" ? 34 : 18;
   context.strokeStyle = "rgba(90,120,150,0.16)";
   context.beginPath();
-  context.moveTo(panelX + layout.posterPadding, metaY - 18);
-  context.lineTo(panelX + panelWidth - layout.posterPadding, metaY - 18);
+  context.moveTo(panelX + layout.posterPadding, metaY - metaDividerOffset);
+  context.lineTo(panelX + panelWidth - layout.posterPadding, metaY - metaDividerOffset);
   context.stroke();
 
   context.fillStyle = "rgba(32,26,23,0.84)";

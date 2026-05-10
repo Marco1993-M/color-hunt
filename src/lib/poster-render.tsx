@@ -233,6 +233,7 @@ function getPosterSvgText({
     })
     .join("");
   const metaY = titleBaseY + titleLines.length * titleLineHeight + 54;
+  const metaDividerOffset = formatId === "story" ? 34 : 18;
   const footerY = format.height - layout.canvasPaddingY - layout.posterPadding + 4;
   const regularFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__REGULAR__); font-weight: 400; font-style: normal; }`;
   const semiboldFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__SEMIBOLD__); font-weight: 600; font-style: normal; }`;
@@ -278,9 +279,9 @@ function getPosterSvgText({
           ${titleMarkup}
           <line
             x1="${layout.posterPadding}"
-            y1="${metaY - 18}"
+            y1="${metaY - metaDividerOffset}"
             x2="${format.width - layout.canvasPaddingX * 2 - layout.posterPadding}"
-            y2="${metaY - 18}"
+            y2="${metaY - metaDividerOffset}"
             stroke="${withAlpha(posterTone, 0.16)}"
             stroke-width="1"
           />
