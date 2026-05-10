@@ -89,6 +89,29 @@ export function SaveImageButton({
     return lines.slice(0, 2);
   }
 
+  function getFittedTitleSize(
+    context: CanvasRenderingContext2D,
+    lines: string[],
+    maxWidth: number,
+    initialSize: number,
+    minSize = 88,
+  ) {
+    let nextSize = initialSize;
+
+    while (nextSize > minSize) {
+      context.font = `600 ${nextSize}px "Cormorant Garamond", Georgia, serif`;
+      const widestLine = Math.max(...lines.map((line) => context.measureText(line).width));
+
+      if (widestLine <= maxWidth) {
+        return nextSize;
+      }
+
+      nextSize -= 2;
+    }
+
+    return minSize;
+  }
+
   async function loadPosterImage(sourceUrl: string) {
     const response = await fetch(sourceUrl, { cache: "force-cache" });
 
@@ -154,8 +177,9 @@ export function SaveImageButton({
     const tileRadius = 6;
     const contentWidth = panelWidth - posterPadding * 2;
     const titleLines = wrapPosterTitle(data.locationLabel.toUpperCase());
-    const titleBaseY = panelY + posterPadding + 88;
-    const titleLineHeight = Math.round(titleSize * titleLeading);
+    const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * 0.94, titleSize);
+    const titleBaseY = panelY + posterPadding + 108;
+    const titleLineHeight = Math.round(fittedTitleSize * titleLeading);
 
     context.fillStyle = "rgba(32,26,23,0.6)";
     context.font = `600 ${kickerSize}px ui-sans-serif, system-ui, sans-serif`;
@@ -170,13 +194,13 @@ export function SaveImageButton({
     context.stroke();
 
     context.fillStyle = data.posterTone;
-    context.font = `600 ${titleSize}px "Cormorant Garamond", Georgia, serif`;
+    context.font = `600 ${fittedTitleSize}px "Cormorant Garamond", Georgia, serif`;
     setCanvasLetterSpacing(context, "0px");
     titleLines.forEach((line, index) => {
       context.fillText(line, panelX + posterPadding, titleBaseY + index * titleLineHeight);
     });
 
-    const metaY = titleBaseY + titleLines.length * titleLineHeight + 54;
+    const metaY = titleBaseY + titleLines.length * titleLineHeight + 62;
     context.strokeStyle = data.posterTone.replace(")", ", 0.16)").replace("rgb", "rgba");
     context.strokeStyle = "rgba(90,120,150,0.16)";
     context.beginPath();
@@ -200,7 +224,7 @@ export function SaveImageButton({
     const locationMetrics = context.measureText(data.location.toUpperCase());
     context.fillText(data.tripYear, panelX + posterPadding + 198 + locationMetrics.width + 24, metaY);
 
-    const gridTop = panelY + posterPadding + 284;
+    const gridTop = metaY + 52;
     const tileWidth = Math.floor((contentWidth - gap * 2) / 3);
     const tileHeight = tileWidth;
 
