@@ -281,7 +281,9 @@ export function SharePosterPanel({
             <SaveImageButton
               tripId={tripId}
               shareId={shareId}
+              captureTargetId="trip-poster-sheet"
               fileUrl={exportUrls?.post}
+              fileName={`${location.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-post-4x5.png`}
               buttonLabel="Save poster"
             />
             <ShareLinkButton

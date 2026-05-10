@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { toBlob } from "html-to-image";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
 type SaveImageButtonProps = {
   fileUrl?: string | null;
+  captureTargetId?: string;
+  fileName?: string;
   tripId?: string;
   shareId?: string | null;
   buttonLabel?: string;
@@ -14,6 +17,8 @@ type SaveImageButtonProps = {
 
 export function SaveImageButton({
   fileUrl,
+  captureTargetId,
+  fileName = "color-hunt-poster.png",
   tripId,
   shareId = null,
   buttonLabel = "Save image",
@@ -23,11 +28,6 @@ export function SaveImageButton({
   const [error, setError] = useState<string | null>(null);
 
   async function handleOpenImage() {
-    if (!fileUrl) {
-      setError("Your poster image is still being prepared.");
-      return;
-    }
-
     setError(null);
     setIsPending(true);
 
@@ -38,8 +38,42 @@ export function SaveImageButton({
         shareId,
       });
 
+      if (captureTargetId) {
+        const target = document.getElementById(captureTargetId);
+
+        if (target) {
+          const blob = await toBlob(target, {
+            cacheBust: true,
+            pixelRatio: 2,
+            backgroundColor: "#faf6ef",
+          });
+
+          if (!blob) {
+            throw new Error("Couldn't prepare the poster image.");
+          }
+
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = fileName;
+          link.rel = "noreferrer";
+          link.click();
+
+          window.setTimeout(() => {
+            URL.revokeObjectURL(objectUrl);
+          }, 2000);
+          return;
+        }
+      }
+
+      if (!fileUrl) {
+        setError("Your poster image is still being prepared.");
+        return;
+      }
+
       const link = document.createElement("a");
       link.href = fileUrl;
+      link.download = fileName;
       link.rel = "noreferrer";
       link.click();
     } catch (openFailure) {
@@ -63,14 +97,14 @@ export function SaveImageButton({
   return (
     <>
       <button type="button" onClick={handleOpenImage} className={className} disabled={isPending}>
-        {isPending ? "Preparing image..." : fileUrl ? buttonLabel : "Preparing poster..."}
+        {isPending ? "Preparing image..." : captureTargetId || fileUrl ? buttonLabel : "Preparing poster..."}
       </button>
       <p className="mt-2 text-xs text-[var(--muted)]">
-        {!fileUrl
+        {!captureTargetId && !fileUrl
           ? "The main poster asset is still being prepared. Try again in a moment."
           : isPending
-          ? "Opening the poster image so you can save it directly."
-          : "Open the actual poster image directly so you can save it."}
+          ? "Preparing the poster image so you can save it directly."
+          : "Save the poster image directly to your device."}
       </p>
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>
