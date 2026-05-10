@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/admin-supabase";
 import { posterExportFormats, type PosterExportFormatId } from "@/lib/poster-export";
-import { createPosterImageResponse, getPosterExportFileName } from "@/lib/poster-render";
+import { getPosterExportFileName, renderPosterPngBuffer } from "@/lib/poster-render";
 import type { Mission, Photo, PosterExport, Trip } from "@/lib/types";
 
 const POSTER_EXPORT_BUCKET = "poster-exports";
@@ -69,14 +69,12 @@ export async function generatePosterExports({
       continue;
     }
 
-    const imageResponse = await createPosterImageResponse({
+    const imageBuffer = await renderPosterPngBuffer({
       trip,
       mission,
       photos,
       formatId: format.id,
     });
-
-    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     const storagePath = getPosterExportStoragePath(trip.user_id, trip.id, format.id, Date.now());
 
     const { error: uploadError } = await supabase.storage.from(POSTER_EXPORT_BUCKET).upload(storagePath, imageBuffer, {
