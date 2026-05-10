@@ -44,11 +44,11 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         canvasPaddingX: 36,
         canvasPaddingY: 44,
         posterPadding: 92,
-        titleSize: 220,
+        titleSize: 210,
         titleLeading: 0.89,
-        metaSize: 37,
-        kickerSize: 22,
-        footerSize: 26,
+        metaSize: 35,
+        kickerSize: 21,
+        footerSize: 24,
         gridTopMargin: 72,
         footerTopPadding: 40,
         gap: 12,
@@ -63,11 +63,11 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         canvasPaddingX: 30,
         canvasPaddingY: 30,
         posterPadding: 82,
-        titleSize: 164,
+        titleSize: 156,
         titleLeading: 0.9,
-        metaSize: 29,
-        kickerSize: 18,
-        footerSize: 21,
+        metaSize: 27,
+        kickerSize: 17,
+        footerSize: 19,
         gridTopMargin: 48,
         footerTopPadding: 34,
         gap: 20,
@@ -356,10 +356,14 @@ export async function renderPosterPngBuffer({
           .replace("__REGULAR__", toBase64(posterFonts.regular))
           .replace("__SEMIBOLD__", toBase64(posterFonts.semibold));
   const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
+  const titleLines = wrapPosterTitle(getPosterLocationLabel(trip.location), formatId);
   const posterWidth = format.width - layout.canvasPaddingX * 2;
   const posterHeight = format.height - layout.canvasPaddingY * 2;
   const contentWidth = posterWidth - layout.posterPadding * 2;
-  const titleBlockHeight = Math.round(layout.titleSize * 1.7);
+  const titleLineHeight = Math.round(layout.titleSize * layout.titleLeading);
+  const titleBlockHeight =
+    Math.round(layout.titleSize + Math.max(0, titleLines.length - 1) * titleLineHeight) +
+    (formatId === "story" ? 18 : 12);
   const metaBlockHeight = layout.metaSize + 52;
   const footerBlockHeight = layout.footerSize + layout.footerTopPadding + 18;
   const availableGridHeight =
@@ -461,11 +465,15 @@ export async function createPosterImageResponse({
   const locationLabel = getPosterLocationLabel(trip.location);
   const posterFonts = await loadPosterFonts();
   const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
+  const titleLines = wrapPosterTitle(locationLabel, formatId);
 
   const posterWidth = format.width - layout.canvasPaddingX * 2;
   const posterHeight = format.height - layout.canvasPaddingY * 2;
   const contentWidth = posterWidth - layout.posterPadding * 2;
-  const titleBlockHeight = Math.round(layout.titleSize * 1.55);
+  const titleLineHeight = Math.round(layout.titleSize * layout.titleLeading);
+  const titleBlockHeight =
+    Math.round(layout.titleSize + Math.max(0, titleLines.length - 1) * titleLineHeight) +
+    (formatId === "story" ? 18 : 12);
   const metaBlockHeight = layout.metaSize + 48;
   const footerBlockHeight = layout.footerSize + layout.footerTopPadding + 18;
   const availableGridHeight =

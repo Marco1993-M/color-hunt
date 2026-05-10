@@ -115,11 +115,11 @@ function getManualLayout(formatId: PosterExportFormatId): ManualLayout {
         canvasPaddingX: 36,
         canvasPaddingY: 44,
         posterPadding: 92,
-        titleSize: 220,
+        titleSize: 210,
         titleLeading: 0.89,
-        metaSize: 37,
-        kickerSize: 22,
-        footerSize: 26,
+        metaSize: 35,
+        kickerSize: 21,
+        footerSize: 24,
         footerTopPadding: 40,
         gridTopMargin: 72,
         gap: 12,
@@ -134,11 +134,11 @@ function getManualLayout(formatId: PosterExportFormatId): ManualLayout {
         canvasPaddingX: 30,
         canvasPaddingY: 30,
         posterPadding: 82,
-        titleSize: 164,
+        titleSize: 156,
         titleLeading: 0.9,
-        metaSize: 29,
-        kickerSize: 18,
-        footerSize: 21,
+        metaSize: 27,
+        kickerSize: 17,
+        footerSize: 19,
         footerTopPadding: 34,
         gridTopMargin: 48,
         gap: 20,
@@ -352,7 +352,9 @@ async function renderManualPosterBlob({
   const titleLines = wrapPosterTitle(data.locationLabel.toUpperCase(), formatId === "story" ? 11 : formatId === "square" ? 13 : 15);
   const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * (formatId === "story" ? 0.98 : 0.94), layout.titleSize, formatId === "story" ? 140 : 88);
   const titleLineHeight = Math.round(fittedTitleSize * layout.titleLeading);
-  const titleBlockHeight = Math.round(fittedTitleSize * 1.55);
+  const titleBlockHeight =
+    Math.round(fittedTitleSize + Math.max(0, titleLines.length - 1) * titleLineHeight) +
+    (formatId === "story" ? 18 : 12);
   const metaBlockHeight = layout.metaSize + (formatId === "story" ? 52 : 48);
   const footerBlockHeight = layout.footerSize + layout.footerTopPadding + 18;
   const availableGridHeight =
