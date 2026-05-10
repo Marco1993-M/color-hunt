@@ -45,22 +45,13 @@ export function SaveImageButton({
     });
   }
 
-  async function createCaptureNode(target: HTMLElement) {
-    const clone = target.cloneNode(true) as HTMLElement;
-    clone.style.margin = "0";
-    clone.style.position = "fixed";
-    clone.style.left = "-200vw";
-    clone.style.top = "0";
-    clone.style.zIndex = "-1";
-    clone.style.pointerEvents = "none";
-
-    const sourceImages = Array.from(target.querySelectorAll("img"));
-    const cloneImages = Array.from(clone.querySelectorAll("img"));
+  async function inlinePosterImages(target: HTMLElement) {
+    const images = Array.from(target.querySelectorAll("img"));
+    const restorers: Array<() => void> = [];
 
     await Promise.all(
-      cloneImages.map(async (cloneImage, index) => {
-        const sourceImage = sourceImages[index];
-        const sourceUrl = sourceImage?.currentSrc || sourceImage?.src || cloneImage.currentSrc || cloneImage.src;
+      images.map(async (image) => {
+        const sourceUrl = image.currentSrc || image.src;
 
         if (!sourceUrl) {
           return;
@@ -74,18 +65,44 @@ export function SaveImageButton({
           }
 
           const dataUrl = await blobToDataUrl(await response.blob());
-          cloneImage.src = dataUrl;
-          cloneImage.srcset = "";
-          cloneImage.crossOrigin = "";
+          const previousSrc = image.getAttribute("src");
+          const previousSrcset = image.getAttribute("srcset");
+          const previousCrossOrigin = image.getAttribute("crossorigin");
+
+          restorers.push(() => {
+            if (previousSrc == null) {
+              image.removeAttribute("src");
+            } else {
+              image.setAttribute("src", previousSrc);
+            }
+
+            if (previousSrcset == null) {
+              image.removeAttribute("srcset");
+            } else {
+              image.setAttribute("srcset", previousSrcset);
+            }
+
+            if (previousCrossOrigin == null) {
+              image.removeAttribute("crossorigin");
+            } else {
+              image.setAttribute("crossorigin", previousCrossOrigin);
+            }
+          });
+
+          image.setAttribute("src", dataUrl);
+          image.setAttribute("srcset", "");
+          image.removeAttribute("crossorigin");
         } catch {
           // Leave the existing src in place if inlining fails.
         }
       }),
     );
 
-    document.body.appendChild(clone);
-    await waitForPosterImages(clone);
-    return clone;
+    await waitForPosterImages(target);
+
+    return () => {
+      restorers.reverse().forEach((restore) => restore());
+    };
   }
 
   async function waitForPosterImages(target: HTMLElement) {
@@ -172,10 +189,10 @@ export function SaveImageButton({
 
         if (target) {
           await waitForPosterImages(target);
-          const captureNode = await createCaptureNode(target);
+          const restoreImages = await inlinePosterImages(target);
 
           try {
-            const blob = await toBlob(captureNode, {
+            const blob = await toBlob(target, {
               cacheBust: true,
               pixelRatio: 2,
               backgroundColor: "#faf6ef",
@@ -195,7 +212,7 @@ export function SaveImageButton({
               },
             });
           } finally {
-            captureNode.remove();
+            restoreImages();
           }
           return;
         }
