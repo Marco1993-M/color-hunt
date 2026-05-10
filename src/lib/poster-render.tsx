@@ -51,11 +51,12 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         footerSize: 26,
         gridTopMargin: 72,
         footerTopPadding: 40,
-        gap: 24,
+        gap: 12,
         radius: 4,
-        gridHeightScale: 0.88,
+        gridHeightScale: 1,
         tileRadius: 2,
-        columns: 2,
+        columns: 3,
+        tileAspectRatio: 5 / 4,
       };
     case "square":
       return {
@@ -74,6 +75,7 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         gridHeightScale: 0.9,
         tileRadius: 2,
         columns: 3,
+        tileAspectRatio: 1,
       };
     default:
       return {
@@ -92,8 +94,51 @@ function getFormatLayout(formatId: PosterExportFormatId) {
         gridHeightScale: 0.95,
         tileRadius: 1,
         columns: 3,
+        tileAspectRatio: 1,
       };
   }
+}
+
+function getPhotoRows(photoUrls: Array<string | null>, columns: number) {
+  return Array.from({ length: 3 }, (_, rowIndex) => photoUrls.slice(rowIndex * columns, rowIndex * columns + columns));
+}
+
+function getPosterGridMetrics({
+  formatId,
+  contentWidth,
+  availableGridHeight,
+  gap,
+  columns,
+}: {
+  formatId: PosterExportFormatId;
+  contentWidth: number;
+  availableGridHeight: number;
+  gap: number;
+  columns: number;
+}) {
+  const tileWidth = Math.floor((contentWidth - gap * (columns - 1)) / columns);
+
+  if (formatId === "story") {
+    const maxTileHeight = Math.floor((availableGridHeight - gap * 2) / 3);
+    const tileHeight = Math.min(Math.floor(tileWidth * (5 / 4)), maxTileHeight);
+    const gridHeight = tileHeight * 3 + gap * 2;
+
+    return {
+      columns,
+      tileWidth,
+      tileHeight,
+      gridHeight: Math.min(gridHeight, availableGridHeight),
+    };
+  }
+
+  const rowHeight = Math.floor((availableGridHeight - gap * 2) / 3);
+
+  return {
+    columns,
+    tileWidth,
+    tileHeight: rowHeight,
+    gridHeight: Math.floor(availableGridHeight),
+  };
 }
 
 function escapeXml(value: string) {
@@ -319,14 +364,14 @@ export async function renderPosterPngBuffer({
   const footerBlockHeight = layout.footerSize + layout.footerTopPadding + 18;
   const availableGridHeight =
     posterHeight - layout.posterPadding * 2 - 22 - titleBlockHeight - metaBlockHeight - layout.gridTopMargin - footerBlockHeight;
-  const gridHeight = Math.floor(availableGridHeight * layout.gridHeightScale);
-  const photoRows =
-    layout.columns === 2
-      ? [photoUrls.slice(0, 2), photoUrls.slice(2, 4), photoUrls.slice(4, 6), photoUrls.slice(6, 8), photoUrls.slice(8, 9)]
-      : [photoUrls.slice(0, 3), photoUrls.slice(3, 6), photoUrls.slice(6, 9)];
-  const tileWidth = Math.floor((contentWidth - layout.gap * (layout.columns - 1)) / layout.columns);
-  const rowHeight = Math.floor((gridHeight - layout.gap * (photoRows.length - 1)) / photoRows.length);
-  const tileHeight = rowHeight;
+  const { columns, tileWidth, tileHeight, gridHeight } = getPosterGridMetrics({
+    formatId,
+    contentWidth,
+    availableGridHeight: Math.floor(availableGridHeight * layout.gridHeightScale),
+    gap: layout.gap,
+    columns: layout.columns,
+  });
+  const photoRows = getPhotoRows(photoUrls, columns);
   const gridStartX = layout.canvasPaddingX + layout.posterPadding;
   const gridStartY = layout.canvasPaddingY + layout.posterPadding + titleBlockHeight + metaBlockHeight + layout.gridTopMargin;
   const tileMaskCache = new Map<string, Buffer>();
@@ -425,14 +470,14 @@ export async function createPosterImageResponse({
   const footerBlockHeight = layout.footerSize + layout.footerTopPadding + 18;
   const availableGridHeight =
     posterHeight - layout.posterPadding * 2 - 22 - titleBlockHeight - metaBlockHeight - layout.gridTopMargin - footerBlockHeight;
-  const gridHeight = Math.floor(availableGridHeight * layout.gridHeightScale);
-  const photoRows =
-    layout.columns === 2
-      ? [photoUrls.slice(0, 2), photoUrls.slice(2, 4), photoUrls.slice(4, 6), photoUrls.slice(6, 8), photoUrls.slice(8, 9)]
-      : [photoUrls.slice(0, 3), photoUrls.slice(3, 6), photoUrls.slice(6, 9)];
-  const tileWidth = Math.floor((contentWidth - layout.gap * (layout.columns - 1)) / layout.columns);
-  const rowHeight = Math.floor((gridHeight - layout.gap * (photoRows.length - 1)) / photoRows.length);
-  const tileHeight = rowHeight;
+  const { columns, tileWidth, tileHeight, gridHeight } = getPosterGridMetrics({
+    formatId,
+    contentWidth,
+    availableGridHeight: Math.floor(availableGridHeight * layout.gridHeightScale),
+    gap: layout.gap,
+    columns: layout.columns,
+  });
+  const photoRows = getPhotoRows(photoUrls, columns);
 
   return new ImageResponse(
     (
