@@ -27,6 +27,67 @@ export function SaveImageButton({
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function blobToDataUrl(blob: Blob) {
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+          return;
+        }
+
+        reject(new Error("Couldn't convert poster image for capture."));
+      };
+      reader.onerror = () => {
+        reject(reader.error ?? new Error("Couldn't convert poster image for capture."));
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function createCaptureNode(target: HTMLElement) {
+    const clone = target.cloneNode(true) as HTMLElement;
+    clone.style.margin = "0";
+    clone.style.position = "fixed";
+    clone.style.left = "-200vw";
+    clone.style.top = "0";
+    clone.style.zIndex = "-1";
+    clone.style.pointerEvents = "none";
+
+    const sourceImages = Array.from(target.querySelectorAll("img"));
+    const cloneImages = Array.from(clone.querySelectorAll("img"));
+
+    await Promise.all(
+      cloneImages.map(async (cloneImage, index) => {
+        const sourceImage = sourceImages[index];
+        const sourceUrl = sourceImage?.currentSrc || sourceImage?.src || cloneImage.currentSrc || cloneImage.src;
+
+        if (!sourceUrl) {
+          return;
+        }
+
+        try {
+          const response = await fetch(sourceUrl, { cache: "force-cache" });
+
+          if (!response.ok) {
+            return;
+          }
+
+          const dataUrl = await blobToDataUrl(await response.blob());
+          cloneImage.src = dataUrl;
+          cloneImage.srcset = "";
+          cloneImage.crossOrigin = "";
+        } catch {
+          // Leave the existing src in place if inlining fails.
+        }
+      }),
+    );
+
+    document.body.appendChild(clone);
+    await waitForPosterImages(clone);
+    return clone;
+  }
+
   async function waitForPosterImages(target: HTMLElement) {
     const images = Array.from(target.querySelectorAll("img"));
 
@@ -111,26 +172,31 @@ export function SaveImageButton({
 
         if (target) {
           await waitForPosterImages(target);
+          const captureNode = await createCaptureNode(target);
 
-          const blob = await toBlob(target, {
-            cacheBust: true,
-            pixelRatio: 2,
-            backgroundColor: "#faf6ef",
-          });
+          try {
+            const blob = await toBlob(captureNode, {
+              cacheBust: true,
+              pixelRatio: 2,
+              backgroundColor: "#faf6ef",
+            });
 
-          if (!blob) {
-            throw new Error("Couldn't prepare the poster image.");
+            if (!blob) {
+              throw new Error("Couldn't prepare the poster image.");
+            }
+
+            const mode = await shareOrDownloadBlob(blob);
+            trackEvent({
+              eventName: mode === "shared" ? "poster_image_shared_native" : "poster_image_downloaded",
+              tripId,
+              shareId,
+              metadata: {
+                mode: "captured_dom",
+              },
+            });
+          } finally {
+            captureNode.remove();
           }
-
-          const mode = await shareOrDownloadBlob(blob);
-          trackEvent({
-            eventName: mode === "shared" ? "poster_image_shared_native" : "poster_image_downloaded",
-            tripId,
-            shareId,
-            metadata: {
-              mode: "captured_dom",
-            },
-          });
           return;
         }
       }
