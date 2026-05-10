@@ -45,6 +45,14 @@ export function SaveImageButton({
     });
   }
 
+  async function waitForRenderFrames(frameCount = 2) {
+    for (let index = 0; index < frameCount; index += 1) {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    }
+  }
+
   async function inlinePosterImages(target: HTMLElement) {
     const images = Array.from(target.querySelectorAll("img"));
     const restorers: Array<() => void> = [];
@@ -99,6 +107,7 @@ export function SaveImageButton({
     );
 
     await waitForPosterImages(target);
+    await waitForRenderFrames(3);
 
     return () => {
       restorers.reverse().forEach((restore) => restore());
@@ -192,6 +201,8 @@ export function SaveImageButton({
           const restoreImages = await inlinePosterImages(target);
 
           try {
+            await waitForRenderFrames(2);
+
             const blob = await toBlob(target, {
               cacheBust: true,
               pixelRatio: 2,
