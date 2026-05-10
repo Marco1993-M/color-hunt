@@ -881,7 +881,7 @@ img {
 }
 
 .poster-frame[data-export-format="story"] .poster-photo-tile {
-  border-radius: 0.65rem !important;
+  border-radius: 0.15rem !important;
 }
 
 .poster-frame[data-export-format="story"] .poster-footer {
