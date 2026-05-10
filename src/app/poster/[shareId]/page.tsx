@@ -6,7 +6,7 @@ import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
 import { getPosterExportForTrip, getPublicTripBundleByShareId } from "@/lib/data";
-import { isPosterComplete } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 
 type PublicPosterPageProps = {
   params: Promise<{ shareId: string }>;
@@ -135,6 +135,13 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
     story: storyExport?.image_url,
     square: squareExport?.image_url,
   };
+  const posterData = {
+    locationLabel: getPosterLocationLabel(trip.location),
+    location: trip.location,
+    tripYear: getPosterTripYear(trip.created_at, trip.start_date, trip.end_date),
+    posterTone: mission.color_hex,
+    photoUrls: buildPosterFrameSlots(photos).map((photo) => photo?.image_url ?? null),
+  };
   const posterJsonLd = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
@@ -163,7 +170,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
           <div className="flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
               shareId={shareId}
-              captureTargetId="public-poster-sheet"
+              posterData={posterData}
               fileUrl={exportUrls.post ?? null}
               fileName={`${trip.location.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-post-4x5.png`}
               buttonLabel="Save poster"

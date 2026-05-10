@@ -8,7 +8,7 @@ import { PosterReadyWatcher } from "@/components/trips/poster-ready-watcher";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { requireUser } from "@/lib/auth";
 import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
-import { isPosterComplete } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 import { isAnonymousUser } from "@/lib/user-state";
 
 type PosterPageProps = {
@@ -38,6 +38,13 @@ export default async function PosterPage({ params }: PosterPageProps) {
     post: postExport?.image_url,
     story: storyExport?.image_url,
     square: squareExport?.image_url,
+  };
+  const posterData = {
+    locationLabel: getPosterLocationLabel(trip.location),
+    location: trip.location,
+    tripYear: getPosterTripYear(trip.created_at, trip.start_date, trip.end_date),
+    posterTone: mission.color_hex,
+    photoUrls: buildPosterFrameSlots(photos).map((photo) => photo?.image_url ?? null),
   };
 
   return (
@@ -102,6 +109,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
               endDate={trip.end_date}
               missionColorName={mission.color_name}
               exportUrls={exportUrls}
+              posterData={posterData}
             />
           )}
         </div>
