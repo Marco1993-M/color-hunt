@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PosterSheet } from "@/components/trips/poster-sheet";
 import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
+import { PosterReadyWatcher } from "@/components/trips/poster-ready-watcher";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { requireUser } from "@/lib/auth";
 import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
@@ -72,6 +73,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
 
         <PosterSheet trip={trip} mission={mission} photos={photos} />
         <PosterExportWarmup tripId={trip.id} enabled={isComplete} />
+        <PosterReadyWatcher tripId={trip.id} enabled={isComplete} hasPostExport={Boolean(exportUrls.post)} />
 
         <div className="mt-6">
           {isGuest ? (
