@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toBlob } from "html-to-image";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
@@ -15,6 +16,7 @@ export type PosterCaptureData = {
 type SaveImageButtonProps = {
   fileUrl?: string | null;
   posterData?: PosterCaptureData | null;
+  layoutSourceId?: string;
   fileName?: string;
   tripId?: string;
   shareId?: string | null;
@@ -25,6 +27,7 @@ type SaveImageButtonProps = {
 export function SaveImageButton({
   fileUrl,
   posterData,
+  layoutSourceId,
   fileName = "color-hunt-poster.png",
   tripId,
   shareId = null,
@@ -135,6 +138,22 @@ export function SaveImageButton({
     }
   }
 
+  async function loadBlobImage(blob: Blob) {
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+      const image = new Image();
+      image.decoding = "async";
+      image.src = objectUrl;
+      await image.decode();
+      return image;
+    } finally {
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+      }, 2000);
+    }
+  }
+
   async function renderPosterBlob(data: PosterCaptureData) {
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
@@ -150,6 +169,79 @@ export function SaveImageButton({
         await document.fonts.ready;
       } catch {
         // Fonts can still fall back gracefully.
+      }
+    }
+
+    if (layoutSourceId) {
+      const sourceNode = document.getElementById(layoutSourceId);
+
+      if (sourceNode) {
+        const sourceRect = sourceNode.getBoundingClientRect();
+        const scale = canvas.width / sourceRect.width;
+        const backgroundBlob = await toBlob(sourceNode, {
+          cacheBust: true,
+          pixelRatio: scale,
+          backgroundColor: "#faf6ef",
+          filter: (node) => !(node instanceof HTMLImageElement),
+        });
+
+        if (backgroundBlob) {
+          const backgroundImage = await loadBlobImage(backgroundBlob);
+          context.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+
+          const tiles = Array.from(sourceNode.querySelectorAll(".poster-photo-tile"));
+          const loadedImages = await Promise.all(
+            data.photoUrls.map(async (sourceUrl) => {
+              if (!sourceUrl) {
+                return null;
+              }
+
+              try {
+                return await loadPosterImage(sourceUrl);
+              } catch {
+                return null;
+              }
+            }),
+          );
+
+          tiles.forEach((tile, index) => {
+            const image = loadedImages[index];
+
+            if (!image) {
+              return;
+            }
+
+            const tileRect = tile.getBoundingClientRect();
+            const x = (tileRect.left - sourceRect.left) * scale;
+            const y = (tileRect.top - sourceRect.top) * scale;
+            const width = tileRect.width * scale;
+            const height = tileRect.height * scale;
+            const computedStyle = window.getComputedStyle(tile);
+            const radius = Number.parseFloat(computedStyle.borderTopLeftRadius || "0") * scale;
+            const drawScale = Math.max(width / image.width, height / image.height);
+            const drawWidth = image.width * drawScale;
+            const drawHeight = image.height * drawScale;
+            const drawX = x + (width - drawWidth) / 2;
+            const drawY = y + (height - drawHeight) / 2;
+
+            context.save();
+            buildRoundedRectPath(context, x, y, width, height, radius);
+            context.clip();
+            context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+            context.restore();
+          });
+
+          return await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                reject(new Error("Couldn't prepare the poster image."));
+                return;
+              }
+
+              resolve(blob);
+            }, "image/png");
+          });
+        }
       }
     }
 
