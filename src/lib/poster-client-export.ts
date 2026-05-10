@@ -170,6 +170,39 @@ function getManualLayout(formatId: PosterExportFormatId): ManualLayout {
   }
 }
 
+function getCenteredTitleBaseY({
+  formatId,
+  panelY,
+  posterPadding,
+  fittedTitleSize,
+  titleLineHeight,
+  titleLineCount,
+  metaY,
+  metaDividerOffset,
+}: {
+  formatId: PosterExportFormatId;
+  panelY: number;
+  posterPadding: number;
+  fittedTitleSize: number;
+  titleLineHeight: number;
+  titleLineCount: number;
+  metaY: number;
+  metaDividerOffset: number;
+}) {
+  const defaultBaseY = panelY + posterPadding + fittedTitleSize;
+
+  if (formatId === "post") {
+    return defaultBaseY;
+  }
+
+  const topDividerY = panelY + 64;
+  const lowerDividerY = metaY - metaDividerOffset;
+  const titleBlockHeight = fittedTitleSize + Math.max(0, titleLineCount - 1) * titleLineHeight;
+  const titleBlockTop = topDividerY + Math.max(0, (lowerDividerY - topDividerY - titleBlockHeight) / 2);
+
+  return titleBlockTop + fittedTitleSize;
+}
+
 async function loadPosterImage(sourceUrl: string) {
   const response = await fetch(sourceUrl, { cache: "force-cache" });
 
@@ -365,8 +398,6 @@ async function renderManualPosterBlob({
     formatId === "story"
       ? Math.min(Math.floor(tileWidth * layout.tileAspectRatio), maxTileHeight)
       : Math.floor((Math.floor(availableGridHeight * layout.gridHeightScale) - layout.gap * 2) / 3);
-  const titleBaseY = panelY + layout.posterPadding + fittedTitleSize;
-
   context.fillStyle = "rgba(32,26,23,0.6)";
   context.font = `600 ${layout.kickerSize}px ui-sans-serif, system-ui, sans-serif`;
   context.textAlign = "left";
@@ -379,6 +410,19 @@ async function renderManualPosterBlob({
   context.lineTo(panelX + panelWidth - layout.posterPadding, panelY + 64);
   context.stroke();
 
+  const metaY = panelY + layout.posterPadding + titleBlockHeight + (formatId === "story" ? 46 : 42);
+  const metaDividerOffset = formatId === "story" ? 34 : 18;
+  const titleBaseY = getCenteredTitleBaseY({
+    formatId,
+    panelY,
+    posterPadding: layout.posterPadding,
+    fittedTitleSize,
+    titleLineHeight,
+    titleLineCount: titleLines.length,
+    metaY,
+    metaDividerOffset,
+  });
+
   context.fillStyle = data.posterTone;
   context.font = `600 ${fittedTitleSize}px "Cormorant Garamond", Georgia, serif`;
   setCanvasLetterSpacing(context, "0px");
@@ -386,8 +430,6 @@ async function renderManualPosterBlob({
     context.fillText(line, panelX + layout.posterPadding, titleBaseY + index * titleLineHeight);
   });
 
-  const metaY = panelY + layout.posterPadding + titleBlockHeight + (formatId === "story" ? 46 : 42);
-  const metaDividerOffset = formatId === "story" ? 34 : 18;
   context.strokeStyle = "rgba(90,120,150,0.16)";
   context.beginPath();
   context.moveTo(panelX + layout.posterPadding, metaY - metaDividerOffset);

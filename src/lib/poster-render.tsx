@@ -141,6 +141,37 @@ function getPosterGridMetrics({
   };
 }
 
+function getCenteredTitleBaseY({
+  formatId,
+  posterPadding,
+  fittedTitleSize,
+  titleLineHeight,
+  titleLineCount,
+  metaY,
+  metaDividerOffset,
+}: {
+  formatId: PosterExportFormatId;
+  posterPadding: number;
+  fittedTitleSize: number;
+  titleLineHeight: number;
+  titleLineCount: number;
+  metaY: number;
+  metaDividerOffset: number;
+}) {
+  const defaultBaseY = posterPadding + fittedTitleSize;
+
+  if (formatId === "post") {
+    return defaultBaseY;
+  }
+
+  const topDividerY = 64;
+  const lowerDividerY = metaY - metaDividerOffset;
+  const titleBlockHeight = fittedTitleSize + Math.max(0, titleLineCount - 1) * titleLineHeight;
+  const titleBlockTop = topDividerY + Math.max(0, (lowerDividerY - topDividerY - titleBlockHeight) / 2);
+
+  return titleBlockTop + fittedTitleSize;
+}
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -225,15 +256,23 @@ function getPosterSvgText({
   const titleLines = wrapPosterTitle(locationLabel, formatId);
   const posterTone = mission.color_hex;
   const titleLineHeight = Math.round(layout.titleSize * layout.titleLeading);
-  const titleBaseY = layout.posterPadding + 96;
+  const metaDividerOffset = formatId === "story" ? 34 : 18;
+  const metaY = layout.posterPadding + 96 + titleLines.length * titleLineHeight + 54;
+  const titleBaseY = getCenteredTitleBaseY({
+    formatId,
+    posterPadding: layout.posterPadding,
+    fittedTitleSize: layout.titleSize,
+    titleLineHeight,
+    titleLineCount: titleLines.length,
+    metaY,
+    metaDividerOffset,
+  });
   const titleMarkup = titleLines
     .map((line, index) => {
       const y = titleBaseY + index * titleLineHeight;
       return `<text x="${layout.posterPadding}" y="${y}" font-size="${layout.titleSize}" font-weight="600" letter-spacing="-6" fill="${posterTone}">${escapeXml(line.toUpperCase())}</text>`;
     })
     .join("");
-  const metaY = titleBaseY + titleLines.length * titleLineHeight + 54;
-  const metaDividerOffset = formatId === "story" ? 34 : 18;
   const footerY = format.height - layout.canvasPaddingY - layout.posterPadding + 4;
   const regularFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__REGULAR__); font-weight: 400; font-style: normal; }`;
   const semiboldFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__SEMIBOLD__); font-weight: 600; font-style: normal; }`;
