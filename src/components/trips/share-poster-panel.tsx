@@ -305,7 +305,12 @@ export function SharePosterPanel({
           </div>
 
           <div className="mt-5">
-            <DownloadPosterButton shareId={shareId!} exportUrls={exportUrls} buttonLabel="More formats" />
+            <DownloadPosterButton
+              shareId={shareId!}
+              exportUrls={exportUrls}
+              posterData={posterData}
+              buttonLabel="More formats"
+            />
           </div>
 
           <p className="eyebrow mt-5">Public Link</p>
