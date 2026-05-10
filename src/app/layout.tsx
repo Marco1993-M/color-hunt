@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "/favicon.png",
+        url: "/icon.png",
         width: 512,
         height: 512,
         alt: "Color Hunt",
@@ -58,12 +58,12 @@ export const metadata: Metadata = {
     title: "Color Hunt",
     description:
       "Turn travel into a color game. Pick a place, hunt one color, collect nine moments, and turn them into a poster worth sharing.",
-    images: ["/favicon.png"],
+    images: ["/icon.png"],
   },
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    shortcut: ["/favicon.png"],
-    apple: [{ url: "/favicon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }],
+    shortcut: ["/icon.png"],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
