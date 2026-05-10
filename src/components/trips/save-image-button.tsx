@@ -168,18 +168,27 @@ export function SaveImageButton({
     context.stroke();
 
     const posterPadding = 40;
-    const titleSize = 104;
+    const titleSize = 118;
     const titleLeading = 0.92;
     const metaSize = 20;
     const kickerSize = 12;
     const footerSize = 13;
+    const footerTopPadding = 24;
+    const gridTopMargin = 28;
     const gap = 16;
     const tileRadius = 6;
     const contentWidth = panelWidth - posterPadding * 2;
     const titleLines = wrapPosterTitle(data.locationLabel.toUpperCase());
-    const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * 0.88, titleSize, 82);
-    const titleBaseY = panelY + posterPadding + 132;
+    const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * 0.94, titleSize, 88);
     const titleLineHeight = Math.round(fittedTitleSize * titleLeading);
+    const titleBlockHeight = Math.round(fittedTitleSize * 1.55);
+    const metaBlockHeight = metaSize + 48;
+    const footerBlockHeight = footerSize + footerTopPadding + 18;
+    const availableGridHeight =
+      panelHeight - posterPadding * 2 - 22 - titleBlockHeight - metaBlockHeight - gridTopMargin - footerBlockHeight;
+    const gridHeight = Math.floor(availableGridHeight * 0.95);
+    const tileHeight = Math.floor((gridHeight - gap * 2) / 3);
+    const titleBaseY = panelY + posterPadding + fittedTitleSize;
 
     context.fillStyle = "rgba(32,26,23,0.6)";
     context.font = `600 ${kickerSize}px ui-sans-serif, system-ui, sans-serif`;
@@ -200,8 +209,7 @@ export function SaveImageButton({
       context.fillText(line, panelX + posterPadding, titleBaseY + index * titleLineHeight);
     });
 
-    const metaY = titleBaseY + titleLines.length * titleLineHeight + 78;
-    context.strokeStyle = data.posterTone.replace(")", ", 0.16)").replace("rgb", "rgba");
+    const metaY = panelY + posterPadding + titleBlockHeight + 42;
     context.strokeStyle = "rgba(90,120,150,0.16)";
     context.beginPath();
     context.moveTo(panelX + posterPadding, metaY - 18);
@@ -224,9 +232,8 @@ export function SaveImageButton({
     const locationMetrics = context.measureText(data.location.toUpperCase());
     context.fillText(data.tripYear, panelX + posterPadding + 198 + locationMetrics.width + 24, metaY);
 
-    const gridTop = metaY + 66;
+    const gridTop = panelY + posterPadding + titleBlockHeight + metaBlockHeight + gridTopMargin;
     const tileWidth = Math.floor((contentWidth - gap * 2) / 3);
-    const tileHeight = tileWidth;
 
     const loadedImages = await Promise.all(
       data.photoUrls.map(async (sourceUrl) => {
@@ -273,15 +280,16 @@ export function SaveImageButton({
 
     context.strokeStyle = "rgba(94,126,152,0.12)";
     context.beginPath();
-    context.moveTo(panelX + posterPadding, panelY + panelHeight - 80);
-    context.lineTo(panelX + panelWidth - posterPadding, panelY + panelHeight - 80);
+    const footerRuleY = panelY + panelHeight - footerTopPadding - footerSize - 18;
+    context.moveTo(panelX + posterPadding, footerRuleY);
+    context.lineTo(panelX + panelWidth - posterPadding, footerRuleY);
     context.stroke();
 
     context.fillStyle = "rgba(74,116,148,0.56)";
     context.font = `600 ${footerSize}px ui-sans-serif, system-ui, sans-serif`;
     context.textAlign = "center";
     setCanvasLetterSpacing(context, "0.14em");
-    context.fillText("ONE PLACE. ONE COLOR. NINE MOMENTS.", canvas.width / 2, panelY + panelHeight - 32);
+    context.fillText("ONE PLACE. ONE COLOR. NINE MOMENTS.", canvas.width / 2, footerRuleY + footerTopPadding + 8);
 
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((blob) => {
