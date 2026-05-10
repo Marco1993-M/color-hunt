@@ -65,7 +65,6 @@ export function UploadPanel({
           "content-type": "application/json",
         },
         body: JSON.stringify({ tripId, formats, force }),
-        keepalive: true,
       });
 
       if (!response.ok) {
@@ -73,12 +72,53 @@ export function UploadPanel({
       }
     }
 
+    async function waitForFormat(format: "post" | "story" | "square") {
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        const response = await fetch(`/api/poster-exports/status?tripId=${encodeURIComponent(tripId)}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Poster export status check failed with status ${response.status}.`);
+        }
+
+        const payload = (await response.json()) as {
+          exports?: Partial<Record<"post" | "story" | "square", string | null>>;
+        };
+
+        if (payload.exports?.[format]) {
+          return true;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+
+      return false;
+    }
+
     try {
       if (awaitPost) {
         setStatus("Preparing your poster...");
       }
 
-      await generateFormats(["post"]);
+      void generateFormats(["post"]).catch((error) => {
+        trackEvent({
+          eventName: "poster_export_post_warm_failed",
+          tripId,
+          metadata: {
+            message: error instanceof Error ? error.message : "unknown_failure",
+          },
+        });
+      });
+
+      const postReady = await waitForFormat("post");
+
+      if (!postReady) {
+        if (awaitPost) {
+          setStatus("Your poster is still rendering. Open the poster page in a moment.");
+        }
+        return;
+      }
 
       trackEvent({
         eventName: "poster_export_post_warmed",
@@ -480,8 +520,8 @@ export function UploadPanel({
           );
 
           const compressed = await imageCompression(file, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 2400,
+            maxSizeMB: 0.55,
+            maxWidthOrHeight: 1600,
             useWebWorker: true,
             fileType: "image/webp",
             initialQuality: 0.82,
@@ -669,7 +709,7 @@ export function UploadPanel({
             </button>
           </div>
           <p className="body-copy mt-2 text-sm">
-            Take it live or pull it in later from your camera roll. Images are compressed in the browser to target 800KB or less.
+            Take it live or pull it in later from your camera roll. Images are compressed in the browser for faster poster rendering and sharing.
           </p>
         </div>
 

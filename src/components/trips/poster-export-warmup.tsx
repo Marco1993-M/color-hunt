@@ -29,7 +29,6 @@ export function PosterExportWarmup({ tripId, enabled }: PosterExportWarmupProps)
           "content-type": "application/json",
         },
         body: JSON.stringify({ tripId, formats }),
-        keepalive: true,
         signal,
       });
 
@@ -38,9 +37,51 @@ export function PosterExportWarmup({ tripId, enabled }: PosterExportWarmupProps)
       }
     }
 
+    async function waitForFormat(format: "post" | "story" | "square", signal?: AbortSignal) {
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        if (signal?.aborted) {
+          return false;
+        }
+
+        const response = await fetch(`/api/poster-exports/status?tripId=${encodeURIComponent(tripId)}`, {
+          cache: "no-store",
+          signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Poster export status check failed with status ${response.status}.`);
+        }
+
+        const payload = (await response.json()) as {
+          exports?: Partial<Record<"post" | "story" | "square", string | null>>;
+        };
+
+        if (payload.exports?.[format]) {
+          return true;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+
+      return false;
+    }
+
     async function warmPosterExports() {
       try {
-        await generateFormats(["post"], controller.signal);
+        void generateFormats(["post"], controller.signal).catch((error) => {
+          trackEvent({
+            eventName: "poster_export_post_warm_failed",
+            tripId,
+            metadata: {
+              message: error instanceof Error ? error.message : "unknown_failure",
+            },
+          });
+        });
+        const postReady = await waitForFormat("post", controller.signal);
+
+        if (!postReady) {
+          return;
+        }
 
         trackEvent({
           eventName: "poster_export_post_warmed",

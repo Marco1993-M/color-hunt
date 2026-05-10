@@ -70,7 +70,6 @@ export function SharePosterPanel({
           "content-type": "application/json",
         },
         body: JSON.stringify({ tripId, formats }),
-        keepalive: true,
       });
 
       if (!response.ok) {
