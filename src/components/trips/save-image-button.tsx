@@ -155,29 +155,29 @@ export function SaveImageButton({
   }
 
   async function renderPosterBlob(data: PosterCaptureData) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1350;
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      throw new Error("Couldn't prepare the poster canvas.");
-    }
-
-    if (document.fonts) {
-      try {
-        await document.fonts.ready;
-      } catch {
-        // Fonts can still fall back gracefully.
-      }
-    }
-
     if (layoutSourceId) {
       const sourceNode = document.getElementById(layoutSourceId);
 
       if (sourceNode) {
         const sourceRect = sourceNode.getBoundingClientRect();
-        const scale = canvas.width / sourceRect.width;
+        const scale = 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(sourceRect.width * scale);
+        canvas.height = Math.round(sourceRect.height * scale);
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          throw new Error("Couldn't prepare the poster canvas.");
+        }
+
+        if (document.fonts) {
+          try {
+            await document.fonts.ready;
+          } catch {
+            // Fonts can still fall back gracefully.
+          }
+        }
+
         const backgroundBlob = await toBlob(sourceNode, {
           cacheBust: true,
           pixelRatio: scale,
@@ -242,6 +242,23 @@ export function SaveImageButton({
             }, "image/png");
           });
         }
+      }
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Couldn't prepare the poster canvas.");
+    }
+
+    if (document.fonts) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        // Fonts can still fall back gracefully.
       }
     }
 
