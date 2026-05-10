@@ -34,6 +34,11 @@ export function SaveImageButton({
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function setCanvasLetterSpacing(context: CanvasRenderingContext2D, value: string) {
+    const nextContext = context as CanvasRenderingContext2D & { letterSpacing?: string };
+    nextContext.letterSpacing = value;
+  }
+
   function buildRoundedRectPath(
     context: CanvasRenderingContext2D,
     x: number,
@@ -154,7 +159,8 @@ export function SaveImageButton({
 
     context.fillStyle = "rgba(32,26,23,0.6)";
     context.font = `600 ${kickerSize}px ui-sans-serif, system-ui, sans-serif`;
-    context.letterSpacing = "0.16em";
+    context.textAlign = "left";
+    setCanvasLetterSpacing(context, "0.16em");
     context.fillText("COLOR HUNT", panelX + posterPadding, panelY + 36);
 
     context.strokeStyle = "rgba(94,126,152,0.14)";
@@ -165,6 +171,7 @@ export function SaveImageButton({
 
     context.fillStyle = data.posterTone;
     context.font = `600 ${titleSize}px "Cormorant Garamond", Georgia, serif`;
+    setCanvasLetterSpacing(context, "0px");
     titleLines.forEach((line, index) => {
       context.fillText(line, panelX + posterPadding, titleBaseY + index * titleLineHeight);
     });
@@ -179,14 +186,17 @@ export function SaveImageButton({
 
     context.fillStyle = "rgba(32,26,23,0.84)";
     context.font = `600 ${metaSize}px ui-sans-serif, system-ui, sans-serif`;
+    setCanvasLetterSpacing(context, "0.08em");
     context.fillText("EXPLORING", panelX + posterPadding, metaY);
 
     context.fillStyle = "rgba(32,26,23,0.58)";
     context.font = `400 ${metaSize}px ui-sans-serif, system-ui, sans-serif`;
+    setCanvasLetterSpacing(context, "0.08em");
     context.fillText(data.location.toUpperCase(), panelX + posterPadding + 198, metaY);
 
     context.fillStyle = "rgba(32,26,23,0.46)";
     context.font = `600 ${metaSize}px ui-sans-serif, system-ui, sans-serif`;
+    setCanvasLetterSpacing(context, "0.08em");
     const locationMetrics = context.measureText(data.location.toUpperCase());
     context.fillText(data.tripYear, panelX + posterPadding + 198 + locationMetrics.width + 24, metaY);
 
@@ -246,6 +256,7 @@ export function SaveImageButton({
     context.fillStyle = "rgba(74,116,148,0.56)";
     context.font = `600 ${footerSize}px ui-sans-serif, system-ui, sans-serif`;
     context.textAlign = "center";
+    setCanvasLetterSpacing(context, "0.14em");
     context.fillText("ONE PLACE. ONE COLOR. NINE MOMENTS.", canvas.width / 2, panelY + panelHeight - 32);
 
     return await new Promise<Blob>((resolve, reject) => {
