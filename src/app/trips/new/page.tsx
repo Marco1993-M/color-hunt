@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createTripAction } from "@/app/actions";
 import { EventOnView } from "@/components/analytics/event-on-view";
+import { NewTripBuilder } from "@/components/trips/new-trip-builder";
 import { requireUser } from "@/lib/auth";
 import { missionSeeds } from "@/lib/missions";
 
@@ -58,72 +59,17 @@ export default async function NewTripPage({ searchParams }: NewTripPageProps) {
               </p>
             </div>
           ) : null}
-
-          <form action={createTripAction} className="mt-8 grid gap-5">
-            {challengeShareId ? <input type="hidden" name="challenge_share_id" value={challengeShareId} /> : null}
-            {challengeColor ? <input type="hidden" name="challenge_color_name" value={challengeColor} /> : null}
-            <div>
-              <label className="field-label" htmlFor="title">
-                Trip title
-              </label>
-              <input
-                id="title"
-                name="title"
-                className="field-input"
-                placeholder="Lisbon after blue hour"
-                defaultValue={challengeTitle}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="field-label" htmlFor="location">
-                Location
-              </label>
-              <input
-                id="location"
-                name="location"
-                className="field-input"
-                placeholder="Lisbon, Portugal"
-                defaultValue={challengeLocation}
-                required
-              />
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label className="field-label" htmlFor="start_date">
-                  Start date
-                </label>
-                <input id="start_date" name="start_date" className="field-input" type="date" defaultValue={challengeStartDate} />
-              </div>
-
-              <div>
-                <label className="field-label" htmlFor="end_date">
-                  End date
-                </label>
-                <input id="end_date" name="end_date" className="field-input" type="date" defaultValue={challengeEndDate} />
-              </div>
-            </div>
-
-            <div>
-              <label className="field-label" htmlFor="color_name">
-                Color mission
-              </label>
-              <select id="color_name" name="color_name" className="field-input" defaultValue={challengeColor || "random"}>
-                <option value="random">Random color</option>
-                {missionSeeds.map((mission) => (
-                  <option key={mission.color_name} value={mission.color_name}>
-                    {mission.color_name} · {mission.prompt}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button className="button-primary mt-2 w-full sm:w-fit" type="submit">
-              Create the trip
-            </button>
-          </form>
+          <NewTripBuilder
+            action={createTripAction}
+            missionSeeds={missionSeeds}
+            challengeColor={challengeColor}
+            challengeLocation={challengeLocation}
+            challengeTitle={challengeTitle}
+            challengeStartDate={challengeStartDate}
+            challengeEndDate={challengeEndDate}
+            challengeShareId={challengeShareId}
+            isChallengeFlow={isChallengeFlow}
+          />
         </div>
       </div>
     </main>
