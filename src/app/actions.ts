@@ -3,12 +3,125 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/admin-supabase";
-import { ensureProfile } from "@/lib/data";
+import { ensureProfile, getGroupParticipantByInviteToken } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { getMissionByColorName, getRandomMission } from "@/lib/missions";
 import { getPosterExportBucketName } from "@/lib/poster-cache";
 import { trackServerEvent } from "@/lib/server-analytics";
 import { createClient } from "@/lib/supabase/server";
+
+type GroupAssignmentInput = {
+  slot: number;
+  colorName: string;
+  colorHex: string;
+  prompt: string;
+};
+
+function parseGroupAssignments(rawValue: FormDataEntryValue | null) {
+  const raw = String(rawValue || "").trim();
+
+  if (!raw) {
+    return [] as GroupAssignmentInput[];
+  }
+
+  const parsed = JSON.parse(raw) as unknown;
+  if (!Array.isArray(parsed)) {
+    return [] as GroupAssignmentInput[];
+  }
+
+  return parsed
+    .map((assignment) => {
+      if (!assignment || typeof assignment !== "object") {
+        return null;
+      }
+
+      const record = assignment as Record<string, unknown>;
+      const slot = Number(record.slot);
+      const colorName = String(record.colorName || "").trim();
+      const colorHex = String(record.colorHex || "").trim();
+      const prompt = String(record.prompt || "").trim();
+
+      if (!Number.isInteger(slot) || !colorName || !colorHex || !prompt) {
+        return null;
+      }
+
+      return {
+        slot,
+        colorName,
+        colorHex,
+        prompt,
+      } satisfies GroupAssignmentInput;
+    })
+    .filter((assignment): assignment is GroupAssignmentInput => Boolean(assignment));
+}
+
+async function requireAuthenticatedUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/");
+  }
+
+  await ensureProfile(user);
+  return user;
+}
+
+async function createTripForParticipant({
+  admin,
+  userId,
+  title,
+  location,
+  startDate,
+  endDate,
+  groupHuntId,
+  groupParticipantId,
+  mission,
+}: {
+  admin: ReturnType<typeof createAdminClient>;
+  userId: string;
+  title: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  groupHuntId: string;
+  groupParticipantId: string;
+  mission: { color_name: string; color_hex: string; prompt: string };
+}) {
+  const { data: trip, error: tripError } = await admin
+    .from("trips")
+    .insert({
+      user_id: userId,
+      title,
+      location,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      group_hunt_id: groupHuntId,
+      group_participant_id: groupParticipantId,
+    })
+    .select("id")
+    .single();
+
+  if (tripError || !trip) {
+    throw tripError ?? new Error("Unable to create the participant trip.");
+  }
+
+  const { error: missionError } = await admin.from("missions").insert({
+    trip_id: trip.id,
+    color_name: mission.color_name,
+    color_hex: mission.color_hex,
+    prompt: mission.prompt,
+    max_photos: 9,
+  });
+
+  if (missionError) {
+    throw missionError;
+  }
+
+  return trip.id;
+}
 
 export async function createTripAction(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
@@ -24,15 +137,7 @@ export async function createTripAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/");
-  }
-
-  await ensureProfile(user);
+  const user = await requireAuthenticatedUser();
   const mission = selectedColor === "random" ? getRandomMission() : getMissionByColorName(selectedColor);
 
   const { data: trip, error: tripError } = await supabase
@@ -80,6 +185,202 @@ export async function createTripAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   redirect(`/trips/${trip.id}`);
+}
+
+export async function createGroupHuntAction(formData: FormData) {
+  const title = String(formData.get("title") || "").trim();
+  const location = String(formData.get("location") || "").trim();
+  const startDate = String(formData.get("start_date") || "").trim();
+  const endDate = String(formData.get("end_date") || "").trim();
+  const selectedColor = String(formData.get("color_name") || "").trim();
+  const groupSize = Number(formData.get("group_size") || 0);
+  const assignments = parseGroupAssignments(formData.get("group_assignments_json"));
+
+  if (!title || !location) {
+    throw new Error("Trip title and location are required.");
+  }
+
+  if (!Number.isInteger(groupSize) || groupSize < 2 || groupSize > 9) {
+    throw new Error("Group hunts need between 2 and 9 people.");
+  }
+
+  if (assignments.length !== groupSize) {
+    throw new Error("The group color assignments are out of sync. Refresh and try again.");
+  }
+
+  const user = await requireAuthenticatedUser();
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const hostAssignment = assignments.find((assignment) => assignment.colorName === selectedColor) ?? assignments[0];
+
+  if (!hostAssignment) {
+    throw new Error("The host color assignment could not be determined.");
+  }
+
+  const { data: hunt, error: huntError } = await admin
+    .from("group_hunts")
+    .insert({
+      host_user_id: user.id,
+      title,
+      location,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      group_size: groupSize,
+      status: "active",
+    })
+    .select("id, invite_token")
+    .single();
+
+  if (huntError || !hunt) {
+    throw huntError ?? new Error("Unable to create the group hunt.");
+  }
+
+  const participantRows = assignments.map((assignment) => ({
+    group_hunt_id: hunt.id,
+    user_id: assignment.colorName === hostAssignment.colorName ? user.id : null,
+    seat_index: assignment.slot,
+    assigned_color_name: assignment.colorName,
+    assigned_color_hex: assignment.colorHex,
+    assigned_prompt: assignment.prompt,
+    status: assignment.colorName === hostAssignment.colorName ? "joined" : "invited",
+    joined_at: assignment.colorName === hostAssignment.colorName ? now : null,
+  }));
+
+  const { data: participants, error: participantError } = await admin
+    .from("group_hunt_participants")
+    .insert(participantRows)
+    .select("id, assigned_color_name");
+
+  if (participantError || !participants) {
+    throw participantError ?? new Error("Unable to assign the group colors.");
+  }
+
+  const hostParticipant = participants.find((participant) => participant.assigned_color_name === hostAssignment.colorName);
+
+  if (!hostParticipant) {
+    throw new Error("The host seat could not be created.");
+  }
+
+  const tripId = await createTripForParticipant({
+    admin,
+    userId: user.id,
+    title,
+    location,
+    startDate,
+    endDate,
+    groupHuntId: hunt.id,
+    groupParticipantId: hostParticipant.id,
+    mission: {
+      color_name: hostAssignment.colorName,
+      color_hex: hostAssignment.colorHex,
+      prompt: hostAssignment.prompt,
+    },
+  });
+
+  await trackServerEvent({
+    eventName: "group_hunt_created",
+    tripId,
+    userId: user.id,
+    path: `/group-hunts/${hunt.id}`,
+    metadata: {
+      groupHuntId: hunt.id,
+      groupSize,
+      hostColorName: hostAssignment.colorName,
+      location,
+      title,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/trips/new");
+  redirect(`/group-hunts/${hunt.id}`);
+}
+
+export async function joinGroupHuntAction(formData: FormData) {
+  const inviteToken = String(formData.get("invite_token") || "").trim();
+
+  if (!inviteToken) {
+    throw new Error("This invite link is missing its seat token.");
+  }
+
+  const user = await requireAuthenticatedUser();
+  const admin = createAdminClient();
+  const inviteSeat = await getGroupParticipantByInviteToken(inviteToken);
+
+  if (!inviteSeat) {
+    throw new Error("This invite link is no longer valid.");
+  }
+
+  const { hunt, participant } = inviteSeat;
+
+  if (participant.user_id && participant.user_id !== user.id) {
+    throw new Error("This invite link has already been claimed.");
+  }
+
+  const { data: existingTrip, error: existingTripError } = await admin
+    .from("trips")
+    .select("id")
+    .eq("group_participant_id", participant.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingTripError) {
+    throw existingTripError;
+  }
+
+  if (!participant.user_id) {
+    const { error: updateError } = await admin
+      .from("group_hunt_participants")
+      .update({
+        user_id: user.id,
+        status: "joined",
+        joined_at: new Date().toISOString(),
+      })
+      .eq("id", participant.id)
+      .is("user_id", null);
+
+    if (updateError) {
+      throw updateError;
+    }
+  }
+
+  const tripId =
+    existingTrip?.id ??
+    (await createTripForParticipant({
+      admin,
+      userId: user.id,
+      title: hunt.title,
+      location: hunt.location,
+      startDate: hunt.start_date ?? "",
+      endDate: hunt.end_date ?? "",
+      groupHuntId: hunt.id,
+      groupParticipantId: participant.id,
+      mission: {
+        color_name: participant.assigned_color_name,
+        color_hex: participant.assigned_color_hex,
+        prompt: participant.assigned_prompt,
+      },
+    }));
+
+  await admin.from("group_hunts").update({ status: "active" }).eq("id", hunt.id);
+
+  await trackServerEvent({
+    eventName: "group_hunt_joined",
+    tripId,
+    userId: user.id,
+    path: `/join/${inviteToken}`,
+    metadata: {
+      groupHuntId: hunt.id,
+      participantId: participant.id,
+      assignedColorName: participant.assigned_color_name,
+      seatIndex: participant.seat_index + 1,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/group-hunts/${hunt.id}`);
+  revalidatePath(`/join/${inviteToken}`);
+  redirect(`/trips/${tripId}`);
 }
 
 export async function signOutAction() {
