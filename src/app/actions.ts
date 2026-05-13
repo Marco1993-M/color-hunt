@@ -123,6 +123,52 @@ async function createTripForParticipant({
   return trip.id;
 }
 
+async function removeTripAssetsByTripIds({
+  admin,
+  tripIds,
+}: {
+  admin: ReturnType<typeof createAdminClient>;
+  tripIds: string[];
+}) {
+  if (tripIds.length === 0) {
+    return;
+  }
+
+  const [photosResult, exportsResult] = await Promise.all([
+    admin.from("photos").select("storage_path").in("trip_id", tripIds),
+    admin.from("poster_exports").select("storage_path").in("trip_id", tripIds),
+  ]);
+
+  if (photosResult.error) {
+    throw photosResult.error;
+  }
+
+  if (exportsResult.error) {
+    throw exportsResult.error;
+  }
+
+  const photoPaths = (photosResult.data ?? []).map((photo) => photo.storage_path).filter(Boolean);
+  const exportPaths = (exportsResult.data ?? []).map((posterExport) => posterExport.storage_path).filter(Boolean);
+  const photoBucket = getSupabaseEnv().storageBucket;
+  const exportBucket = getPosterExportBucketName();
+
+  if (photoPaths.length > 0) {
+    const { error: photoStorageError } = await admin.storage.from(photoBucket).remove(photoPaths);
+
+    if (photoStorageError) {
+      throw photoStorageError;
+    }
+  }
+
+  if (exportPaths.length > 0) {
+    const { error: exportStorageError } = await admin.storage.from(exportBucket).remove(exportPaths);
+
+    if (exportStorageError) {
+      throw exportStorageError;
+    }
+  }
+}
+
 export async function createTripAction(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   const location = String(formData.get("location") || "").trim();
@@ -420,41 +466,8 @@ export async function deleteTripAction(formData: FormData) {
     throw new Error("This hunt could not be found.");
   }
 
-  const [photosResult, exportsResult] = await Promise.all([
-    supabase.from("photos").select("storage_path").eq("trip_id", tripId),
-    supabase.from("poster_exports").select("storage_path").eq("trip_id", tripId),
-  ]);
-
-  if (photosResult.error) {
-    throw photosResult.error;
-  }
-
-  if (exportsResult.error) {
-    throw exportsResult.error;
-  }
-
-  const photoPaths = (photosResult.data ?? []).map((photo) => photo.storage_path).filter(Boolean);
-  const exportPaths = (exportsResult.data ?? []).map((posterExport) => posterExport.storage_path).filter(Boolean);
-
   const admin = createAdminClient();
-  const photoBucket = getSupabaseEnv().storageBucket;
-  const exportBucket = getPosterExportBucketName();
-
-  if (photoPaths.length > 0) {
-    const { error: photoStorageError } = await admin.storage.from(photoBucket).remove(photoPaths);
-
-    if (photoStorageError) {
-      throw photoStorageError;
-    }
-  }
-
-  if (exportPaths.length > 0) {
-    const { error: exportStorageError } = await admin.storage.from(exportBucket).remove(exportPaths);
-
-    if (exportStorageError) {
-      throw exportStorageError;
-    }
-  }
+  await removeTripAssetsByTripIds({ admin, tripIds: [tripId] });
 
   const { error: deleteError } = await supabase.from("trips").delete().eq("id", tripId).eq("user_id", user.id);
 
@@ -478,6 +491,90 @@ export async function deleteTripAction(formData: FormData) {
   revalidatePath(`/trips/${tripId}`);
   if (trip.share_id) {
     revalidatePath(`/poster/${trip.share_id}`);
+  }
+
+  redirect("/dashboard");
+}
+
+export async function deleteGroupHuntAction(formData: FormData) {
+  const groupHuntId = String(formData.get("group_hunt_id") || "").trim();
+
+  if (!groupHuntId) {
+    throw new Error("Group hunt ID is required.");
+  }
+
+  const user = await requireAuthenticatedUser();
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const { data: hunt, error: huntError } = await supabase
+    .from("group_hunts")
+    .select("id, title, location")
+    .eq("id", groupHuntId)
+    .eq("host_user_id", user.id)
+    .maybeSingle();
+
+  if (huntError) {
+    throw huntError;
+  }
+
+  if (!hunt) {
+    throw new Error("This group hunt could not be found.");
+  }
+
+  const { data: trips, error: tripsError } = await admin
+    .from("trips")
+    .select("id, share_id")
+    .eq("group_hunt_id", groupHuntId);
+
+  if (tripsError) {
+    throw tripsError;
+  }
+
+  const tripIds = (trips ?? []).map((trip) => trip.id);
+  const shareIds = (trips ?? []).map((trip) => trip.share_id).filter(Boolean);
+
+  await removeTripAssetsByTripIds({ admin, tripIds });
+
+  if (tripIds.length > 0) {
+    const { error: deleteTripsError } = await admin.from("trips").delete().in("id", tripIds);
+
+    if (deleteTripsError) {
+      throw deleteTripsError;
+    }
+  }
+
+  const { error: deleteHuntError } = await admin
+    .from("group_hunts")
+    .delete()
+    .eq("id", groupHuntId)
+    .eq("host_user_id", user.id);
+
+  if (deleteHuntError) {
+    throw deleteHuntError;
+  }
+
+  await trackServerEvent({
+    eventName: "group_hunt_deleted",
+    userId: user.id,
+    path: "/dashboard",
+    metadata: {
+      groupHuntId,
+      location: hunt.location,
+      shareIds,
+      title: hunt.title,
+      tripCount: tripIds.length,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/group-hunts/${groupHuntId}`);
+  for (const tripId of tripIds) {
+    revalidatePath(`/trips/${tripId}`);
+    revalidatePath(`/trips/${tripId}/poster`);
+  }
+  for (const shareId of shareIds) {
+    revalidatePath(`/poster/${shareId}`);
   }
 
   redirect("/dashboard");
