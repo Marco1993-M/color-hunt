@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GroupHuntParticipantList } from "@/components/group-hunts/group-hunt-participant-list";
+import { GroupHuntResultsBoard } from "@/components/group-hunts/group-hunt-results-board";
 import { getGroupHuntById, getTripForParticipant } from "@/lib/data";
 import { requireUser } from "@/lib/auth";
 
@@ -68,7 +69,7 @@ export default async function GroupHuntPage({ params }: GroupHuntPageProps) {
               <div className="mt-5 rounded-[1.5rem] border border-[rgba(47,97,223,0.14)] bg-[rgba(47,97,223,0.08)] p-4">
                 <p className="eyebrow">Group complete</p>
                 <p className="body-copy mt-2 text-sm sm:text-base">
-                  Everyone has finished their nine frames. This is the moment to compare posters and decide what the combined group outcome should become next.
+                  Everyone has finished their nine frames. The recap board below turns the hunt into one shared outcome you can compare at a glance.
                 </p>
               </div>
             ) : null}
@@ -78,6 +79,10 @@ export default async function GroupHuntPage({ params }: GroupHuntPageProps) {
               participants={bundle.participants}
             />
           </div>
+
+          {everyoneCompleted ? (
+            <GroupHuntResultsBoard hostUserId={bundle.hunt.host_user_id} participants={bundle.results} />
+          ) : null}
         </div>
       </div>
     </main>
