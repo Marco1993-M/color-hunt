@@ -20,6 +20,8 @@ export type GroupHunt = {
   start_date: string | null;
   end_date: string | null;
   invite_token: string;
+  share_id?: string | null;
+  is_public?: boolean;
   group_size: number;
   status: "open" | "active" | "completed" | "archived";
   created_at: string;

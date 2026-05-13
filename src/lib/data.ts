@@ -303,7 +303,7 @@ export async function getGroupHuntsForUser(userId: string) {
   const [{ data: hostedHunts, error: hostedError }, { data: joinedParticipants, error: joinedError }] = await Promise.all([
     supabase
       .from("group_hunts")
-      .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+      .select("id, host_user_id, title, location, start_date, end_date, invite_token, share_id, is_public, group_size, status, created_at")
       .eq("host_user_id", userId)
       .order("created_at", { ascending: false }),
     supabase
@@ -328,7 +328,7 @@ export async function getGroupHuntsForUser(userId: string) {
   if (joinedGroupIds.length > 0) {
     const { data, error } = await supabase
       .from("group_hunts")
-      .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+      .select("id, host_user_id, title, location, start_date, end_date, invite_token, share_id, is_public, group_size, status, created_at")
       .in("id", joinedGroupIds)
       .order("created_at", { ascending: false });
 
@@ -379,7 +379,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
   const admin = createAdminClient();
   const { data: hunt, error: huntError } = await supabase
     .from("group_hunts")
-    .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+    .select("id, host_user_id, title, location, start_date, end_date, invite_token, share_id, is_public, group_size, status, created_at")
     .eq("id", groupHuntId)
     .eq("host_user_id", userId)
     .maybeSingle();
@@ -597,7 +597,7 @@ export async function getGroupParticipantByInviteToken(inviteToken: string): Pro
 
   const { data: hunt, error: huntError } = await admin
     .from("group_hunts")
-    .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+    .select("id, host_user_id, title, location, start_date, end_date, invite_token, share_id, is_public, group_size, status, created_at")
     .eq("id", participant.group_hunt_id)
     .maybeSingle();
 
@@ -612,5 +612,154 @@ export async function getGroupParticipantByInviteToken(inviteToken: string): Pro
   return {
     hunt: hunt as GroupHunt,
     participant: participant as GroupHuntParticipant,
+  };
+}
+
+export async function getPublicGroupHuntByShareId(shareId: string): Promise<GroupHuntBundle | null> {
+  const admin = createAdminClient();
+  const { data: hunt, error: huntError } = await admin
+    .from("group_hunts")
+    .select("id, host_user_id, title, location, start_date, end_date, invite_token, share_id, is_public, group_size, status, created_at")
+    .eq("share_id", shareId)
+    .eq("is_public", true)
+    .maybeSingle();
+
+  if (huntError) {
+    throw huntError;
+  }
+
+  if (!hunt) {
+    return null;
+  }
+
+  const { data: participants, error: participantError } = await admin
+    .from("group_hunt_participants")
+    .select("id, group_hunt_id, user_id, seat_index, assigned_color_name, assigned_color_hex, assigned_prompt, invite_token, status, joined_at, created_at")
+    .eq("group_hunt_id", hunt.id)
+    .order("seat_index", { ascending: true });
+
+  if (participantError) {
+    throw participantError;
+  }
+
+  const participantRows = (participants ?? []) as GroupHuntParticipant[];
+  const participantIds = participantRows.map((participant) => participant.id);
+  let seats: GroupHuntParticipantSeat[] = participantRows;
+
+  if (participantIds.length > 0) {
+    const { data: trips, error: tripError } = await admin
+      .from("trips")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+      .in("group_participant_id", participantIds);
+
+    if (tripError) {
+      throw tripError;
+    }
+
+    const tripRows = (trips ?? []) as Trip[];
+    const tripIds = tripRows.map((trip) => trip.id);
+    const tripsByParticipantId = new Map(
+      tripRows
+        .filter((trip) => Boolean(trip.group_participant_id))
+        .map((trip) => [String(trip.group_participant_id), trip]),
+    );
+    let missionsByTripId = new Map<string, Mission>();
+    let photosByTripId = new Map<string, Photo[]>();
+
+    if (tripIds.length > 0) {
+      const [{ data: allMissions, error: allMissionsError }, photosResult] = await Promise.all([
+        admin
+          .from("missions")
+          .select("id, trip_id, color_name, color_hex, prompt, max_photos, created_at")
+          .in("trip_id", tripIds)
+          .order("created_at", { ascending: false }),
+        admin
+          .from("photos")
+          .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+          .in("trip_id", tripIds)
+          .order("sort_order", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true }),
+      ]);
+
+      if (allMissionsError) {
+        throw allMissionsError;
+      }
+
+      let allPhotos = photosResult.data as Photo[] | null;
+      let allPhotosError = photosResult.error as SupabaseErrorLike | null;
+
+      if (isMissingSortOrderColumn(allPhotosError)) {
+        const fallbackResult = await admin
+          .from("photos")
+          .select("id, trip_id, mission_id, user_id, image_url, storage_path, caption, dominant_color, color_match_score, created_at")
+          .in("trip_id", tripIds)
+          .order("created_at", { ascending: true });
+
+        allPhotos = (fallbackResult.data ?? []).map((photo) => ({
+          ...photo,
+          sort_order: null,
+        })) as Photo[];
+        allPhotosError = fallbackResult.error;
+      }
+
+      if (allPhotosError) {
+        throw allPhotosError;
+      }
+
+      for (const mission of (allMissions ?? []) as Mission[]) {
+        if (!missionsByTripId.has(mission.trip_id)) {
+          missionsByTripId.set(mission.trip_id, mission);
+        }
+      }
+
+      for (const photo of allPhotos ?? []) {
+        const photos = photosByTripId.get(photo.trip_id) ?? [];
+        photos.push(photo);
+        photosByTripId.set(photo.trip_id, photos);
+      }
+
+      photosByTripId = new Map(
+        [...photosByTripId.entries()].map(([tripId, photos]) => [tripId, sortPhotosByDisplayOrder(photos)]),
+      );
+    }
+
+    seats = participantRows.map((participant) => {
+      const trip = tripsByParticipantId.get(participant.id) ?? null;
+      const photos = trip ? photosByTripId.get(trip.id) ?? [] : [];
+      const mission = trip ? missionsByTripId.get(trip.id) ?? null : null;
+      return {
+        ...participant,
+        trip_id: trip?.id ?? null,
+        photo_count: photos.length,
+        max_photos: mission?.max_photos ?? 9,
+      };
+    });
+
+    const results = participantRows.map((participant) => {
+      const trip = tripsByParticipantId.get(participant.id) ?? null;
+      const mission = trip ? missionsByTripId.get(trip.id) ?? null : null;
+      const photos = trip ? photosByTripId.get(trip.id) ?? [] : [];
+      return {
+        ...participant,
+        trip_id: trip?.id ?? null,
+        photo_count: photos.length,
+        max_photos: mission?.max_photos ?? 9,
+        trip,
+        mission,
+        photos,
+      };
+    });
+
+    return {
+      hunt: hunt as GroupHunt,
+      participants: seats,
+      results,
+    };
+  }
+
+  return {
+    hunt: hunt as GroupHunt,
+    participants: seats,
+    results: seats,
   };
 }
