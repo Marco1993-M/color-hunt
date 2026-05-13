@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DeleteGroupHuntButton } from "@/components/group-hunts/delete-group-hunt-button";
 import { GroupHuntParticipantList } from "@/components/group-hunts/group-hunt-participant-list";
 import { GroupHuntResultsBoard } from "@/components/group-hunts/group-hunt-results-board";
 import { getGroupHuntById, getTripForParticipant } from "@/lib/data";
@@ -52,11 +53,14 @@ export default async function GroupHuntPage({ params }: GroupHuntPageProps) {
               </p>
             </div>
 
-            {hostTrip ? (
-              <Link className="button-primary w-full sm:w-auto" href={`/trips/${hostTrip.id}`}>
-                Open my hunt
-              </Link>
-            ) : null}
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
+              {hostTrip ? (
+                <Link className="button-primary w-full sm:w-auto" href={`/trips/${hostTrip.id}`}>
+                  Open my hunt
+                </Link>
+              ) : null}
+              <DeleteGroupHuntButton groupHuntId={bundle.hunt.id} groupHuntTitle={bundle.hunt.title} />
+            </div>
           </div>
 
           <div className="mt-8 rounded-[1.6rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.58)] p-4 sm:p-5">
