@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
+import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { UploadPanel } from "@/components/trips/upload-panel";
 import { requireUser } from "@/lib/auth";
 import { getPhotoUrl, getTripBundle } from "@/lib/data";
@@ -41,12 +42,15 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
           <Link href="/dashboard" className="text-sm text-[var(--muted)]">
             ← Back to dashboard
           </Link>
-          <Link
-            href={`/trips/${trip.id}/poster`}
-            className={`${filledSlots === mission.max_photos ? "button-primary" : "button-secondary"} w-full sm:w-auto`}
-          >
-            {filledSlots === mission.max_photos ? (isGuest ? "Save & share" : "Share poster") : "Preview poster"}
-          </Link>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <Link
+              href={`/trips/${trip.id}/poster`}
+              className={`${filledSlots === mission.max_photos ? "button-primary" : "button-secondary"} w-full sm:w-auto`}
+            >
+              {filledSlots === mission.max_photos ? (isGuest ? "Save & share" : "Share poster") : "Preview poster"}
+            </Link>
+            <DeleteTripButton tripId={trip.id} tripTitle={trip.title} />
+          </div>
         </div>
 
         <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
