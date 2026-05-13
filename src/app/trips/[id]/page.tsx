@@ -25,6 +25,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { trip, mission, photos } = bundle;
   const filledSlots = photos.length;
   const progress = `${filledSlots}/${mission.max_photos}`;
+  const isGroupTrip = Boolean(trip.group_hunt_id);
 
   return (
     <main className="app-shell page-frame">
@@ -43,13 +44,18 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
             ← Back to dashboard
           </Link>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            {trip.group_hunt_id ? (
+              <Link href={`/group-hunts/${trip.group_hunt_id}`} className="button-secondary w-full sm:w-auto">
+                Open group lobby
+              </Link>
+            ) : null}
             <Link
               href={`/trips/${trip.id}/poster`}
               className={`${filledSlots === mission.max_photos ? "button-primary" : "button-secondary"} w-full sm:w-auto`}
             >
               {filledSlots === mission.max_photos ? (isGuest ? "Save & share" : "Share poster") : "Preview poster"}
             </Link>
-            <DeleteTripButton tripId={trip.id} tripTitle={trip.title} />
+            {!isGroupTrip ? <DeleteTripButton tripId={trip.id} tripTitle={trip.title} /> : null}
           </div>
         </div>
 
@@ -59,6 +65,15 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               <p className="eyebrow">{trip.location}</p>
               <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">{trip.title}</h1>
               <p className="body-copy mt-4 max-w-xl text-base">{mission.prompt}</p>
+
+              {isGroupTrip ? (
+                <div className="mt-5 rounded-[1.5rem] border border-[rgba(47,97,223,0.14)] bg-[rgba(47,97,223,0.08)] p-4">
+                  <p className="eyebrow">Group Hunt</p>
+                  <p className="body-copy mt-2 text-sm sm:text-base">
+                    This hunt belongs to a shared group challenge. Invite links and participant progress are managed from the group lobby.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="mt-8 rounded-[2rem] p-5" style={{ backgroundColor: `${mission.color_hex}18` }}>
                 <div className="flex items-center gap-4">

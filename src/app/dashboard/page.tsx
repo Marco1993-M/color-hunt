@@ -11,15 +11,16 @@ export default async function DashboardPage() {
   await ensureProfile(user);
   const [trips, groupHunts] = await Promise.all([getTripsForUser(user.id), getGroupHuntsForUser(user.id)]);
   const isGuest = isAnonymousUser(user);
+  const soloTrips = trips.filter((trip) => !trip.group_hunt_id);
   const hasGroupHunts = groupHunts.hosted.length > 0 || groupHunts.joined.length > 0;
 
   return (
     <main className="app-shell page-frame">
       <PostAuthUpgradeResume />
       <EventOnView
-        eventName="dashboard_viewed"
-        metadata={{
-          tripCount: trips.length,
+          eventName="dashboard_viewed"
+          metadata={{
+          tripCount: soloTrips.length,
           hostedGroupHuntCount: groupHunts.hosted.length,
           joinedGroupHuntCount: groupHunts.joined.length,
           isAnonymous: isGuest,
@@ -110,7 +111,7 @@ export default async function DashboardPage() {
         ) : null}
 
         <section className="mt-8">
-          {trips.length === 0 && !hasGroupHunts ? (
+          {soloTrips.length === 0 && !hasGroupHunts ? (
             <div className="empty-state-card rounded-[2rem] p-10 text-center">
               <p className="eyebrow">No trips yet</p>
               <h2 className="panel-title mt-3 text-2xl font-semibold">Start with one place and one color.</h2>
@@ -121,9 +122,9 @@ export default async function DashboardPage() {
                 Start a Color Hunt
               </Link>
             </div>
-          ) : trips.length > 0 ? (
+          ) : soloTrips.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
-              {trips.map((trip) => (
+              {soloTrips.map((trip) => (
                 <Link key={trip.id} href={`/trips/${trip.id}`} className="playful-card rounded-[2rem] p-5 transition-transform duration-150 hover:-translate-y-1 sm:p-6">
                   <p className="eyebrow">{trip.location}</p>
                   <h2 className="panel-title mt-3 text-xl font-semibold sm:text-2xl">{trip.title}</h2>

@@ -21,6 +21,10 @@ export default async function GroupHuntPage({ params }: GroupHuntPageProps) {
 
   const hostParticipant = bundle.participants.find((participant) => participant.user_id === user.id) ?? null;
   const hostTrip = hostParticipant ? await getTripForParticipant(hostParticipant.id, user.id) : null;
+  const everyoneCompleted = bundle.participants.every((participant) => {
+    const maxPhotos = participant.max_photos ?? 9;
+    return Boolean(participant.user_id) && (participant.photo_count ?? 0) >= maxPhotos;
+  });
 
   return (
     <main className="app-shell page-frame">
@@ -60,7 +64,19 @@ export default async function GroupHuntPage({ params }: GroupHuntPageProps) {
             <p className="body-copy mt-2 max-w-2xl text-sm sm:text-base">
               These invite links all point to the same shared hunt, but each seat carries its own color mission.
             </p>
-            <GroupHuntParticipantList groupHuntId={bundle.hunt.id} participants={bundle.participants} />
+            {everyoneCompleted ? (
+              <div className="mt-5 rounded-[1.5rem] border border-[rgba(47,97,223,0.14)] bg-[rgba(47,97,223,0.08)] p-4">
+                <p className="eyebrow">Group complete</p>
+                <p className="body-copy mt-2 text-sm sm:text-base">
+                  Everyone has finished their nine frames. This is the moment to compare posters and decide what the combined group outcome should become next.
+                </p>
+              </div>
+            ) : null}
+            <GroupHuntParticipantList
+              groupHuntId={bundle.hunt.id}
+              hostUserId={bundle.hunt.host_user_id}
+              participants={bundle.participants}
+            />
           </div>
         </div>
       </div>
