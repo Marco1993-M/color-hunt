@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import type { MissionSeed } from "@/lib/missions";
 
 type NewTripBuilderProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  createSoloAction: (formData: FormData) => void | Promise<void>;
+  createGroupAction: (formData: FormData) => void | Promise<void>;
   missionSeeds: MissionSeed[];
   challengeColor: string;
   challengeLocation: string;
@@ -57,41 +57,9 @@ function shuffleMissions(missions: MissionSeed[], seed: number) {
   return next;
 }
 
-function buildChallengeLink({
-  origin,
-  assignment,
-  title,
-  location,
-  startDate,
-  endDate,
-}: {
-  origin: string;
-  assignment: GroupAssignment;
-  title: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-}) {
-  const url = new URL("/", origin);
-  url.searchParams.set("challengeColor", assignment.colorName);
-  if (location.trim()) {
-    url.searchParams.set("challengeLocation", location.trim());
-  }
-  if (title.trim()) {
-    url.searchParams.set("challengeTitle", title.trim());
-  }
-  if (startDate.trim()) {
-    url.searchParams.set("challengeStartDate", startDate.trim());
-  }
-  if (endDate.trim()) {
-    url.searchParams.set("challengeEndDate", endDate.trim());
-  }
-  url.hash = "start";
-  return url.toString();
-}
-
 export function NewTripBuilder({
-  action,
+  createSoloAction,
+  createGroupAction,
   missionSeeds,
   challengeColor,
   challengeLocation,
@@ -109,8 +77,6 @@ export function NewTripBuilder({
   const [huntMode, setHuntMode] = useState<HuntMode>("solo");
   const [groupSize, setGroupSize] = useState(4);
   const [groupSeedOffset, setGroupSeedOffset] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const baseSeed = useMemo(() => {
     return hashSeed([title, location, startDate, endDate, challengeColor].join("|"));
@@ -154,87 +120,15 @@ export function NewTripBuilder({
     });
   }, [groupSize, isChallengeFlow]);
 
-  const canBuildLinks = Boolean(typeof window !== "undefined" && title.trim() && location.trim());
-
-  async function handleCopyAssignment(assignment: GroupAssignment) {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!title.trim() || !location.trim()) {
-      setError("Add a trip title and location first so the invite links have the right context.");
-      return;
-    }
-
-    const link = buildChallengeLink({
-      origin: window.location.origin,
-      assignment,
-      title,
-      location,
-      startDate,
-      endDate,
-    });
-
-    try {
-      await navigator.clipboard.writeText(link);
-      trackEvent({
-        eventName: "group_assignment_link_copied",
-        metadata: {
-          colorName: assignment.colorName,
-          slot: assignment.slot + 1,
-          groupSize,
-        },
-      });
-      setMessage(`${assignment.slot === 0 ? "Your" : `Player ${assignment.slot + 1}'s`} ${assignment.colorName} invite link is copied.`);
-      setError(null);
-    } catch {
-      setError("Could not copy the invite link automatically.");
-    }
-  }
-
-  async function handleCopyAllAssignments() {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!title.trim() || !location.trim()) {
-      setError("Add a trip title and location first so the invite links have the right context.");
-      return;
-    }
-
-    const lines = assignments.map((assignment) => {
-      const label = assignment.slot === 0 ? "You" : `Player ${assignment.slot + 1}`;
-      const link = buildChallengeLink({
-        origin: window.location.origin,
-        assignment,
-        title,
-        location,
-        startDate,
-        endDate,
-      });
-      return `${label} · ${assignment.colorName}\n${link}`;
-    });
-
-    try {
-      await navigator.clipboard.writeText(lines.join("\n\n"));
-      trackEvent({
-        eventName: "group_assignment_list_copied",
-        metadata: {
-          groupSize,
-        },
-      });
-      setMessage("All group invite links are copied.");
-      setError(null);
-    } catch {
-      setError("Could not copy all invite links automatically.");
-    }
-  }
-
   return (
     <>
-      <form action={action} className="mt-8 grid gap-5">
+      <form action={huntMode === "group" ? createGroupAction : createSoloAction} className="mt-8 grid gap-5">
         {challengeShareId ? <input type="hidden" name="challenge_share_id" value={challengeShareId} /> : null}
         {challengeColor ? <input type="hidden" name="challenge_color_name" value={challengeColor} /> : null}
+        {huntMode === "group" ? <input type="hidden" name="group_size" value={groupSize} /> : null}
+        {huntMode === "group" ? (
+          <input type="hidden" name="group_assignments_json" value={JSON.stringify(assignments)} />
+        ) : null}
         <div>
           <label className="field-label" htmlFor="title">
             Trip title
@@ -421,9 +315,6 @@ export function NewTripBuilder({
               >
                 Shuffle colors
               </button>
-              <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyAllAssignments}>
-                Copy all invite links
-              </button>
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -467,13 +358,6 @@ export function NewTripBuilder({
                       >
                         {isHostColor ? "Assigned to your trip" : "Use this color for my trip"}
                       </button>
-                      <button
-                        className="button-secondary w-full"
-                        type="button"
-                        onClick={() => handleCopyAssignment(assignment)}
-                      >
-                        Copy invite link
-                      </button>
                     </div>
                   </div>
                 );
@@ -481,20 +365,16 @@ export function NewTripBuilder({
             </div>
 
             <p className="body-copy mt-4 text-xs sm:text-sm">
-              {!canBuildLinks
-                ? "Add the trip title and location first so the invite links open with the right context."
-                : "Each link opens the same challenge context with a different assigned color. Everyone still completes their own hunt and poster."}
+              Create the group hunt first, then we&apos;ll give you real invite links for each assigned seat.
             </p>
           </div>
         ) : null}
 
         <button className="button-primary mt-2 w-full sm:w-fit" type="submit">
-          {huntMode === "group" ? "Create my trip" : "Create the trip"}
+          {huntMode === "group" ? "Create group hunt" : "Create the trip"}
         </button>
       </form>
 
-      {message ? <FeedbackToast kind="success" message={message} onDismiss={() => setMessage(null)} /> : null}
-      {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>
   );
 }
