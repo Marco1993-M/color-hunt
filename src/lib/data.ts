@@ -376,6 +376,7 @@ export async function getGroupHuntsForUser(userId: string) {
 
 export async function getGroupHuntById(groupHuntId: string, userId: string): Promise<GroupHuntBundle | null> {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const { data: hunt, error: huntError } = await supabase
     .from("group_hunts")
     .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
@@ -391,7 +392,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
     return null;
   }
 
-  const { data: participants, error: participantError } = await supabase
+  const { data: participants, error: participantError } = await admin
     .from("group_hunt_participants")
     .select("id, group_hunt_id, user_id, seat_index, assigned_color_name, assigned_color_hex, assigned_prompt, invite_token, status, joined_at, created_at")
     .eq("group_hunt_id", groupHuntId)
@@ -406,7 +407,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
   let seats: GroupHuntParticipantSeat[] = participantRows;
 
   if (participantIds.length > 0) {
-    const { data: trips, error: tripError } = await supabase
+    const { data: trips, error: tripError } = await admin
       .from("trips")
       .select("id, group_participant_id")
       .in("group_participant_id", participantIds);
@@ -420,7 +421,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
     const photoCountsByTripId = new Map<string, number>();
 
     if (tripIds.length > 0) {
-      const { data: photos, error: photoError } = await supabase.from("photos").select("trip_id").in("trip_id", tripIds);
+      const { data: photos, error: photoError } = await admin.from("photos").select("trip_id").in("trip_id", tripIds);
 
       if (photoError) {
         throw photoError;
@@ -449,7 +450,6 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
   let results: GroupHuntParticipantResult[] = seats;
 
   if (participantIds.length > 0) {
-    const admin = createAdminClient();
     const { data: allTrips, error: allTripsError } = await admin
       .from("trips")
       .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
