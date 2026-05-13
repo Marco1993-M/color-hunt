@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createTripAction } from "@/app/actions";
+import { createGroupHuntAction, createTripAction } from "@/app/actions";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { NewTripBuilder } from "@/components/trips/new-trip-builder";
 import { requireUser } from "@/lib/auth";
@@ -60,7 +60,8 @@ export default async function NewTripPage({ searchParams }: NewTripPageProps) {
             </div>
           ) : null}
           <NewTripBuilder
-            action={createTripAction}
+            createSoloAction={createTripAction}
+            createGroupAction={createGroupHuntAction}
             missionSeeds={missionSeeds}
             challengeColor={challengeColor}
             challengeLocation={challengeLocation}
