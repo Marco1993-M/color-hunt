@@ -45,6 +45,12 @@ export type GroupHuntParticipantSeat = GroupHuntParticipant & {
   max_photos?: number;
 };
 
+export type GroupHuntParticipantResult = GroupHuntParticipantSeat & {
+  trip?: Trip | null;
+  mission?: Mission | null;
+  photos?: Photo[];
+};
+
 export type Mission = {
   id: string;
   trip_id: string;

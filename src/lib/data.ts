@@ -1,6 +1,15 @@
 import { getSupabaseEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/admin-supabase";
-import type { GroupHunt, GroupHuntParticipant, GroupHuntParticipantSeat, Mission, Photo, PosterExport, Trip } from "@/lib/types";
+import type {
+  GroupHunt,
+  GroupHuntParticipant,
+  GroupHuntParticipantResult,
+  GroupHuntParticipantSeat,
+  Mission,
+  Photo,
+  PosterExport,
+  Trip,
+} from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseErrorLike = {
@@ -24,6 +33,7 @@ export type TripBundle = {
 export type GroupHuntBundle = {
   hunt: GroupHunt;
   participants: GroupHuntParticipantSeat[];
+  results: GroupHuntParticipantResult[];
 };
 
 export type GroupHuntInviteSeat = {
@@ -436,9 +446,104 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
     });
   }
 
+  let results: GroupHuntParticipantResult[] = seats;
+
+  if (participantIds.length > 0) {
+    const admin = createAdminClient();
+    const { data: allTrips, error: allTripsError } = await admin
+      .from("trips")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+      .eq("group_hunt_id", groupHuntId);
+
+    if (allTripsError) {
+      throw allTripsError;
+    }
+
+    const tripRows = (allTrips ?? []) as Trip[];
+    const tripIds = tripRows.map((trip) => trip.id);
+    const tripsByParticipantId = new Map(
+      tripRows
+        .filter((trip) => Boolean(trip.group_participant_id))
+        .map((trip) => [String(trip.group_participant_id), trip]),
+    );
+
+    let missionsByTripId = new Map<string, Mission>();
+    let photosByTripId = new Map<string, Photo[]>();
+
+    if (tripIds.length > 0) {
+      const [{ data: allMissions, error: allMissionsError }, photosResult] = await Promise.all([
+        admin
+          .from("missions")
+          .select("id, trip_id, color_name, color_hex, prompt, max_photos, created_at")
+          .in("trip_id", tripIds)
+          .order("created_at", { ascending: false }),
+        admin
+          .from("photos")
+          .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+          .in("trip_id", tripIds)
+          .order("sort_order", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true }),
+      ]);
+
+      if (allMissionsError) {
+        throw allMissionsError;
+      }
+
+      let allPhotos = photosResult.data as Photo[] | null;
+      let allPhotosError = photosResult.error as SupabaseErrorLike | null;
+
+      if (isMissingSortOrderColumn(allPhotosError)) {
+        const fallbackResult = await admin
+          .from("photos")
+          .select("id, trip_id, mission_id, user_id, image_url, storage_path, caption, dominant_color, color_match_score, created_at")
+          .in("trip_id", tripIds)
+          .order("created_at", { ascending: true });
+
+        allPhotos = (fallbackResult.data ?? []).map((photo) => ({
+          ...photo,
+          sort_order: null,
+        })) as Photo[];
+        allPhotosError = fallbackResult.error;
+      }
+
+      if (allPhotosError) {
+        throw allPhotosError;
+      }
+
+      for (const mission of (allMissions ?? []) as Mission[]) {
+        if (!missionsByTripId.has(mission.trip_id)) {
+          missionsByTripId.set(mission.trip_id, mission);
+        }
+      }
+
+      for (const photo of allPhotos ?? []) {
+        const photos = photosByTripId.get(photo.trip_id) ?? [];
+        photos.push(photo);
+        photosByTripId.set(photo.trip_id, photos);
+      }
+
+      photosByTripId = new Map(
+        [...photosByTripId.entries()].map(([tripId, photos]) => [tripId, sortPhotosByDisplayOrder(photos)]),
+      );
+    }
+
+    results = seats.map((seat) => {
+      const trip = seat.trip_id ? tripsByParticipantId.get(seat.id) ?? null : null;
+      const mission = trip ? missionsByTripId.get(trip.id) ?? null : null;
+      const photos = trip ? photosByTripId.get(trip.id) ?? [] : [];
+      return {
+        ...seat,
+        trip,
+        mission,
+        photos,
+      };
+    });
+  }
+
   return {
     hunt: hunt as GroupHunt,
     participants: seats,
+    results,
   };
 }
 
