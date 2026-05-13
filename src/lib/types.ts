@@ -39,6 +39,12 @@ export type GroupHuntParticipant = {
   created_at: string;
 };
 
+export type GroupHuntParticipantSeat = GroupHuntParticipant & {
+  trip_id?: string | null;
+  photo_count?: number;
+  max_photos?: number;
+};
+
 export type Mission = {
   id: string;
   trip_id: string;
