@@ -18,11 +18,46 @@ create table if not exists public.trips (
   created_at timestamptz not null default timezone('utc'::text, now())
 );
 
+create table if not exists public.group_hunts (
+  id uuid primary key default gen_random_uuid(),
+  host_user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  location text not null,
+  start_date date,
+  end_date date,
+  invite_token uuid not null default gen_random_uuid() unique,
+  group_size integer not null check (group_size between 2 and 9),
+  status text not null default 'open' check (status in ('open', 'active', 'completed', 'archived')),
+  created_at timestamptz not null default timezone('utc'::text, now())
+);
+
+create table if not exists public.group_hunt_participants (
+  id uuid primary key default gen_random_uuid(),
+  group_hunt_id uuid not null references public.group_hunts(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete set null,
+  seat_index integer not null,
+  assigned_color_name text not null,
+  assigned_color_hex text not null,
+  assigned_prompt text not null,
+  invite_token uuid not null default gen_random_uuid() unique,
+  status text not null default 'invited' check (status in ('invited', 'joined', 'started', 'completed')),
+  joined_at timestamptz,
+  created_at timestamptz not null default timezone('utc'::text, now()),
+  unique (group_hunt_id, seat_index),
+  unique (group_hunt_id, assigned_color_name)
+);
+
 alter table public.trips
 add column if not exists share_id uuid;
 
 alter table public.trips
 add column if not exists is_public boolean not null default false;
+
+alter table public.trips
+add column if not exists group_hunt_id uuid references public.group_hunts(id) on delete set null;
+
+alter table public.trips
+add column if not exists group_participant_id uuid references public.group_hunt_participants(id) on delete set null;
 
 update public.trips
 set share_id = gen_random_uuid()
@@ -101,6 +136,8 @@ create table if not exists public.analytics_events (
 
 alter table public.users enable row level security;
 alter table public.trips enable row level security;
+alter table public.group_hunts enable row level security;
+alter table public.group_hunt_participants enable row level security;
 alter table public.missions enable row level security;
 alter table public.photos enable row level security;
 alter table public.collages enable row level security;
@@ -138,6 +175,47 @@ create policy "public can view shared trips"
 on public.trips for select
 to public
 using (is_public = true and share_id is not null);
+
+drop policy if exists "hosts can manage own group hunts" on public.group_hunts;
+create policy "hosts can manage own group hunts"
+on public.group_hunts for all
+to authenticated
+using (auth.uid() = host_user_id)
+with check (auth.uid() = host_user_id);
+
+drop policy if exists "hosts can manage participants on own group hunts" on public.group_hunt_participants;
+create policy "hosts can manage participants on own group hunts"
+on public.group_hunt_participants for all
+to authenticated
+using (
+  exists (
+    select 1
+    from public.group_hunts
+    where group_hunts.id = group_hunt_participants.group_hunt_id
+      and group_hunts.host_user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.group_hunts
+    where group_hunts.id = group_hunt_participants.group_hunt_id
+      and group_hunts.host_user_id = auth.uid()
+  )
+);
+
+drop policy if exists "participants can view own group hunt seat" on public.group_hunt_participants;
+create policy "participants can view own group hunt seat"
+on public.group_hunt_participants for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "participants can update own group hunt seat" on public.group_hunt_participants;
+create policy "participants can update own group hunt seat"
+on public.group_hunt_participants for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 
 drop policy if exists "users can manage missions on own trips" on public.missions;
 create policy "users can manage missions on own trips"
