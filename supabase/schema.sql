@@ -26,10 +26,22 @@ create table if not exists public.group_hunts (
   start_date date,
   end_date date,
   invite_token uuid not null default gen_random_uuid() unique,
+  share_id uuid default gen_random_uuid(),
+  is_public boolean not null default false,
   group_size integer not null check (group_size between 2 and 9),
   status text not null default 'open' check (status in ('open', 'active', 'completed', 'archived')),
   created_at timestamptz not null default timezone('utc'::text, now())
 );
+
+alter table public.group_hunts
+add column if not exists share_id uuid;
+
+alter table public.group_hunts
+add column if not exists is_public boolean not null default false;
+
+update public.group_hunts
+set share_id = gen_random_uuid()
+where share_id is null;
 
 create table if not exists public.group_hunt_participants (
   id uuid primary key default gen_random_uuid(),
@@ -182,6 +194,12 @@ on public.group_hunts for all
 to authenticated
 using (auth.uid() = host_user_id)
 with check (auth.uid() = host_user_id);
+
+drop policy if exists "public can view shared group hunts" on public.group_hunts;
+create policy "public can view shared group hunts"
+on public.group_hunts for select
+to public
+using (is_public = true and share_id is not null);
 
 drop policy if exists "hosts can manage participants on own group hunts" on public.group_hunt_participants;
 create policy "hosts can manage participants on own group hunts"
