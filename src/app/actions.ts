@@ -579,3 +579,48 @@ export async function deleteGroupHuntAction(formData: FormData) {
 
   redirect("/dashboard");
 }
+
+export async function updateGroupHuntSharingAction(formData: FormData) {
+  const groupHuntId = String(formData.get("group_hunt_id") || "").trim();
+  const nextPublicValue = String(formData.get("is_public") || "").trim() === "true";
+
+  if (!groupHuntId) {
+    throw new Error("Group hunt ID is required.");
+  }
+
+  const user = await requireAuthenticatedUser();
+  const supabase = await createClient();
+  const nextShareId = crypto.randomUUID();
+
+  const { data: hunt, error: huntError } = await supabase
+    .from("group_hunts")
+    .update({
+      is_public: nextPublicValue,
+      share_id: nextShareId,
+    })
+    .eq("id", groupHuntId)
+    .eq("host_user_id", user.id)
+    .select("id, share_id, is_public, title, location")
+    .single();
+
+  if (huntError || !hunt) {
+    throw huntError ?? new Error("Unable to update group hunt sharing.");
+  }
+
+  await trackServerEvent({
+    eventName: nextPublicValue ? "group_hunt_published" : "group_hunt_unpublished",
+    userId: user.id,
+    path: `/group-hunts/${groupHuntId}`,
+    metadata: {
+      groupHuntId,
+      location: hunt.location,
+      shareId: hunt.share_id,
+      title: hunt.title,
+    },
+  });
+
+  revalidatePath(`/group-hunts/${groupHuntId}`);
+  if (hunt.share_id) {
+    revalidatePath(`/group-results/${hunt.share_id}`);
+  }
+}

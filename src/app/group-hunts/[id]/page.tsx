@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DeleteGroupHuntButton } from "@/components/group-hunts/delete-group-hunt-button";
 import { GroupHuntParticipantList } from "@/components/group-hunts/group-hunt-participant-list";
 import { GroupHuntResultsBoard } from "@/components/group-hunts/group-hunt-results-board";
+import { GroupHuntSharePanel } from "@/components/group-hunts/group-hunt-share-panel";
 import { getGroupHuntById, getTripForParticipant } from "@/lib/data";
 import { requireUser } from "@/lib/auth";
 
@@ -86,6 +87,16 @@ export default async function GroupHuntPage({ params }: GroupHuntPageProps) {
 
           {everyoneCompleted ? (
             <GroupHuntResultsBoard hostUserId={bundle.hunt.host_user_id} participants={bundle.results} />
+          ) : null}
+
+          {everyoneCompleted ? (
+            <GroupHuntSharePanel
+              groupHuntId={bundle.hunt.id}
+              groupHuntTitle={bundle.hunt.title}
+              location={bundle.hunt.location}
+              initialShareId={bundle.hunt.share_id ?? null}
+              initialIsPublic={bundle.hunt.is_public ?? false}
+            />
           ) : null}
         </div>
       </div>
