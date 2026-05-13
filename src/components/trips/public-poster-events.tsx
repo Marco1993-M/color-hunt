@@ -28,7 +28,7 @@ export function PublicPosterCtaLink({ shareId, href, label }: PublicPosterCtaLin
   return (
     <Link
       href={href}
-      className="button-secondary w-full sm:w-auto"
+      className="button-primary w-full sm:w-auto"
       onClick={() =>
         trackEvent({
           eventName: "public_poster_cta_clicked",

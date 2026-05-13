@@ -277,7 +277,7 @@ export function SharePosterPanel({
         <div className="mt-5 rounded-[1.4rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.55)] p-4">
           <p className="eyebrow">Share and Download</p>
           <p className="body-copy mt-2 text-sm">
-            Your poster is live. Share it straight from here, download the best format, or open the public version if you want to preview what others will see.
+            Your poster is live. Save it fast, share it natively, or send the challenge on while the moment still feels fresh.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
@@ -297,10 +297,10 @@ export function SharePosterPanel({
               text={`One place. One color. Nine moments. ${location}`}
               fileUrl={exportUrls?.post ?? null}
               buttonLabel="Share poster"
-              buttonDescription="Open your phone’s share sheet"
+              buttonDescription="Share the finished poster from your phone’s native sheet"
             />
             <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
-              Copy link
+              Copy poster link
             </button>
           </div>
 
@@ -334,7 +334,7 @@ export function SharePosterPanel({
           <div className="mt-5 rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/55 p-4">
             <p className="eyebrow">Challenge a friend</p>
             <p className="body-copy mt-2 text-sm">
-              Send this poster as a new mission. Keep the place and dates, but choose the color they should hunt for.
+              Invite someone into the same place and trip window, but give them a different color to hunt so the posters come out completely different.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
@@ -366,29 +366,45 @@ export function SharePosterPanel({
                 </select>
               </div>
               {challengeUrl ? (
-                <button
-                  className="button-primary w-full sm:w-auto"
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(challengeUrl);
-                      trackEvent({
-                        eventName: "challenge_link_copied",
-                        tripId,
-                        shareId,
-                        metadata: {
-                          challengeColorName,
-                        },
-                      });
-                      setMessage("Challenge link copied.");
-                      setError(null);
-                    } catch {
-                      setError("Could not copy the challenge link automatically.");
-                    }
-                  }}
-                >
-                  Copy challenge link
-                </button>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                  <ShareLinkButton
+                    tripId={tripId}
+                    shareId={shareId}
+                    url={challengeUrl}
+                    title={`You've been challenged to hunt ${challengeColorName}`}
+                    text={`Take on the ${challengeColorName} Color Hunt in ${location}. Collect nine moments and make your own poster.`}
+                    buttonLabel="Share challenge"
+                    buttonDescription="Send a challenge invite from your phone’s native share sheet"
+                    eventName="challenge_link_shared_native"
+                    metadata={{
+                      challengeColorName,
+                    }}
+                    className="button-primary w-full sm:w-auto"
+                  />
+                  <button
+                    className="button-secondary w-full sm:w-auto"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(challengeUrl);
+                        trackEvent({
+                          eventName: "challenge_link_copied",
+                          tripId,
+                          shareId,
+                          metadata: {
+                            challengeColorName,
+                          },
+                        });
+                        setMessage("Challenge invite copied.");
+                        setError(null);
+                      } catch {
+                        setError("Could not copy the challenge link automatically.");
+                      }
+                    }}
+                  >
+                    Copy invite link
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
