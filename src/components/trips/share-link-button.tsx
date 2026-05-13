@@ -4,6 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 
+function toAbsoluteShareUrl(url: string) {
+  if (typeof window === "undefined") {
+    return url;
+  }
+
+  try {
+    return new URL(url, window.location.origin).toString();
+  } catch {
+    return url;
+  }
+}
+
 function parseFileName(response: Response, fallback: string) {
   const disposition = response.headers.get("content-disposition");
   const match = disposition?.match(/filename="([^"]+)"/);
@@ -55,6 +67,7 @@ export function ShareLinkButton({
   const [prefetchedFile, setPrefetchedFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const absoluteUrl = useMemo(() => toAbsoluteShareUrl(url), [url]);
 
   const fallbackLabel = useMemo(() => (buttonDescription ? buttonDescription : null), [buttonDescription]);
 
@@ -106,7 +119,7 @@ export function ShareLinkButton({
 
     try {
       if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(absoluteUrl);
         trackEvent({
           eventName: `${eventName}_copied`,
           tripId,
@@ -118,7 +131,7 @@ export function ShareLinkButton({
       }
 
       const tryUrlShare = async () => {
-        await navigator.share({ title, text, url });
+        await navigator.share({ title, text, url: absoluteUrl });
         trackEvent({
           eventName,
           tripId,
