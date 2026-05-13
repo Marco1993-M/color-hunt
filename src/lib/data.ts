@@ -1,5 +1,6 @@
 import { getSupabaseEnv } from "@/lib/env";
-import type { Mission, Photo, PosterExport, Trip } from "@/lib/types";
+import { createAdminClient } from "@/lib/admin-supabase";
+import type { GroupHunt, GroupHuntParticipant, Mission, Photo, PosterExport, Trip } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseErrorLike = {
@@ -18,6 +19,16 @@ export type TripBundle = {
   trip: Trip;
   mission: Mission;
   photos: Photo[];
+};
+
+export type GroupHuntBundle = {
+  hunt: GroupHunt;
+  participants: GroupHuntParticipant[];
+};
+
+export type GroupHuntInviteSeat = {
+  hunt: GroupHunt;
+  participant: GroupHuntParticipant;
 };
 
 function sortPhotosByDisplayOrder(photos: Photo[]) {
@@ -58,7 +69,7 @@ export async function getTripsForUser(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("trips")
-    .select("id, user_id, title, location, start_date, end_date, created_at")
+    .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -74,7 +85,7 @@ export async function getTripBundle(tripId: string, userId: string) {
   const [{ data: trip }, { data: mission }, photosResult] = await Promise.all([
     supabase
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, created_at")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
       .eq("id", tripId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -159,7 +170,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   const supabase = await createClient();
   const tripResult = await supabase
     .from("trips")
-    .select("id, user_id, title, location, start_date, end_date, share_id, is_public, created_at")
+    .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
     .eq("share_id", shareId)
     .eq("is_public", true)
     .maybeSingle();
@@ -275,4 +286,181 @@ export function getPhotoUrl(photo: Photo) {
 
   const { url, storageBucket } = getSupabaseEnv();
   return `${url}/storage/v1/object/public/${storageBucket}/${photo.storage_path}`;
+}
+
+export async function getGroupHuntsForUser(userId: string) {
+  const supabase = await createClient();
+  const [{ data: hostedHunts, error: hostedError }, { data: joinedParticipants, error: joinedError }] = await Promise.all([
+    supabase
+      .from("group_hunts")
+      .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+      .eq("host_user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("group_hunt_participants")
+      .select("id, group_hunt_id, user_id, seat_index, assigned_color_name, assigned_color_hex, assigned_prompt, invite_token, status, joined_at, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (hostedError) {
+    throw hostedError;
+  }
+
+  if (joinedError) {
+    throw joinedError;
+  }
+
+  const participantRows = (joinedParticipants ?? []) as GroupHuntParticipant[];
+  const joinedGroupIds = [...new Set(participantRows.map((participant) => participant.group_hunt_id))];
+  let joinedHunts: GroupHunt[] = [];
+
+  if (joinedGroupIds.length > 0) {
+    const { data, error } = await supabase
+      .from("group_hunts")
+      .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+      .in("id", joinedGroupIds)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    joinedHunts = (data ?? []) as GroupHunt[];
+  }
+
+  const participantIds = participantRows.map((participant) => participant.id);
+  let joinedTripsByParticipantId = new Map<string, string>();
+
+  if (participantIds.length > 0) {
+    const { data, error } = await supabase
+      .from("trips")
+      .select("id, group_participant_id")
+      .in("group_participant_id", participantIds)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw error;
+    }
+
+    joinedTripsByParticipantId = new Map(
+      (data ?? [])
+        .filter((trip) => Boolean(trip.group_participant_id))
+        .map((trip) => [String(trip.group_participant_id), trip.id]),
+    );
+  }
+
+  return {
+    hosted: (hostedHunts ?? []) as GroupHunt[],
+    joined: joinedHunts
+      .filter((hunt) => hunt.host_user_id !== userId)
+      .map((hunt) => ({
+        hunt,
+        participant: participantRows.find((participant) => participant.group_hunt_id === hunt.id) ?? null,
+        tripId: joinedTripsByParticipantId.get(
+          participantRows.find((participant) => participant.group_hunt_id === hunt.id)?.id ?? "",
+        ) ?? null,
+      })),
+  };
+}
+
+export async function getGroupHuntById(groupHuntId: string, userId: string): Promise<GroupHuntBundle | null> {
+  const supabase = await createClient();
+  const { data: hunt, error: huntError } = await supabase
+    .from("group_hunts")
+    .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+    .eq("id", groupHuntId)
+    .eq("host_user_id", userId)
+    .maybeSingle();
+
+  if (huntError) {
+    throw huntError;
+  }
+
+  if (!hunt) {
+    return null;
+  }
+
+  const { data: participants, error: participantError } = await supabase
+    .from("group_hunt_participants")
+    .select("id, group_hunt_id, user_id, seat_index, assigned_color_name, assigned_color_hex, assigned_prompt, invite_token, status, joined_at, created_at")
+    .eq("group_hunt_id", groupHuntId)
+    .order("seat_index", { ascending: true });
+
+  if (participantError) {
+    throw participantError;
+  }
+
+  return {
+    hunt: hunt as GroupHunt,
+    participants: (participants ?? []) as GroupHuntParticipant[],
+  };
+}
+
+export async function getGroupParticipantForUser(groupHuntId: string, userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("group_hunt_participants")
+    .select("id, group_hunt_id, user_id, seat_index, assigned_color_name, assigned_color_hex, assigned_prompt, invite_token, status, joined_at, created_at")
+    .eq("group_hunt_id", groupHuntId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as GroupHuntParticipant | null) ?? null;
+}
+
+export async function getTripForParticipant(groupParticipantId: string, userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trips")
+    .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+    .eq("group_participant_id", groupParticipantId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as Trip | null) ?? null;
+}
+
+export async function getGroupParticipantByInviteToken(inviteToken: string): Promise<GroupHuntInviteSeat | null> {
+  const admin = createAdminClient();
+  const { data: participant, error: participantError } = await admin
+    .from("group_hunt_participants")
+    .select("id, group_hunt_id, user_id, seat_index, assigned_color_name, assigned_color_hex, assigned_prompt, invite_token, status, joined_at, created_at")
+    .eq("invite_token", inviteToken)
+    .maybeSingle();
+
+  if (participantError) {
+    throw participantError;
+  }
+
+  if (!participant) {
+    return null;
+  }
+
+  const { data: hunt, error: huntError } = await admin
+    .from("group_hunts")
+    .select("id, host_user_id, title, location, start_date, end_date, invite_token, group_size, status, created_at")
+    .eq("id", participant.group_hunt_id)
+    .maybeSingle();
+
+  if (huntError) {
+    throw huntError;
+  }
+
+  if (!hunt) {
+    return null;
+  }
+
+  return {
+    hunt: hunt as GroupHunt,
+    participant: participant as GroupHuntParticipant,
+  };
 }

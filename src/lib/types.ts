@@ -5,8 +5,37 @@ export type Trip = {
   location: string;
   start_date: string | null;
   end_date: string | null;
+  group_hunt_id?: string | null;
+  group_participant_id?: string | null;
   share_id?: string | null;
   is_public?: boolean;
+  created_at: string;
+};
+
+export type GroupHunt = {
+  id: string;
+  host_user_id: string;
+  title: string;
+  location: string;
+  start_date: string | null;
+  end_date: string | null;
+  invite_token: string;
+  group_size: number;
+  status: "open" | "active" | "completed" | "archived";
+  created_at: string;
+};
+
+export type GroupHuntParticipant = {
+  id: string;
+  group_hunt_id: string;
+  user_id: string | null;
+  seat_index: number;
+  assigned_color_name: string;
+  assigned_color_hex: string;
+  assigned_prompt: string;
+  invite_token: string;
+  status: "invited" | "joined" | "started" | "completed";
+  joined_at: string | null;
   created_at: string;
 };
 
