@@ -4,11 +4,12 @@ import { useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import { getAppOrigin } from "@/lib/app-url";
-import type { GroupHuntParticipant } from "@/lib/types";
+import type { GroupHuntParticipantSeat } from "@/lib/types";
 
 type GroupHuntParticipantListProps = {
   groupHuntId: string;
-  participants: GroupHuntParticipant[];
+  hostUserId: string;
+  participants: GroupHuntParticipantSeat[];
 };
 
 function getInviteLink(inviteToken: string) {
@@ -16,11 +17,30 @@ function getInviteLink(inviteToken: string) {
   return origin ? `${origin}/join/${inviteToken}` : `/join/${inviteToken}`;
 }
 
-export function GroupHuntParticipantList({ groupHuntId, participants }: GroupHuntParticipantListProps) {
+function getSeatStateLabel(participant: GroupHuntParticipantSeat) {
+  if (!participant.user_id) {
+    return "Waiting";
+  }
+
+  const maxPhotos = participant.max_photos ?? 9;
+  const photoCount = participant.photo_count ?? 0;
+
+  if (photoCount >= maxPhotos) {
+    return "Completed";
+  }
+
+  if (photoCount > 0) {
+    return "In progress";
+  }
+
+  return "Joined";
+}
+
+export function GroupHuntParticipantList({ groupHuntId, hostUserId, participants }: GroupHuntParticipantListProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCopyLink(participant: GroupHuntParticipant) {
+  async function handleCopyLink(participant: GroupHuntParticipantSeat) {
     try {
       await navigator.clipboard.writeText(getInviteLink(participant.invite_token));
       trackEvent({
@@ -43,6 +63,7 @@ export function GroupHuntParticipantList({ groupHuntId, participants }: GroupHun
   async function handleCopyAll() {
     try {
       const value = participants
+        .filter((participant) => participant.user_id !== hostUserId)
         .map((participant) => {
           return `Player ${participant.seat_index + 1} · ${participant.assigned_color_name}\n${getInviteLink(participant.invite_token)}`;
         })
@@ -79,7 +100,7 @@ export function GroupHuntParticipantList({ groupHuntId, participants }: GroupHun
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="eyebrow">Player {participant.seat_index + 1}</p>
+                <p className="eyebrow">{participant.user_id === hostUserId ? "Host" : `Player ${participant.seat_index + 1}`}</p>
                 <h3 className="mt-2 text-lg font-semibold text-[var(--ink)]">{participant.assigned_color_name}</h3>
               </div>
               <span
@@ -91,18 +112,18 @@ export function GroupHuntParticipantList({ groupHuntId, participants }: GroupHun
 
             <p className="body-copy mt-3 text-sm">{participant.assigned_prompt}</p>
             <p className="body-copy mt-3 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              {participant.status === "joined"
-                ? "Joined"
-                : participant.status === "started"
-                  ? "Started"
-                  : participant.status === "completed"
-                    ? "Completed"
-                    : "Waiting for join"}
+              {getSeatStateLabel(participant)}
             </p>
 
-            <button className="button-secondary mt-4 w-full" type="button" onClick={() => handleCopyLink(participant)}>
-              Copy invite link
-            </button>
+            {participant.user_id !== hostUserId ? (
+              <button className="button-secondary mt-4 w-full" type="button" onClick={() => handleCopyLink(participant)}>
+                Copy invite link
+              </button>
+            ) : participant.trip_id ? (
+              <a className="button-secondary mt-4 block w-full text-center" href={`/trips/${participant.trip_id}`}>
+                Open your hunt
+              </a>
+            ) : null}
           </div>
         ))}
       </div>
