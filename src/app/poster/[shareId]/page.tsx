@@ -183,7 +183,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
               text={`One place. One color. Nine moments. ${trip.location}`}
               fileUrl={exportUrls.post ?? null}
               buttonLabel="Share poster"
-              buttonDescription="Open your phone’s share sheet"
+              buttonDescription="Share the finished poster from your phone’s native sheet"
             />
             <DownloadPosterButton
               shareId={shareId}
@@ -194,7 +194,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
             <PublicPosterCtaLink
               shareId={shareId}
               href={challengeHref}
-              label={`Take the ${challengeColor} challenge`}
+              label={`Start the ${challengeColor} challenge`}
             />
           </div>
         </div>
@@ -202,7 +202,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
         <div className="mb-6 rounded-[1.5rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.55)] p-4">
           <p className="eyebrow">Challenge this poster</p>
           <p className="body-copy mt-2 text-sm sm:text-base">
-            Same place, same trip window, different eye. Start your own <strong>{challengeColor}</strong> version of this Color Hunt.
+            Same place, same trip window, different eye. Start your own <strong>{challengeColor}</strong> version and turn the same day into a completely different poster.
           </p>
         </div>
 
