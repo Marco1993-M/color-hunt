@@ -1,6 +1,6 @@
 import { getSupabaseEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/admin-supabase";
-import type { GroupHunt, GroupHuntParticipant, Mission, Photo, PosterExport, Trip } from "@/lib/types";
+import type { GroupHunt, GroupHuntParticipant, GroupHuntParticipantSeat, Mission, Photo, PosterExport, Trip } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseErrorLike = {
@@ -23,7 +23,7 @@ export type TripBundle = {
 
 export type GroupHuntBundle = {
   hunt: GroupHunt;
-  participants: GroupHuntParticipant[];
+  participants: GroupHuntParticipantSeat[];
 };
 
 export type GroupHuntInviteSeat = {
@@ -391,9 +391,54 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
     throw participantError;
   }
 
+  const participantRows = (participants ?? []) as GroupHuntParticipant[];
+  const participantIds = participantRows.map((participant) => participant.id);
+  let seats: GroupHuntParticipantSeat[] = participantRows;
+
+  if (participantIds.length > 0) {
+    const { data: trips, error: tripError } = await supabase
+      .from("trips")
+      .select("id, group_participant_id")
+      .in("group_participant_id", participantIds);
+
+    if (tripError) {
+      throw tripError;
+    }
+
+    const tripRows = (trips ?? []).filter((trip) => Boolean(trip.group_participant_id));
+    const tripIds = tripRows.map((trip) => trip.id);
+    const photoCountsByTripId = new Map<string, number>();
+
+    if (tripIds.length > 0) {
+      const { data: photos, error: photoError } = await supabase.from("photos").select("trip_id").in("trip_id", tripIds);
+
+      if (photoError) {
+        throw photoError;
+      }
+
+      for (const photo of photos ?? []) {
+        photoCountsByTripId.set(photo.trip_id, (photoCountsByTripId.get(photo.trip_id) ?? 0) + 1);
+      }
+    }
+
+    const tripsByParticipantId = new Map(
+      tripRows.map((trip) => [String(trip.group_participant_id), trip.id]),
+    );
+
+    seats = participantRows.map((participant) => {
+      const tripId = tripsByParticipantId.get(participant.id) ?? null;
+      return {
+        ...participant,
+        trip_id: tripId,
+        photo_count: tripId ? photoCountsByTripId.get(tripId) ?? 0 : 0,
+        max_photos: 9,
+      };
+    });
+  }
+
   return {
     hunt: hunt as GroupHunt,
-    participants: (participants ?? []) as GroupHuntParticipant[],
+    participants: seats,
   };
 }
 
