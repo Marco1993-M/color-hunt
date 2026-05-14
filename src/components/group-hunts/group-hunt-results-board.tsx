@@ -6,13 +6,22 @@ import type { GroupHuntParticipantResult } from "@/lib/types";
 type GroupHuntResultsBoardProps = {
   hostUserId: string;
   participants: GroupHuntParticipantResult[];
+  heading?: string;
+  description?: string;
 };
 
-export function GroupHuntResultsBoard({ hostUserId, participants }: GroupHuntResultsBoardProps) {
+export function GroupHuntResultsBoard({
+  hostUserId,
+  participants,
+  heading = "The finished recap board.",
+  description = "Everyone's nine frames are in. This is the shared payoff moment: compare each color story side by side and see how the same place changed from person to person.",
+}: GroupHuntResultsBoardProps) {
   const completedParticipants = participants.filter((participant) => {
     const maxPhotos = participant.max_photos ?? 9;
     return Boolean(participant.user_id) && (participant.photo_count ?? 0) >= maxPhotos;
   });
+  const publicPosterCount = completedParticipants.filter((participant) => participant.trip?.is_public && participant.trip?.share_id).length;
+  const totalFrames = completedParticipants.reduce((count, participant) => count + (participant.photo_count ?? 0), 0);
 
   if (completedParticipants.length === 0) {
     return null;
@@ -21,10 +30,25 @@ export function GroupHuntResultsBoard({ hostUserId, participants }: GroupHuntRes
   return (
     <section className="mt-8 rounded-[1.6rem] border border-[rgba(53,37,30,0.08)] bg-white/70 p-4 sm:p-5">
       <p className="eyebrow">Group Results</p>
-      <h2 className="panel-title mt-2 text-2xl font-semibold">The finished recap board.</h2>
+      <h2 className="panel-title mt-2 text-2xl font-semibold">{heading}</h2>
       <p className="body-copy mt-2 max-w-3xl text-sm sm:text-base">
-        Everyone&apos;s nine frames are in. This is the shared payoff moment: compare each color story side by side and see how the same place changed from person to person.
+        {description}
       </p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-[1.25rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.82)] px-4 py-3">
+          <p className="eyebrow">Completed stories</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">{completedParticipants.length}</p>
+        </div>
+        <div className="rounded-[1.25rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.82)] px-4 py-3">
+          <p className="eyebrow">Published posters</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">{publicPosterCount}</p>
+        </div>
+        <div className="rounded-[1.25rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.82)] px-4 py-3">
+          <p className="eyebrow">Frames collected</p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">{totalFrames}</p>
+        </div>
+      </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {completedParticipants.map((participant) => {
@@ -36,12 +60,18 @@ export function GroupHuntResultsBoard({ hostUserId, participants }: GroupHuntRes
           return (
             <article
               key={participant.id}
-              className="rounded-[1.5rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.9)] p-4"
+              className="rounded-[1.5rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.9)] p-4 shadow-[0_12px_30px_rgba(53,37,30,0.05)]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="eyebrow">{participantLabel}</p>
-                  <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{participant.assigned_color_name}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="eyebrow">{participantLabel}</p>
+                    <span className="rounded-full border border-[rgba(53,37,30,0.08)] bg-[rgba(247,245,239,0.92)] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted-strong)]">
+                      Completed
+                    </span>
+                  </div>
+                  <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{participant.assigned_color_name} story</h3>
+                  <p className="body-copy mt-2 text-sm text-[var(--muted)]">{participant.assigned_prompt}</p>
                 </div>
                 <span
                   aria-hidden="true"
