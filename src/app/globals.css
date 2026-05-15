@@ -243,27 +243,23 @@ img {
 }
 
 .poster-reveal-shell {
-  position: relative;
-  isolation: isolate;
   display: grid;
-  align-content: start;
   gap: 1.4rem;
-  overflow: clip;
-  padding-block: 0.75rem 1.5rem;
+  padding-block: 0.35rem 1.5rem;
 }
 
 .poster-reveal-aurora {
   position: absolute;
-  inset: -3rem auto auto 50%;
-  width: 22rem;
-  height: 22rem;
+  inset: 8% auto auto 50%;
+  width: 18rem;
+  height: 18rem;
   border-radius: 999px;
   background:
     radial-gradient(circle, rgba(47, 97, 223, 0.18), transparent 55%),
     radial-gradient(circle at 68% 28%, rgba(240, 123, 212, 0.16), transparent 48%),
     radial-gradient(circle at 35% 72%, rgba(255, 214, 50, 0.16), transparent 48%);
-  filter: blur(22px);
-  opacity: 0.92;
+  filter: blur(20px);
+  opacity: 0.88;
   pointer-events: none;
   animation: reveal-drift 14s ease-in-out infinite alternate;
   z-index: 0;
@@ -274,24 +270,24 @@ img {
   position: absolute;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.34;
+  opacity: 0.28;
   animation: poster-float 11s ease-in-out infinite;
 }
 
 .poster-reveal-float-one {
-  top: 7rem;
-  right: 0.35rem;
+  top: 16%;
+  right: -0.1rem;
 }
 
 .poster-reveal-float-two {
-  top: 22rem;
-  left: -0.2rem;
+  top: 52%;
+  left: -0.25rem;
   animation-delay: -3.2s;
 }
 
 .poster-reveal-float-three {
-  top: 42rem;
-  right: 0.5rem;
+  bottom: 8%;
+  right: 0.15rem;
   animation-delay: -6.4s;
 }
 
@@ -348,21 +344,8 @@ img {
   color: rgba(161, 63, 132, 0.72);
 }
 
-.poster-reveal-stage {
-  display: grid;
-  align-content: start;
-  justify-items: center;
-  gap: 1.35rem;
-  min-height: min(78svh, 56rem);
-}
-
-.poster-reveal-shell > * {
-  position: relative;
-  z-index: 1;
-}
-
 .poster-reveal-intro,
-.poster-reveal-poster,
+.poster-reveal-poster-shell,
 .poster-reveal-actions {
   opacity: 0;
   transform: translateY(14px);
@@ -372,7 +355,7 @@ img {
 }
 
 .poster-reveal-intro.is-visible,
-.poster-reveal-poster.is-visible,
+.poster-reveal-poster-shell.is-visible,
 .poster-reveal-actions.is-visible {
   opacity: 1;
   transform: translateY(0);
@@ -382,15 +365,12 @@ img {
   display: grid;
   gap: 1rem;
   margin: 0;
-  justify-items: center;
-  text-align: center;
   width: 100%;
 }
 
 .poster-reveal-facts {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 0.65rem;
   opacity: 0;
   transform: translateY(8px);
@@ -420,22 +400,34 @@ img {
   box-shadow: 0 10px 24px rgba(72, 48, 110, 0.06);
 }
 
-.poster-reveal-poster.is-visible .poster-frame {
+.poster-reveal-poster-shell.is-visible .poster-frame {
   animation: poster-reveal-settle 900ms cubic-bezier(0.18, 0.8, 0.2, 1);
 }
 
-.poster-reveal-poster,
+.poster-reveal-poster-shell,
 .poster-reveal-actions {
   max-height: 0;
   overflow: hidden;
   pointer-events: none;
 }
 
-.poster-reveal-poster.is-visible,
+.poster-reveal-poster-shell.is-visible,
 .poster-reveal-actions.is-visible {
   max-height: none;
   overflow: visible;
   pointer-events: auto;
+}
+
+.poster-reveal-poster-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  padding: 0.7rem 0;
+}
+
+.poster-reveal-poster-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .poster-reveal-poster {
@@ -928,28 +920,28 @@ img {
   }
 
   .poster-reveal-aurora {
-    width: 28rem;
-    height: 28rem;
+    width: 22rem;
+    height: 22rem;
   }
 
   .poster-reveal-shell {
     gap: 1.65rem;
-    padding-block: 1rem 2rem;
+    padding-block: 0.5rem 2rem;
   }
 
   .poster-reveal-float-one {
-    top: 6rem;
-    right: 4rem;
+    top: 15%;
+    right: 3rem;
   }
 
   .poster-reveal-float-two {
-    top: 21rem;
+    top: 48%;
     left: 2rem;
   }
 
   .poster-reveal-float-three {
-    top: 39rem;
-    right: 3.5rem;
+    bottom: 10%;
+    right: 2.25rem;
   }
 
   .poster-reveal-sticker {
@@ -965,11 +957,6 @@ img {
   .poster-reveal-sticker .mascot-mouth {
     width: 2.8rem;
     height: 1.7rem;
-  }
-
-  .poster-reveal-stage {
-    gap: 1.6rem;
-    min-height: min(84svh, 62rem);
   }
 
   .results-reveal-aurora {
