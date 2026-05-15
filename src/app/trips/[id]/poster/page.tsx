@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
 import { PosterSheet } from "@/components/trips/poster-sheet";
+import { PosterRevealExperience } from "@/components/trips/poster-reveal-experience";
 import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
 import { PosterReadyWatcher } from "@/components/trips/poster-ready-watcher";
@@ -78,15 +79,45 @@ export default async function PosterPage({ params }: PosterPageProps) {
           </div>
         ) : null}
 
-        <PosterSheet id="trip-poster-sheet" trip={trip} mission={mission} photos={photos} />
+        {isComplete ? (
+          <PosterRevealExperience
+            tripId={trip.id}
+            location={trip.location}
+            missionColorName={mission.color_name}
+            frameCount={photos.length}
+            maxPhotos={mission.max_photos}
+            poster={<PosterSheet id="trip-poster-sheet" trip={trip} mission={mission} photos={photos} />}
+            actions={
+              isGuest ? (
+                <SocialUpgradePanel tripId={trip.id} nextPath={`/trips/${trip.id}/poster`} />
+              ) : (
+                <SharePosterPanel
+                  tripId={trip.id}
+                  initialShareId={shareState.shareId}
+                  initialIsPublic={shareState.isPublic}
+                  schemaReady={shareState.schemaReady}
+                  currentPhotoCount={photos.length}
+                  maxPhotos={mission.max_photos}
+                  tripTitle={trip.title}
+                  location={trip.location}
+                  startDate={trip.start_date}
+                  endDate={trip.end_date}
+                  missionColorName={mission.color_name}
+                  exportUrls={exportUrls}
+                  posterData={posterData}
+                />
+              )
+            }
+          />
+        ) : (
+          <PosterSheet id="trip-poster-sheet" trip={trip} mission={mission} photos={photos} />
+        )}
         <PosterExportWarmup tripId={trip.id} enabled={isComplete} />
         <PosterReadyWatcher tripId={trip.id} enabled={isComplete} hasPostExport={Boolean(exportUrls.post)} />
 
-        <div className="mt-6">
-          {isGuest ? (
-            isComplete ? (
-              <SocialUpgradePanel tripId={trip.id} nextPath={`/trips/${trip.id}/poster`} />
-            ) : (
+        {!isComplete ? (
+          <div className="mt-6">
+            {isGuest ? (
               <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
                 <p className="eyebrow">Guest mode</p>
                 <h3 className="panel-title mt-2 text-2xl font-semibold">Finish the nine first.</h3>
@@ -94,25 +125,25 @@ export default async function PosterPage({ params }: PosterPageProps) {
                   You can preview the poster as a guest, then attach Google once all {mission.max_photos} frames are filled and the poster is ready to keep.
                 </p>
               </div>
-            )
-          ) : (
-            <SharePosterPanel
-              tripId={trip.id}
-              initialShareId={shareState.shareId}
-              initialIsPublic={shareState.isPublic}
-              schemaReady={shareState.schemaReady}
-              currentPhotoCount={photos.length}
-              maxPhotos={mission.max_photos}
-              tripTitle={trip.title}
-              location={trip.location}
-              startDate={trip.start_date}
-              endDate={trip.end_date}
-              missionColorName={mission.color_name}
-              exportUrls={exportUrls}
-              posterData={posterData}
-            />
-          )}
-        </div>
+            ) : (
+              <SharePosterPanel
+                tripId={trip.id}
+                initialShareId={shareState.shareId}
+                initialIsPublic={shareState.isPublic}
+                schemaReady={shareState.schemaReady}
+                currentPhotoCount={photos.length}
+                maxPhotos={mission.max_photos}
+                tripTitle={trip.title}
+                location={trip.location}
+                startDate={trip.start_date}
+                endDate={trip.end_date}
+                missionColorName={mission.color_name}
+                exportUrls={exportUrls}
+                posterData={posterData}
+              />
+            )}
+          </div>
+        ) : null}
       </div>
     </main>
   );
