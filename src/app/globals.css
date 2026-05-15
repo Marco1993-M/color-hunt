@@ -245,6 +245,10 @@ img {
 .poster-reveal-shell {
   position: relative;
   isolation: isolate;
+  display: grid;
+  align-content: start;
+  gap: 1.4rem;
+  overflow: clip;
 }
 
 .poster-reveal-aurora {
@@ -262,6 +266,84 @@ img {
   pointer-events: none;
   animation: reveal-drift 14s ease-in-out infinite alternate;
   z-index: 0;
+}
+
+.poster-reveal-float {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.52;
+  animation: poster-float 9s ease-in-out infinite;
+}
+
+.poster-reveal-float-one {
+  top: 8.5rem;
+  right: 0.25rem;
+}
+
+.poster-reveal-float-two {
+  top: 25rem;
+  left: -0.1rem;
+  animation-delay: -2.4s;
+}
+
+.poster-reveal-float-three {
+  top: 48rem;
+  right: 1.25rem;
+  animation-delay: -4.8s;
+}
+
+.poster-reveal-sticker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.6rem;
+  height: 5.6rem;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  box-shadow: 0 18px 48px rgba(72, 48, 110, 0.1);
+  backdrop-filter: blur(18px);
+}
+
+.poster-reveal-sticker .mascot-face {
+  width: 3rem;
+  height: 2.8rem;
+}
+
+.poster-reveal-sticker .mascot-eye {
+  top: 0.22rem;
+  width: 0.52rem;
+  height: 0.52rem;
+}
+
+.poster-reveal-sticker .mascot-eye-left {
+  left: 0.44rem;
+}
+
+.poster-reveal-sticker .mascot-eye-right {
+  right: 0.44rem;
+}
+
+.poster-reveal-sticker .mascot-mouth {
+  bottom: 0.2rem;
+  width: 2.45rem;
+  height: 1.5rem;
+  border-width: 0.48rem;
+}
+
+.poster-reveal-sticker-spark {
+  background: linear-gradient(180deg, rgba(255, 214, 50, 0.2), rgba(255, 255, 255, 0.72));
+  color: rgba(148, 105, 10, 0.7);
+}
+
+.poster-reveal-sticker-wink {
+  background: linear-gradient(180deg, rgba(47, 97, 223, 0.2), rgba(255, 255, 255, 0.72));
+  color: rgba(40, 72, 161, 0.7);
+}
+
+.poster-reveal-sticker-heart {
+  background: linear-gradient(180deg, rgba(240, 123, 212, 0.2), rgba(255, 255, 255, 0.72));
+  color: rgba(161, 63, 132, 0.72);
 }
 
 .poster-reveal-shell > * {
@@ -287,9 +369,9 @@ img {
 }
 
 .poster-reveal-intro {
-  margin-bottom: 1.5rem;
   display: grid;
   gap: 1rem;
+  margin: 0;
 }
 
 .poster-reveal-facts {
@@ -328,8 +410,22 @@ img {
   animation: poster-reveal-settle 900ms cubic-bezier(0.18, 0.8, 0.2, 1);
 }
 
+.poster-reveal-poster,
 .poster-reveal-actions {
-  margin-top: 1.5rem;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.poster-reveal-poster.is-visible,
+.poster-reveal-actions.is-visible {
+  max-height: none;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.poster-reveal-actions {
+  margin-top: 0.15rem;
 }
 
 .results-reveal-shell {
@@ -810,6 +906,40 @@ img {
   .poster-reveal-aurora {
     width: 22rem;
     height: 22rem;
+  }
+
+  .poster-reveal-shell {
+    gap: 1.65rem;
+  }
+
+  .poster-reveal-float-one {
+    top: 7.5rem;
+    right: 2rem;
+  }
+
+  .poster-reveal-float-two {
+    top: 24rem;
+    left: 1rem;
+  }
+
+  .poster-reveal-float-three {
+    top: 46rem;
+    right: 3rem;
+  }
+
+  .poster-reveal-sticker {
+    width: 6.3rem;
+    height: 6.3rem;
+  }
+
+  .poster-reveal-sticker .mascot-face {
+    width: 3.4rem;
+    height: 3.15rem;
+  }
+
+  .poster-reveal-sticker .mascot-mouth {
+    width: 2.8rem;
+    height: 1.7rem;
   }
 
   .results-reveal-aurora {
