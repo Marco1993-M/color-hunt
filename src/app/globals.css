@@ -249,48 +249,50 @@ img {
   align-content: start;
   gap: 1.4rem;
   overflow: clip;
+  padding-block: 0.75rem 1.5rem;
 }
 
 .poster-reveal-aurora {
   position: absolute;
-  inset: -4rem auto auto -4rem;
-  width: 18rem;
-  height: 18rem;
+  inset: -3rem auto auto 50%;
+  width: 22rem;
+  height: 22rem;
   border-radius: 999px;
   background:
     radial-gradient(circle, rgba(47, 97, 223, 0.18), transparent 55%),
     radial-gradient(circle at 68% 28%, rgba(240, 123, 212, 0.16), transparent 48%),
     radial-gradient(circle at 35% 72%, rgba(255, 214, 50, 0.16), transparent 48%);
-  filter: blur(16px);
-  opacity: 0.88;
+  filter: blur(22px);
+  opacity: 0.92;
   pointer-events: none;
   animation: reveal-drift 14s ease-in-out infinite alternate;
   z-index: 0;
+  transform: translateX(-50%);
 }
 
 .poster-reveal-float {
   position: absolute;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.52;
-  animation: poster-float 9s ease-in-out infinite;
+  opacity: 0.34;
+  animation: poster-float 11s ease-in-out infinite;
 }
 
 .poster-reveal-float-one {
-  top: 8.5rem;
-  right: 0.25rem;
+  top: 7rem;
+  right: 0.35rem;
 }
 
 .poster-reveal-float-two {
-  top: 25rem;
-  left: -0.1rem;
-  animation-delay: -2.4s;
+  top: 22rem;
+  left: -0.2rem;
+  animation-delay: -3.2s;
 }
 
 .poster-reveal-float-three {
-  top: 48rem;
-  right: 1.25rem;
-  animation-delay: -4.8s;
+  top: 42rem;
+  right: 0.5rem;
+  animation-delay: -6.4s;
 }
 
 .poster-reveal-sticker {
@@ -346,6 +348,14 @@ img {
   color: rgba(161, 63, 132, 0.72);
 }
 
+.poster-reveal-stage {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 1.35rem;
+  min-height: min(78svh, 56rem);
+}
+
 .poster-reveal-shell > * {
   position: relative;
   z-index: 1;
@@ -372,11 +382,15 @@ img {
   display: grid;
   gap: 1rem;
   margin: 0;
+  justify-items: center;
+  text-align: center;
+  width: 100%;
 }
 
 .poster-reveal-facts {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.65rem;
   opacity: 0;
   transform: translateY(8px);
@@ -424,8 +438,18 @@ img {
   pointer-events: auto;
 }
 
+.poster-reveal-poster {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.poster-reveal-poster .poster-frame {
+  width: min(100%, 34rem);
+}
+
 .poster-reveal-actions {
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
 }
 
 .results-reveal-shell {
@@ -904,27 +928,28 @@ img {
   }
 
   .poster-reveal-aurora {
-    width: 22rem;
-    height: 22rem;
+    width: 28rem;
+    height: 28rem;
   }
 
   .poster-reveal-shell {
     gap: 1.65rem;
+    padding-block: 1rem 2rem;
   }
 
   .poster-reveal-float-one {
-    top: 7.5rem;
-    right: 2rem;
+    top: 6rem;
+    right: 4rem;
   }
 
   .poster-reveal-float-two {
-    top: 24rem;
-    left: 1rem;
+    top: 21rem;
+    left: 2rem;
   }
 
   .poster-reveal-float-three {
-    top: 46rem;
-    right: 3rem;
+    top: 39rem;
+    right: 3.5rem;
   }
 
   .poster-reveal-sticker {
@@ -940,6 +965,11 @@ img {
   .poster-reveal-sticker .mascot-mouth {
     width: 2.8rem;
     height: 1.7rem;
+  }
+
+  .poster-reveal-stage {
+    gap: 1.6rem;
+    min-height: min(84svh, 62rem);
   }
 
   .results-reveal-aurora {
