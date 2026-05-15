@@ -24,7 +24,7 @@ export function PosterRevealExperience({
   poster,
   actions,
 }: PosterRevealExperienceProps) {
-  const [stage, setStage] = useState(0);
+  const [stage, setStage] = useState(1);
   const [revealRun, setRevealRun] = useState(0);
 
   const revealSummary = useMemo(
@@ -37,7 +37,7 @@ export function PosterRevealExperience({
   );
 
   useEffect(() => {
-    setStage(0);
+    setStage(1);
     trackEvent({
       eventName: "poster_reveal_started",
       tripId,
@@ -49,11 +49,11 @@ export function PosterRevealExperience({
       },
     });
 
-    const timers = [0, 1, 2].map((index) =>
+    const timers = [0, 1].map((index) =>
       window.setTimeout(() => {
-        setStage(index + 1);
+        setStage(index + 2);
 
-        if (index === 2) {
+        if (index === 1) {
           trackEvent({
             eventName: "poster_reveal_completed",
             tripId,
