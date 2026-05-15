@@ -81,7 +81,8 @@ export default async function PublicGroupResultsPage({ params }: PublicGroupResu
           </Link>
         </div>
 
-        <div className="playful-card rounded-[2.5rem] p-6 sm:p-8">
+        <div className="playful-card results-reveal-shell relative overflow-hidden rounded-[2.5rem] p-6 sm:p-8">
+          <div className="results-reveal-aurora" aria-hidden="true" />
           <p className="eyebrow">Combined Group Artifact</p>
           <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)] lg:items-end">
             <div>
@@ -95,9 +96,14 @@ export default async function PublicGroupResultsPage({ params }: PublicGroupResu
               <p className="body-copy mt-4 max-w-3xl text-sm sm:text-base">
                 Same place, different eyes. This finished Color Hunt board brings every assigned color story into one shared artifact, so the group can compare how the same day looked completely different through each person’s hunt.
               </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="results-reveal-chip">Shared place</span>
+                <span className="results-reveal-chip">{completedResults.length} finished stories</span>
+                <span className="results-reveal-chip">{publishedPosterCount} public posters</span>
+              </div>
             </div>
 
-            <div className="rounded-[1.6rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.68)] p-4">
+            <div className="results-reveal-share-card rounded-[1.6rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.68)] p-4">
               <p className="eyebrow">Share this result</p>
               <p className="body-copy mt-2 text-sm">
                 Send one link that shows the whole group outcome instead of nine separate screenshots and explanations.
@@ -142,6 +148,7 @@ export default async function PublicGroupResultsPage({ params }: PublicGroupResu
             participants={bundle.results}
             heading="Every color story, in one place."
             description="Each participant hunted a different color in the same shared moment. The result is one board that shows how much perspective changes what a place becomes."
+            variant="public"
           />
         </div>
       </div>
