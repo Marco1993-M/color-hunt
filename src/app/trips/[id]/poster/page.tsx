@@ -66,7 +66,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
             ← Back to trip
           </Link>
           <p className="text-sm text-[var(--muted)]">
-            {isComplete ? (isGuest ? "Poster ready to save" : "Poster ready to share") : "Poster preview"}
+            {isComplete ? "Final reveal" : "Poster preview"}
           </p>
         </div>
 
