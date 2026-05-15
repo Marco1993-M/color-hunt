@@ -127,35 +127,34 @@ export function PosterRevealExperience({
 
   return (
     <div className="poster-reveal-shell">
-      <div className="poster-reveal-aurora" aria-hidden="true" />
-      {FLOATING_STICKERS.map((sticker) => (
-        <RevealSticker key={sticker.id} {...sticker} />
-      ))}
+      <section className={`poster-reveal-intro ${stage >= 1 ? "is-visible" : ""}`}>
+        <div className="poster-reveal-copy">
+          <p className="eyebrow">Final reveal</p>
+          <h2 className="panel-title mt-3 text-4xl font-semibold sm:text-5xl">
+            {stage >= 2 ? "Your Color Hunt poster is in." : `You hunted ${missionColorName} in ${location}.`}
+          </h2>
+          <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
+            {stage >= 2
+              ? "One color, one place, nine ordinary details turned into something worth keeping. Let it land, then choose how you want to share it."
+              : "Nine frames, one color, one place. The reveal is building."}
+          </p>
+        </div>
 
-      <div className="poster-reveal-stage">
-        <section className={`poster-reveal-intro ${stage >= 1 ? "is-visible" : ""}`}>
-          <div className="poster-reveal-copy">
-            <p className="eyebrow">Final reveal</p>
-            <h2 className="panel-title mt-3 text-4xl font-semibold sm:text-5xl">
-              {stage >= 2 ? "Your Color Hunt poster is in." : `You hunted ${missionColorName} in ${location}.`}
-            </h2>
-            <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
-              {stage >= 2
-                ? "One color, one place, nine ordinary details turned into something worth keeping. Let it land, then choose how you want to share it."
-                : "Nine frames, one color, one place. The reveal is building."}
-            </p>
-          </div>
+        <div className={`poster-reveal-facts ${stage >= 1 ? "is-visible" : ""}`}>
+          {revealSummary.map((item) => (
+            <span key={item} className="poster-reveal-chip">
+              {item}
+            </span>
+          ))}
+        </div>
+      </section>
 
-          <div className={`poster-reveal-facts ${stage >= 1 ? "is-visible" : ""}`}>
-            {revealSummary.map((item) => (
-              <span key={item} className="poster-reveal-chip">
-                {item}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <div className={`poster-reveal-poster ${stage >= 2 ? "is-visible" : ""}`}>{poster}</div>
+      <div className={`poster-reveal-poster-shell ${stage >= 2 ? "is-visible" : ""}`}>
+        <div className="poster-reveal-aurora" aria-hidden="true" />
+        {FLOATING_STICKERS.map((sticker) => (
+          <RevealSticker key={sticker.id} {...sticker} />
+        ))}
+        <div className="poster-reveal-poster">{poster}</div>
       </div>
 
       <div className={`poster-reveal-actions ${stage >= 3 ? "is-visible" : ""}`}>
