@@ -15,6 +15,48 @@ type PosterRevealExperienceProps = {
 
 const REVEAL_STEP_MS = 900;
 
+type FloatingSticker = {
+  id: string;
+  toneClassName: string;
+  variantClassName: string;
+  mascotClassName: string;
+};
+
+const FLOATING_STICKERS: FloatingSticker[] = [
+  {
+    id: "spark",
+    toneClassName: "poster-reveal-sticker-spark",
+    variantClassName: "poster-reveal-float-one",
+    mascotClassName: "mascot-face-spark",
+  },
+  {
+    id: "wink",
+    toneClassName: "poster-reveal-sticker-wink",
+    variantClassName: "poster-reveal-float-two",
+    mascotClassName: "mascot-face-wink",
+  },
+  {
+    id: "heart",
+    toneClassName: "poster-reveal-sticker-heart",
+    variantClassName: "poster-reveal-float-three",
+    mascotClassName: "mascot-face-heart",
+  },
+];
+
+function RevealSticker({ toneClassName, variantClassName, mascotClassName }: FloatingSticker) {
+  return (
+    <div className={`poster-reveal-float ${variantClassName}`} aria-hidden="true">
+      <div className={`poster-reveal-sticker ${toneClassName}`}>
+        <div className={`mascot-face ${mascotClassName}`}>
+          <span className="mascot-eye mascot-eye-left" />
+          <span className="mascot-eye mascot-eye-right" />
+          <span className="mascot-mouth" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PosterRevealExperience({
   tripId,
   location,
@@ -86,6 +128,9 @@ export function PosterRevealExperience({
   return (
     <div className="poster-reveal-shell">
       <div className="poster-reveal-aurora" aria-hidden="true" />
+      {FLOATING_STICKERS.map((sticker) => (
+        <RevealSticker key={sticker.id} {...sticker} />
+      ))}
 
       <section className={`poster-reveal-intro ${stage >= 1 ? "is-visible" : ""}`}>
         <div className="poster-reveal-copy">
