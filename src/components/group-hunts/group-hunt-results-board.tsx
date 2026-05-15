@@ -8,6 +8,7 @@ type GroupHuntResultsBoardProps = {
   participants: GroupHuntParticipantResult[];
   heading?: string;
   description?: string;
+  variant?: "default" | "public";
 };
 
 export function GroupHuntResultsBoard({
@@ -15,6 +16,7 @@ export function GroupHuntResultsBoard({
   participants,
   heading = "The finished recap board.",
   description = "Everyone's nine frames are in. This is the shared payoff moment: compare each color story side by side and see how the same place changed from person to person.",
+  variant = "default",
 }: GroupHuntResultsBoardProps) {
   const completedParticipants = participants.filter((participant) => {
     const maxPhotos = participant.max_photos ?? 9;
@@ -27,8 +29,16 @@ export function GroupHuntResultsBoard({
     return null;
   }
 
+  const isPublicVariant = variant === "public";
+
   return (
-    <section className="mt-8 rounded-[1.6rem] border border-[rgba(53,37,30,0.08)] bg-white/70 p-4 sm:p-5">
+    <section
+      className={`mt-8 rounded-[1.6rem] border p-4 sm:p-5 ${
+        isPublicVariant
+          ? "border-[rgba(47,97,223,0.1)] bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(255,249,243,0.8))] shadow-[0_22px_60px_rgba(55,74,102,0.08)]"
+          : "border-[rgba(53,37,30,0.08)] bg-white/70"
+      }`}
+    >
       <p className="eyebrow">Group Results</p>
       <h2 className="panel-title mt-2 text-2xl font-semibold">{heading}</h2>
       <p className="body-copy mt-2 max-w-3xl text-sm sm:text-base">
@@ -60,7 +70,11 @@ export function GroupHuntResultsBoard({
           return (
             <article
               key={participant.id}
-              className="rounded-[1.5rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.9)] p-4 shadow-[0_12px_30px_rgba(53,37,30,0.05)]"
+              className={`rounded-[1.5rem] border p-4 shadow-[0_12px_30px_rgba(53,37,30,0.05)] ${
+                isPublicVariant
+                  ? "border-[rgba(47,97,223,0.1)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(250,245,239,0.9))]"
+                  : "border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.9)]"
+              }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -75,7 +89,7 @@ export function GroupHuntResultsBoard({
                 </div>
                 <span
                   aria-hidden="true"
-                  className="mt-1 h-5 w-5 border border-[rgba(53,37,30,0.1)]"
+                  className="mt-1 h-5 w-5 border border-[rgba(53,37,30,0.1)] shadow-[0_6px_14px_rgba(53,37,30,0.08)]"
                   style={{ backgroundColor: participant.assigned_color_hex }}
                 />
               </div>
