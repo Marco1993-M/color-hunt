@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import { posterExportFormats } from "@/lib/poster-export";
 import {
+  openBlob,
+  preparePosterBlob,
   renderPosterBlob,
-  shareOrDownloadBlob,
   type PosterCaptureData,
   type PosterThemeId,
 } from "@/lib/poster-client-export";
@@ -36,6 +38,9 @@ export function DownloadPosterButton({
 }: DownloadPosterButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preparedOptions, setPreparedOptions] = useState<Record<string, boolean>>({});
+  const [warmingOptions, setWarmingOptions] = useState<Record<string, boolean>>({});
 
   const options: PosterDownloadOption[] = [
     ...posterExportFormats.map((format) => ({
@@ -62,7 +67,48 @@ export function DownloadPosterButton({
       : []),
   ];
 
+  async function warmOption(option: PosterDownloadOption) {
+    if (!posterData || preparedOptions[option.key] || warmingOptions[option.key]) {
+      return;
+    }
+
+    setWarmingOptions((current) => ({ ...current, [option.key]: true }));
+
+    try {
+      await preparePosterBlob({
+        posterData,
+        formatId: option.formatId,
+        themeId: option.themeId,
+      });
+      setPreparedOptions((current) => ({ ...current, [option.key]: true }));
+    } catch (warmingFailure) {
+      const message =
+        warmingFailure instanceof Error ? warmingFailure.message : "Couldn't prepare this poster format.";
+      setError(message);
+    } finally {
+      setWarmingOptions((current) => ({ ...current, [option.key]: false }));
+    }
+  }
+
+  function handleToggleOpen() {
+    const nextOpen = !isOpen;
+    setIsOpen(nextOpen);
+
+    if (!nextOpen || !posterData) {
+      return;
+    }
+
+    const collageOption = options.find((option) => option.themeId === "story-collage");
+
+    if (!collageOption) {
+      return;
+    }
+
+    void warmOption(collageOption);
+  }
+
   async function handleDownload(option: PosterDownloadOption) {
+    setError(null);
     setIsPending(true);
     const formatMeta = posterExportFormats.find((format) => format.id === option.formatId);
 
@@ -73,17 +119,14 @@ export function DownloadPosterButton({
           formatId: option.formatId,
           themeId: option.themeId,
         });
-        const mode = await shareOrDownloadBlob(
-          blob,
-          `color-hunt-${option.fileSuffix}.png`,
-        );
+        await openBlob(blob, `color-hunt-${option.fileSuffix}.png`);
         trackEvent({
-          eventName: mode === "shared" ? "public_poster_shared_native" : "public_poster_downloaded",
+          eventName: "public_poster_downloaded",
           shareId,
           metadata: {
             exportFormat: option.formatId,
             posterTheme: option.themeId,
-            mode: "canvas_render",
+            mode: "canvas_render_download",
           },
         });
         return;
@@ -109,6 +152,19 @@ export function DownloadPosterButton({
       link.href = targetUrl;
       link.rel = "noreferrer";
       link.click();
+    } catch (downloadFailure) {
+      const message =
+        downloadFailure instanceof Error ? downloadFailure.message : "Couldn't prepare this poster format.";
+      trackEvent({
+        eventName: "public_poster_download_failed",
+        shareId,
+        metadata: {
+          exportFormat: option.formatId,
+          posterTheme: option.themeId,
+          message,
+        },
+      });
+      setError(message);
     } finally {
       window.setTimeout(() => {
         setIsPending(false);
@@ -121,32 +177,45 @@ export function DownloadPosterButton({
       <button
         type="button"
         className="button-secondary w-full sm:w-auto"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={handleToggleOpen}
         aria-expanded={isOpen}
       >
         {isOpen ? "Hide formats" : buttonLabel}
       </button>
 
       {isOpen ? (
-        <div className="download-format-grid">
-          {options.map((option) => (
+        <>
+          <div className="download-format-grid">
+            {options.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => handleDownload(option)}
               className="download-format-card"
-              disabled={isPending || (!posterData && !exportUrls?.[option.formatId])}
+              disabled={
+                isPending ||
+                warmingOptions[option.key] ||
+                (!posterData && !exportUrls?.[option.formatId])
+              }
             >
               <span className={`download-format-preview ${option.previewClassName}`}>
                 <span className="download-format-preview-inner" />
               </span>
               <span className="download-format-copy">
-                <span className="download-format-label">{isPending ? "Preparing..." : option.label}</span>
+                <span className="download-format-label">
+                  {isPending
+                    ? "Preparing..."
+                    : warmingOptions[option.key]
+                    ? "Warming..."
+                    : option.label}
+                </span>
                 <span className="download-format-description">{option.description}</span>
               </span>
             </button>
-          ))}
-        </div>
+            ))}
+          </div>
+          {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
+        </>
       ) : null}
     </div>
   );
