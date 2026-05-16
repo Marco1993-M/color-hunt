@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import { posterExportFormats } from "@/lib/poster-export";
@@ -39,41 +39,46 @@ export function DownloadPosterButton({
   const [isPending, setIsPending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedOptions, setFailedOptions] = useState<Record<string, boolean>>({});
   const [preparedOptions, setPreparedOptions] = useState<Record<string, boolean>>({});
   const [preparedDownloadUrls, setPreparedDownloadUrls] = useState<Record<string, string>>({});
   const [warmingOptions, setWarmingOptions] = useState<Record<string, boolean>>({});
   const preparedUrlRefs = useRef<Record<string, string>>({});
 
-  const options: PosterDownloadOption[] = [
-    ...posterExportFormats.map((format) => ({
-      key: format.id,
-      formatId: format.id,
-      themeId: "classic" as const,
-      label: format.label,
-      description: format.description,
-      fileSuffix: format.fileSuffix,
-      previewClassName: `download-format-preview-${format.id}`,
-    })),
-    ...(posterData
-      ? [
-          {
-            key: "story-collage",
-            formatId: "story" as const,
-            themeId: "story-collage" as const,
-            label: "Story collage",
-            description: "Taped 9:16 collage",
-            fileSuffix: "story-collage-9x16",
-            previewClassName: "download-format-preview-story-collage",
-          },
-        ]
-      : []),
-  ];
+  const options: PosterDownloadOption[] = useMemo(
+    () => [
+      ...posterExportFormats.map((format) => ({
+        key: format.id,
+        formatId: format.id,
+        themeId: "classic" as const,
+        label: format.label,
+        description: format.description,
+        fileSuffix: format.fileSuffix,
+        previewClassName: `download-format-preview-${format.id}`,
+      })),
+      ...(posterData
+        ? [
+            {
+              key: "story-collage",
+              formatId: "story" as const,
+              themeId: "story-collage" as const,
+              label: "Story collage",
+              description: "Taped 9:16 collage",
+              fileSuffix: "story-collage-9x16",
+              previewClassName: "download-format-preview-story-collage",
+            },
+          ]
+        : []),
+    ],
+    [posterData],
+  );
 
   async function warmOption(option: PosterDownloadOption) {
-    if (!posterData || preparedOptions[option.key] || warmingOptions[option.key]) {
+    if (!posterData || preparedOptions[option.key] || warmingOptions[option.key] || failedOptions[option.key]) {
       return;
     }
 
+    setFailedOptions((current) => ({ ...current, [option.key]: false }));
     setWarmingOptions((current) => ({ ...current, [option.key]: true }));
 
     try {
@@ -99,6 +104,7 @@ export function DownloadPosterButton({
     } catch (warmingFailure) {
       const message =
         warmingFailure instanceof Error ? warmingFailure.message : "Couldn't prepare this poster format.";
+      setFailedOptions((current) => ({ ...current, [option.key]: true }));
       setError(message);
     } finally {
       setWarmingOptions((current) => ({ ...current, [option.key]: false }));
@@ -138,12 +144,17 @@ export function DownloadPosterButton({
 
     const collageOption = options.find((option) => option.themeId === "story-collage");
 
-    if (!collageOption || preparedOptions[collageOption.key] || warmingOptions[collageOption.key]) {
+    if (
+      !collageOption ||
+      preparedOptions[collageOption.key] ||
+      warmingOptions[collageOption.key] ||
+      failedOptions[collageOption.key]
+    ) {
       return;
     }
 
     void warmOption(collageOption);
-  }, [isOpen, options, posterData, preparedOptions, warmingOptions]);
+  }, [failedOptions, isOpen, options, posterData, preparedOptions, warmingOptions]);
 
   async function handleDownload(option: PosterDownloadOption) {
     setError(null);
@@ -152,7 +163,14 @@ export function DownloadPosterButton({
       const preparedUrl = preparedDownloadUrls[option.key];
 
       if (!preparedUrl) {
-        setError("Story collage is still warming up.");
+        if (!warmingOptions[option.key] && !failedOptions[option.key]) {
+          void warmOption(option);
+        }
+        setError(
+          failedOptions[option.key]
+            ? "Couldn't prepare the collage template."
+            : "Story collage is still warming up.",
+        );
         return;
       }
 
@@ -273,6 +291,8 @@ export function DownloadPosterButton({
                     ? "Preparing..."
                     : warmingOptions[option.key]
                     ? "Warming..."
+                    : failedOptions[option.key]
+                    ? "Unavailable"
                     : option.themeId === "story-collage" && !preparedDownloadUrls[option.key]
                     ? "Warming..."
                     : option.label}
