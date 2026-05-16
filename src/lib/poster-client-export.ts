@@ -6,6 +6,7 @@ import { getPosterExportFormat, type PosterExportFormatId } from "@/lib/poster-e
 export type PosterCaptureData = {
   locationLabel: string;
   location: string;
+  missionColorName: string;
   tripYear: string;
   posterTone: string;
   photoUrls: Array<string | null>;
@@ -98,6 +99,52 @@ const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
 function setCanvasLetterSpacing(context: CanvasRenderingContext2D, value: string) {
   const nextContext = context as CanvasRenderingContext2D & { letterSpacing?: string };
   nextContext.letterSpacing = value;
+}
+
+function drawStoryCollageColorCard(
+  context: CanvasRenderingContext2D,
+  slot: StoryCollageSlot,
+  scaleX: number,
+  scaleY: number,
+  data: PosterCaptureData,
+) {
+  const x = slot.x * scaleX;
+  const y = slot.y * scaleY;
+  const width = slot.width * scaleX;
+  const height = slot.height * scaleY;
+  const labelBandHeight = height * 0.28;
+  const innerPaddingX = width * 0.08;
+  const innerPaddingTop = labelBandHeight * 0.24;
+  const brandSize = Math.max(8, width * 0.072);
+  const nameSize = Math.max(14, width * 0.122);
+
+  context.save();
+  context.beginPath();
+  context.rect(x, y, width, height);
+  context.clip();
+
+  context.fillStyle = data.posterTone;
+  context.fillRect(x, y, width, height - labelBandHeight);
+
+  context.fillStyle = "#f6f0e5";
+  context.fillRect(x, y + height - labelBandHeight, width, labelBandHeight);
+
+  context.fillStyle = "rgba(30, 24, 20, 0.88)";
+  context.textAlign = "left";
+  context.textBaseline = "top";
+  context.font = `600 ${brandSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.14em");
+  context.fillText("COLOR HUNT", x + innerPaddingX, y + height - labelBandHeight + innerPaddingTop);
+
+  context.font = `600 ${nameSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.06em");
+  context.fillText(
+    data.missionColorName.toUpperCase(),
+    x + innerPaddingX,
+    y + height - labelBandHeight + innerPaddingTop + brandSize + labelBandHeight * 0.1,
+  );
+
+  context.restore();
 }
 
 function buildRoundedRectPath(
@@ -695,6 +742,12 @@ async function renderStoryCollageBlob({
 
   function drawSlotImage(index: number, includeShadow: boolean) {
     const slot = STORY_COLLAGE_SLOTS[index];
+
+    if (index === 0) {
+      drawStoryCollageColorCard(renderingContext, slot, scaleX, scaleY, data);
+      return;
+    }
+
     const image = loadedImages[index];
 
     if (!image) {
