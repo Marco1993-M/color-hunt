@@ -272,7 +272,14 @@ async function loadBlobImage(blob: Blob) {
 async function loadStoryCollageOverlay(targetWidth: number, targetHeight: number) {
   if (!storyCollageOverlayPromise) {
     storyCollageOverlayPromise = (async () => {
-      const templateImage = await loadPosterImage(STORY_COLLAGE_TEMPLATE_URL);
+      let templateImage: HTMLImageElement;
+
+      try {
+        templateImage = await loadPosterImage(STORY_COLLAGE_TEMPLATE_URL);
+      } catch {
+        throw new Error("Couldn't fetch the collage template.");
+      }
+
       const canvas = document.createElement("canvas");
       canvas.width = targetWidth;
       canvas.height = targetHeight;
