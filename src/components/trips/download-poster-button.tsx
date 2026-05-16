@@ -7,6 +7,7 @@ import {
   renderPosterBlob,
   shareOrDownloadBlob,
   type PosterCaptureData,
+  type PosterThemeId,
 } from "@/lib/poster-client-export";
 import type { PosterExport } from "@/lib/types";
 
@@ -15,6 +16,16 @@ type DownloadPosterButtonProps = {
   exportUrls?: Partial<Record<PosterExport["format"], string>>;
   posterData?: PosterCaptureData | null;
   buttonLabel?: string;
+};
+
+type PosterDownloadOption = {
+  key: string;
+  formatId: PosterExport["format"];
+  themeId: PosterThemeId;
+  label: string;
+  description: string;
+  fileSuffix: string;
+  previewClassName: string;
 };
 
 export function DownloadPosterButton({
@@ -26,32 +37,59 @@ export function DownloadPosterButton({
   const [isPending, setIsPending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  async function handleDownload(formatId: PosterExport["format"]) {
+  const options: PosterDownloadOption[] = [
+    ...posterExportFormats.map((format) => ({
+      key: format.id,
+      formatId: format.id,
+      themeId: "classic" as const,
+      label: format.label,
+      description: format.description,
+      fileSuffix: format.fileSuffix,
+      previewClassName: `download-format-preview-${format.id}`,
+    })),
+    ...(posterData
+      ? [
+          {
+            key: "story-collage",
+            formatId: "story" as const,
+            themeId: "story-collage" as const,
+            label: "Story collage",
+            description: "Taped 9:16 collage",
+            fileSuffix: "story-collage-9x16",
+            previewClassName: "download-format-preview-story-collage",
+          },
+        ]
+      : []),
+  ];
+
+  async function handleDownload(option: PosterDownloadOption) {
     setIsPending(true);
-    const formatMeta = posterExportFormats.find((format) => format.id === formatId);
+    const formatMeta = posterExportFormats.find((format) => format.id === option.formatId);
 
     try {
       if (posterData && formatMeta) {
         const blob = await renderPosterBlob({
           posterData,
-          formatId,
+          formatId: option.formatId,
+          themeId: option.themeId,
         });
         const mode = await shareOrDownloadBlob(
           blob,
-          `color-hunt-${formatMeta.fileSuffix}.png`,
+          `color-hunt-${option.fileSuffix}.png`,
         );
         trackEvent({
           eventName: mode === "shared" ? "public_poster_shared_native" : "public_poster_downloaded",
           shareId,
           metadata: {
-            exportFormat: formatId,
+            exportFormat: option.formatId,
+            posterTheme: option.themeId,
             mode: "canvas_render",
           },
         });
         return;
       }
 
-      const targetUrl = exportUrls?.[formatId];
+      const targetUrl = exportUrls?.[option.formatId];
 
       if (!targetUrl) {
         return;
@@ -61,7 +99,8 @@ export function DownloadPosterButton({
         eventName: "public_poster_downloaded",
         shareId,
         metadata: {
-          exportFormat: formatId,
+          exportFormat: option.formatId,
+          posterTheme: option.themeId,
           mode: "cached_file",
         },
       });
@@ -90,20 +129,20 @@ export function DownloadPosterButton({
 
       {isOpen ? (
         <div className="download-format-grid">
-          {posterExportFormats.map((format) => (
+          {options.map((option) => (
             <button
-              key={format.id}
+              key={option.key}
               type="button"
-              onClick={() => handleDownload(format.id)}
+              onClick={() => handleDownload(option)}
               className="download-format-card"
-              disabled={isPending || (!posterData && !exportUrls?.[format.id])}
+              disabled={isPending || (!posterData && !exportUrls?.[option.formatId])}
             >
-              <span className={`download-format-preview download-format-preview-${format.id}`}>
+              <span className={`download-format-preview ${option.previewClassName}`}>
                 <span className="download-format-preview-inner" />
               </span>
               <span className="download-format-copy">
-                <span className="download-format-label">{isPending ? "Preparing..." : format.label}</span>
-                <span className="download-format-description">{format.description}</span>
+                <span className="download-format-label">{isPending ? "Preparing..." : option.label}</span>
+                <span className="download-format-description">{option.description}</span>
               </span>
             </button>
           ))}
