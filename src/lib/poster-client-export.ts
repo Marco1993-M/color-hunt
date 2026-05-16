@@ -60,7 +60,7 @@ const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 409, y: 2150, width: 651, height: 876 },
   { x: 990, y: 2416, width: 584, height: 769 },
 ];
-const STORY_COLLAGE_DRAW_ORDER = [0, 1, 2, 4, 3, 6, 5, 7, 8];
+const STORY_COLLAGE_DRAW_ORDER = [1, 2, 4, 3, 6, 5, 7, 8, 0];
 const STORY_COLLAGE_ELEVATED_SLOT_SHADOWS = new Map<number, StoryCollageShadow>([
   [
     3,
