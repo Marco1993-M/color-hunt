@@ -20,6 +20,13 @@ type StoryCollageSlot = {
   height: number;
 };
 
+type StoryCollageShadow = {
+  blur: number;
+  offsetX: number;
+  offsetY: number;
+  color: string;
+};
+
 type ManualLayout = {
   canvasPaddingX: number;
   canvasPaddingY: number;
@@ -53,6 +60,36 @@ const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 409, y: 2150, width: 651, height: 876 },
   { x: 990, y: 2416, width: 584, height: 769 },
 ];
+const STORY_COLLAGE_DRAW_ORDER = [0, 1, 2, 4, 3, 6, 5, 7, 8];
+const STORY_COLLAGE_ELEVATED_SLOT_SHADOWS = new Map<number, StoryCollageShadow>([
+  [
+    3,
+    {
+      blur: 22,
+      offsetX: 4,
+      offsetY: 12,
+      color: "rgba(32, 24, 18, 0.24)",
+    },
+  ],
+  [
+    5,
+    {
+      blur: 24,
+      offsetX: 4,
+      offsetY: 14,
+      color: "rgba(32, 24, 18, 0.24)",
+    },
+  ],
+  [
+    8,
+    {
+      blur: 26,
+      offsetX: 4,
+      offsetY: 16,
+      color: "rgba(32, 24, 18, 0.24)",
+    },
+  ],
+]);
 
 let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
 const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
@@ -269,14 +306,23 @@ async function loadBlobImage(blob: Blob) {
   }
 }
 
+async function loadStaticImage(sourceUrl: string) {
+  const image = new Image();
+  image.decoding = "async";
+  image.src = sourceUrl;
+  await image.decode();
+  return image;
+}
+
 async function loadStoryCollageOverlay(targetWidth: number, targetHeight: number) {
   if (!storyCollageOverlayPromise) {
     storyCollageOverlayPromise = (async () => {
       let templateImage: HTMLImageElement;
 
       try {
-        templateImage = await loadPosterImage(STORY_COLLAGE_TEMPLATE_URL);
+        templateImage = await loadStaticImage(STORY_COLLAGE_TEMPLATE_URL);
       } catch {
+        storyCollageOverlayPromise = null;
         throw new Error("Couldn't fetch the collage template.");
       }
 
@@ -644,7 +690,8 @@ async function renderStoryCollageBlob({
   context.fillStyle = "#f7f2e8";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  STORY_COLLAGE_SLOTS.forEach((slot, index) => {
+  STORY_COLLAGE_DRAW_ORDER.forEach((index) => {
+    const slot = STORY_COLLAGE_SLOTS[index];
     const image = loadedImages[index];
 
     if (!image) {
@@ -660,8 +707,19 @@ async function renderStoryCollageBlob({
     const drawHeight = image.height * scale;
     const drawX = x + (width - drawWidth) / 2;
     const drawY = y + (height - drawHeight) / 2;
+    const shadow = STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index);
+
+    context.save();
+
+    if (shadow) {
+      context.shadowBlur = shadow.blur * scaleX;
+      context.shadowOffsetX = shadow.offsetX * scaleX;
+      context.shadowOffsetY = shadow.offsetY * scaleY;
+      context.shadowColor = shadow.color;
+    }
 
     context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    context.restore();
   });
 
   context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
