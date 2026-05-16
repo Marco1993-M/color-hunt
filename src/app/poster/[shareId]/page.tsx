@@ -138,6 +138,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
   const posterData = {
     locationLabel: getPosterLocationLabel(trip.location),
     location: trip.location,
+    missionColorName: mission.color_name,
     tripYear: getPosterTripYear(trip.created_at, trip.start_date, trip.end_date),
     posterTone: mission.color_hex,
     photoUrls: buildPosterFrameSlots(photos).map((photo) => photo?.image_url ?? null),
