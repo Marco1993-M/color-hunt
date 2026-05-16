@@ -718,6 +718,9 @@ async function renderStoryCollageBlob({
       context.shadowColor = shadow.color;
     }
 
+    context.beginPath();
+    context.rect(x, y, width, height);
+    context.clip();
     context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
     context.restore();
   });
