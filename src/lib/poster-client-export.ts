@@ -60,7 +60,7 @@ const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 409, y: 2150, width: 651, height: 876 },
   { x: 990, y: 2416, width: 584, height: 769 },
 ];
-const STORY_COLLAGE_DRAW_ORDER = [1, 2, 4, 3, 6, 5, 7, 8, 0];
+const STORY_COLLAGE_DRAW_ORDER = [1, 4, 2, 3, 6, 5, 7, 8, 0];
 const STORY_COLLAGE_ELEVATED_SLOT_SHADOWS = new Map<number, StoryCollageShadow>([
   [
     3,
@@ -90,6 +90,7 @@ const STORY_COLLAGE_ELEVATED_SLOT_SHADOWS = new Map<number, StoryCollageShadow>(
     },
   ],
 ]);
+const STORY_COLLAGE_REPAINT_AFTER_OVERLAY = [5, 8];
 
 let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
 const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
@@ -667,6 +668,8 @@ async function renderStoryCollageBlob({
     throw new Error("Couldn't prepare the collage poster canvas.");
   }
 
+  const renderingContext = context;
+
   const scaleX = canvas.width / STORY_COLLAGE_TEMPLATE_WIDTH;
   const scaleY = canvas.height / STORY_COLLAGE_TEMPLATE_HEIGHT;
 
@@ -690,7 +693,7 @@ async function renderStoryCollageBlob({
   context.fillStyle = "#f7f2e8";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  STORY_COLLAGE_DRAW_ORDER.forEach((index) => {
+  function drawSlotImage(index: number, includeShadow: boolean) {
     const slot = STORY_COLLAGE_SLOTS[index];
     const image = loadedImages[index];
 
@@ -707,25 +710,32 @@ async function renderStoryCollageBlob({
     const drawHeight = image.height * scale;
     const drawX = x + (width - drawWidth) / 2;
     const drawY = y + (height - drawHeight) / 2;
-    const shadow = STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index);
+    const shadow = includeShadow ? STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index) : null;
 
-    context.save();
+    renderingContext.save();
 
     if (shadow) {
-      context.shadowBlur = shadow.blur * scaleX;
-      context.shadowOffsetX = shadow.offsetX * scaleX;
-      context.shadowOffsetY = shadow.offsetY * scaleY;
-      context.shadowColor = shadow.color;
+      renderingContext.shadowBlur = shadow.blur * scaleX;
+      renderingContext.shadowOffsetX = shadow.offsetX * scaleX;
+      renderingContext.shadowOffsetY = shadow.offsetY * scaleY;
+      renderingContext.shadowColor = shadow.color;
     }
 
-    context.beginPath();
-    context.rect(x, y, width, height);
-    context.clip();
-    context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
-    context.restore();
+    renderingContext.beginPath();
+    renderingContext.rect(x, y, width, height);
+    renderingContext.clip();
+    renderingContext.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    renderingContext.restore();
+  }
+
+  STORY_COLLAGE_DRAW_ORDER.forEach((index) => {
+    drawSlotImage(index, true);
   });
 
   context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+  STORY_COLLAGE_REPAINT_AFTER_OVERLAY.forEach((index) => {
+    drawSlotImage(index, false);
+  });
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
