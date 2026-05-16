@@ -55,6 +55,7 @@ const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
 ];
 
 let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
+const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
 
 function setCanvasLetterSpacing(context: CanvasRenderingContext2D, value: string) {
   const nextContext = context as CanvasRenderingContext2D & { letterSpacing?: string };
@@ -268,20 +269,20 @@ async function loadBlobImage(blob: Blob) {
   }
 }
 
-async function loadStoryCollageOverlay() {
+async function loadStoryCollageOverlay(targetWidth: number, targetHeight: number) {
   if (!storyCollageOverlayPromise) {
     storyCollageOverlayPromise = (async () => {
       const templateImage = await loadPosterImage(STORY_COLLAGE_TEMPLATE_URL);
       const canvas = document.createElement("canvas");
-      canvas.width = templateImage.width;
-      canvas.height = templateImage.height;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
       const context = canvas.getContext("2d");
 
       if (!context) {
         throw new Error("Couldn't prepare the collage template.");
       }
 
-      context.drawImage(templateImage, 0, 0);
+      context.drawImage(templateImage, 0, 0, targetWidth, targetHeight);
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const pixels = imageData.data;
 
@@ -613,8 +614,11 @@ async function renderStoryCollageBlob({
     throw new Error("Couldn't prepare the collage poster canvas.");
   }
 
+  const scaleX = canvas.width / STORY_COLLAGE_TEMPLATE_WIDTH;
+  const scaleY = canvas.height / STORY_COLLAGE_TEMPLATE_HEIGHT;
+
   const [overlay, loadedImages] = await Promise.all([
-    loadStoryCollageOverlay(),
+    loadStoryCollageOverlay(canvas.width, canvas.height),
     Promise.all(
       data.photoUrls.map(async (sourceUrl) => {
         if (!sourceUrl) {
@@ -632,9 +636,6 @@ async function renderStoryCollageBlob({
 
   context.fillStyle = "#f7f2e8";
   context.fillRect(0, 0, canvas.width, canvas.height);
-
-  const scaleX = canvas.width / STORY_COLLAGE_TEMPLATE_WIDTH;
-  const scaleY = canvas.height / STORY_COLLAGE_TEMPLATE_HEIGHT;
 
   STORY_COLLAGE_SLOTS.forEach((slot, index) => {
     const image = loadedImages[index];
@@ -670,6 +671,58 @@ async function renderStoryCollageBlob({
   });
 }
 
+function getPosterBlobCacheKey({
+  posterData,
+  formatId,
+  themeId,
+}: {
+  posterData: PosterCaptureData;
+  formatId: PosterExportFormatId;
+  themeId: PosterThemeId;
+}) {
+  return JSON.stringify({
+    formatId,
+    themeId,
+    location: posterData.location,
+    tripYear: posterData.tripYear,
+    posterTone: posterData.posterTone,
+    photoUrls: posterData.photoUrls,
+  });
+}
+
+export function preparePosterBlob({
+  posterData,
+  formatId = "post",
+  themeId = "classic",
+}: {
+  posterData: PosterCaptureData;
+  formatId?: PosterExportFormatId;
+  themeId?: PosterThemeId;
+}) {
+  const cacheKey = getPosterBlobCacheKey({
+    posterData,
+    formatId,
+    themeId,
+  });
+  const cached = posterBlobPromiseCache.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  const nextPromise = renderManualPosterBlob({
+    data: posterData,
+    formatId,
+    themeId,
+  }).catch((error) => {
+    posterBlobPromiseCache.delete(cacheKey);
+    throw error;
+  });
+
+  posterBlobPromiseCache.set(cacheKey, nextPromise);
+  return nextPromise;
+}
+
 export async function renderPosterBlob({
   posterData,
   formatId = "post",
@@ -685,7 +738,7 @@ export async function renderPosterBlob({
     return await renderPostFromLiveLayout({ data: posterData, layoutSourceId });
   }
 
-  return await renderManualPosterBlob({ data: posterData, formatId, themeId });
+  return await preparePosterBlob({ posterData, formatId, themeId });
 }
 
 export async function openBlob(blob: Blob, fileName: string) {
