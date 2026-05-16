@@ -702,7 +702,7 @@ async function renderStoryCollageBlob({
     const y = slot.y * scaleY;
     const width = slot.width * scaleX;
     const height = slot.height * scaleY;
-    const scale = Math.min(width / image.width, height / image.height);
+    const scale = Math.max(width / image.width, height / image.height);
     const drawWidth = image.width * scale;
     const drawHeight = image.height * scale;
     const drawX = x + (width - drawWidth) / 2;
