@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
 import { posterExportFormats } from "@/lib/poster-export";
@@ -40,7 +40,9 @@ export function DownloadPosterButton({
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preparedOptions, setPreparedOptions] = useState<Record<string, boolean>>({});
+  const [preparedDownloadUrls, setPreparedDownloadUrls] = useState<Record<string, string>>({});
   const [warmingOptions, setWarmingOptions] = useState<Record<string, boolean>>({});
+  const preparedUrlRefs = useRef<Record<string, string>>({});
 
   const options: PosterDownloadOption[] = [
     ...posterExportFormats.map((format) => ({
@@ -75,11 +77,24 @@ export function DownloadPosterButton({
     setWarmingOptions((current) => ({ ...current, [option.key]: true }));
 
     try {
-      await preparePosterBlob({
+      const blob = await preparePosterBlob({
         posterData,
         formatId: option.formatId,
         themeId: option.themeId,
       });
+
+      if (option.themeId === "story-collage") {
+        const objectUrl = URL.createObjectURL(blob);
+        const previousUrl = preparedUrlRefs.current[option.key];
+
+        if (previousUrl) {
+          URL.revokeObjectURL(previousUrl);
+        }
+
+        preparedUrlRefs.current[option.key] = objectUrl;
+        setPreparedDownloadUrls((current) => ({ ...current, [option.key]: objectUrl }));
+      }
+
       setPreparedOptions((current) => ({ ...current, [option.key]: true }));
     } catch (warmingFailure) {
       const message =
@@ -107,8 +122,58 @@ export function DownloadPosterButton({
     void warmOption(collageOption);
   }
 
+  useEffect(() => {
+    return () => {
+      Object.values(preparedUrlRefs.current).forEach((objectUrl) => {
+        URL.revokeObjectURL(objectUrl);
+      });
+      preparedUrlRefs.current = {};
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !posterData) {
+      return;
+    }
+
+    const collageOption = options.find((option) => option.themeId === "story-collage");
+
+    if (!collageOption || preparedOptions[collageOption.key] || warmingOptions[collageOption.key]) {
+      return;
+    }
+
+    void warmOption(collageOption);
+  }, [isOpen, options, posterData, preparedOptions, warmingOptions]);
+
   async function handleDownload(option: PosterDownloadOption) {
     setError(null);
+
+    if (option.themeId === "story-collage") {
+      const preparedUrl = preparedDownloadUrls[option.key];
+
+      if (!preparedUrl) {
+        setError("Story collage is still warming up.");
+        return;
+      }
+
+      trackEvent({
+        eventName: "public_poster_downloaded",
+        shareId,
+        metadata: {
+          exportFormat: option.formatId,
+          posterTheme: option.themeId,
+          mode: "prepared_blob_url",
+        },
+      });
+
+      const link = document.createElement("a");
+      link.href = preparedUrl;
+      link.download = `color-hunt-${option.fileSuffix}.png`;
+      link.rel = "noreferrer";
+      link.click();
+      return;
+    }
+
     setIsPending(true);
     const formatMeta = posterExportFormats.find((format) => format.id === option.formatId);
 
@@ -195,6 +260,7 @@ export function DownloadPosterButton({
               disabled={
                 isPending ||
                 warmingOptions[option.key] ||
+                (option.themeId === "story-collage" && !preparedDownloadUrls[option.key]) ||
                 (!posterData && !exportUrls?.[option.formatId])
               }
             >
@@ -206,6 +272,8 @@ export function DownloadPosterButton({
                   {isPending
                     ? "Preparing..."
                     : warmingOptions[option.key]
+                    ? "Warming..."
+                    : option.themeId === "story-collage" && !preparedDownloadUrls[option.key]
                     ? "Warming..."
                     : option.label}
                 </span>
