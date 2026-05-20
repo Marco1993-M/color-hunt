@@ -22,7 +22,9 @@ type TopicPageShellProps = {
   payoffBody: string;
   ctaLabel?: string;
   relatedLinks?: Array<{ href: string; label: string }>;
-  jsonLd?: Record<string, unknown>;
+  faqTitle?: string;
+  faqs?: Array<{ question: string; answer: string }>;
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 };
 
 export function TopicPageShell({
@@ -41,16 +43,38 @@ export function TopicPageShell({
   payoffBody,
   ctaLabel = "Start your first hunt",
   relatedLinks = [],
+  faqTitle = "Frequently asked",
+  faqs = [],
   jsonLd,
 }: TopicPageShellProps) {
+  const faqJsonLd = faqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      }
+    : null;
+  const jsonLdPayload = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
+  if (faqJsonLd) {
+    jsonLdPayload.push(faqJsonLd);
+  }
+
   return (
     <main className="app-shell landing-shell">
-      {jsonLd ? (
+      {jsonLdPayload.map((entry, index) => (
         <script
+          key={`jsonld-${index}`}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(entry).replace(/</g, "\\u003c") }}
         />
-      ) : null}
+      ))}
       <section className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-5 sm:gap-10 sm:px-10 sm:py-8 lg:px-16">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -199,6 +223,23 @@ export function TopicPageShell({
                 >
                   {link.label}
                 </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {faqs.length ? (
+          <section className="playful-card rounded-[2rem] p-6 sm:p-8">
+            <p className="eyebrow">{faqTitle}</p>
+            <div className="mt-4 grid gap-4">
+              {faqs.map((faq) => (
+                <article
+                  key={faq.question}
+                  className="rounded-[1.5rem] border border-[rgba(88,58,134,0.1)] bg-white/70 px-5 py-5"
+                >
+                  <h3 className="panel-title text-xl font-semibold">{faq.question}</h3>
+                  <p className="body-copy mt-2 text-sm sm:text-base">{faq.answer}</p>
+                </article>
               ))}
             </div>
           </section>
