@@ -77,8 +77,28 @@ export default function ColorScavengerHuntPage() {
       payoffBody="That is why color scavenger hunts work so well. They add a playful rule, give the walk a shape, and leave you with a visual artifact that feels far more personal than random vacation snapshots."
       relatedLinks={[
         { href: "/travel-photo-challenge", label: "Travel photo challenge ideas" },
+        { href: "/city-photo-challenge", label: "City photo challenge ideas" },
+        { href: "/photo-walk-ideas", label: "Photo walk ideas" },
         { href: "/turn-travel-photos-into-a-poster", label: "Turn travel photos into a poster" },
+        { href: "/creative-travel-activities", label: "Creative travel activities" },
         { href: "/", label: "Start a real Color Hunt" },
+      ]}
+      faqs={[
+        {
+          question: "What is a color scavenger hunt?",
+          answer:
+            "A color scavenger hunt is a simple photo prompt where one color becomes the rule. Instead of photographing everything, you collect moments that fit the same palette.",
+        },
+        {
+          question: "How many photos should a color scavenger hunt use?",
+          answer:
+            "Nine is a strong number because it gives the hunt a clear finish line and creates a clean poster grid without overwhelming the final edit.",
+        },
+        {
+          question: "Where does a color scavenger hunt work best?",
+          answer:
+            "It works well in cities, markets, beach towns, museums, neighborhoods, and travel days where there are lots of small details to notice quickly.",
+        },
       ]}
       jsonLd={jsonLd}
     />

@@ -77,8 +77,28 @@ export default function TravelPhotoChallengePage() {
       payoffBody="It should create momentum while you are out in the world and give you an artifact afterward. That combination is what makes Color Hunt feel more like a game and less like homework."
       relatedLinks={[
         { href: "/color-scavenger-hunt", label: "Color scavenger hunt guide" },
+        { href: "/city-photo-challenge", label: "City photo challenge ideas" },
+        { href: "/photo-walk-ideas", label: "Photo walk ideas" },
         { href: "/turn-travel-photos-into-a-poster", label: "Turn travel photos into a poster" },
+        { href: "/creative-travel-activities", label: "Creative travel activities" },
         { href: "/", label: "Start a Color Hunt" },
+      ]}
+      faqs={[
+        {
+          question: "What makes a travel photo challenge fun instead of awkward?",
+          answer:
+            "The best travel photo challenges are easy to explain, easy to start, and give the day a clear point of view. One color works because it is playful without becoming complicated.",
+        },
+        {
+          question: "Can a travel photo challenge work for groups?",
+          answer:
+            "Yes. Group travel photo challenges work especially well when each person gets a different color or angle, because everyone ends up with a different result from the same place.",
+        },
+        {
+          question: "What should the outcome of a travel photo challenge be?",
+          answer:
+            "A finished artifact helps most. Turning the set into a poster, story card, or collage makes the challenge feel complete and worth sharing.",
+        },
       ]}
       jsonLd={jsonLd}
     />
