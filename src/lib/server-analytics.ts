@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/admin-supabase";
 
 type ServerAnalyticsPayload = {
   eventName: string;
@@ -18,7 +18,7 @@ export async function trackServerEvent({
   metadata = {},
 }: ServerAnalyticsPayload) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     await supabase.from("analytics_events").insert({
       event_name: eventName,
@@ -29,7 +29,15 @@ export async function trackServerEvent({
       user_id: userId,
       metadata,
     });
-  } catch {
+  } catch (error) {
+    console.error("server analytics insert failed", {
+      eventName,
+      tripId,
+      shareId,
+      userId,
+      path,
+      error,
+    });
     // Server-side analytics should never interrupt the product flow.
   }
 }

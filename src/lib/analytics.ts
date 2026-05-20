@@ -22,7 +22,7 @@ function getSessionId() {
 
 export async function trackEvent({ eventName, tripId = null, shareId = null, metadata = {} }: AnalyticsPayload) {
   try {
-    await fetch("/api/events", {
+    const response = await fetch("/api/events", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -37,6 +37,13 @@ export async function trackEvent({ eventName, tripId = null, shareId = null, met
         metadata,
       }),
     });
+
+    if (!response.ok && process.env.NODE_ENV !== "production") {
+      console.warn("Analytics request was not accepted", {
+        eventName,
+        status: response.status,
+      });
+    }
   } catch {
     // Analytics should never interrupt the main experience.
   }
