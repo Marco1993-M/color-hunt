@@ -74,6 +74,41 @@ const seoTopicLinks = [
     description: "How to make a clean sharable artifact instead of letting the best shots vanish in your gallery.",
     tone: "bg-[#ffe7f5] text-[#d85dac]",
   },
+  {
+    href: "/city-photo-challenge",
+    title: "City photo challenge",
+    description: "A playful way to make streets, neighborhoods, and weekend walks feel more visually alive.",
+    tone: "bg-[#e9f5ff] text-[#2574d9]",
+  },
+  {
+    href: "/photo-walk-ideas",
+    title: "Photo walk ideas",
+    description: "Simple prompts that make photo walks feel more focused, memorable, and worth finishing.",
+    tone: "bg-[#fff1db] text-[#d56f2d]",
+  },
+  {
+    href: "/creative-travel-activities",
+    title: "Creative travel activities",
+    description: "Low-friction travel ideas that give the day a creative lens and a shareable outcome.",
+    tone: "bg-[#eef7df] text-[#4c8e3b]",
+  },
+];
+const homepageFaqs = [
+  {
+    question: "How does a Color Hunt work?",
+    answer:
+      "You pick a place, follow one color, collect nine moments that fit the same palette, and turn them into a poster or collage that feels worth saving and sharing.",
+  },
+  {
+    question: "What makes Color Hunt different from a normal photo challenge?",
+    answer:
+      "Color Hunt uses one clear rule and one clear finish line. That makes the prompt easy to follow and the final result much cleaner than a random camera roll.",
+  },
+  {
+    question: "Can Color Hunt work for city walks, travel days, and groups?",
+    answer:
+      "Yes. The format works for solo walks, travel outings, and group challenges because the rule is simple enough to carry into almost any place.",
+  },
 ];
 
 const payoffPoster = {
@@ -273,6 +308,18 @@ export default async function Home({ searchParams }: HomeProps) {
       priceCurrency: "USD",
     },
   };
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: homepageFaqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
 
   if (user && !isGuest && !isChallengeFlow) {
     redirect("/dashboard");
@@ -282,11 +329,15 @@ export default async function Home({ searchParams }: HomeProps) {
     <main className="app-shell landing-shell">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c") }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd).replace(/</g, "\\u003c") }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
       />
       <SessionLandingRedirect enabled={!isChallengeFlow} />
       <EventOnView
@@ -524,6 +575,24 @@ export default async function Home({ searchParams }: HomeProps) {
                 </Link>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="playful-card rounded-[2rem] p-6 sm:p-8">
+          <p className="eyebrow">FAQ</p>
+          <h2 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">
+            Quick answers before you start.
+          </h2>
+          <div className="mt-6 grid gap-4">
+            {homepageFaqs.map((faq) => (
+              <article
+                key={faq.question}
+                className="rounded-[1.5rem] border border-[rgba(88,58,134,0.1)] bg-white/70 px-5 py-5"
+              >
+                <h3 className="panel-title text-xl font-semibold">{faq.question}</h3>
+                <p className="body-copy mt-2 text-sm sm:text-base">{faq.answer}</p>
+              </article>
+            ))}
           </div>
         </section>
       </section>

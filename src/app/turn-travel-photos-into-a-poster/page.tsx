@@ -76,7 +76,27 @@ export default function TurnTravelPhotosIntoPosterPage() {
       relatedLinks={[
         { href: "/color-scavenger-hunt", label: "Color scavenger hunt ideas" },
         { href: "/travel-photo-challenge", label: "Travel photo challenge guide" },
+        { href: "/city-photo-challenge", label: "City photo challenge ideas" },
+        { href: "/photo-walk-ideas", label: "Photo walk ideas" },
+        { href: "/creative-travel-activities", label: "Creative travel activities" },
         { href: "/", label: "Make a Color Hunt poster" },
+      ]}
+      faqs={[
+        {
+          question: "How many travel photos should go into a poster?",
+          answer:
+            "A tight edit usually works best. Nine photos is enough to feel complete, but still simple enough to arrange cleanly without making the layout feel noisy.",
+        },
+        {
+          question: "Should travel poster photos all match?",
+          answer:
+            "They do not need to be identical, but they should feel related. Using one color, one area, or one shared mood gives the poster a much stronger visual identity.",
+        },
+        {
+          question: "What makes a travel photo poster worth sharing?",
+          answer:
+            "The strongest travel photo posters feel like a finished object, not a random dump of images. A clear theme and a simple layout make the result easier to keep and post.",
+        },
       ]}
       jsonLd={jsonLd}
     />
