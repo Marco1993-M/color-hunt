@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/admin-supabase";
 import { createClient } from "@/lib/supabase/server";
 
 type EventBody = {
@@ -22,8 +23,9 @@ export async function POST(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const admin = createAdminClient();
 
-    const { error } = await supabase.from("analytics_events").insert({
+    const { error } = await admin.from("analytics_events").insert({
       event_name: body.eventName,
       trip_id: body.tripId ?? null,
       share_id: body.shareId ?? null,
@@ -34,11 +36,19 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ ok: true, skipped: true }, { status: 202 });
+      console.error("analytics_events insert failed", {
+        eventName: body.eventName,
+        tripId: body.tripId ?? null,
+        shareId: body.shareId ?? null,
+        path: body.path ?? null,
+        error,
+      });
+      return NextResponse.json({ ok: false, skipped: true }, { status: 202 });
     }
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: true, skipped: true }, { status: 202 });
+  } catch (error) {
+    console.error("analytics_events route failed", error);
+    return NextResponse.json({ ok: false, skipped: true }, { status: 202 });
   }
 }
