@@ -142,9 +142,13 @@ create table if not exists public.analytics_events (
   user_id uuid references auth.users(id) on delete set null,
   path text,
   session_id text,
+  journey_id text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc'::text, now())
 );
+
+alter table public.analytics_events
+add column if not exists journey_id text;
 
 alter table public.users enable row level security;
 alter table public.trips enable row level security;
