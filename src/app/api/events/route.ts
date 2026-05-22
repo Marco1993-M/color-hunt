@@ -8,6 +8,7 @@ type EventBody = {
   shareId?: string | null;
   path?: string | null;
   sessionId?: string | null;
+  journeyId?: string | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
       share_id: body.shareId ?? null,
       path: body.path ?? null,
       session_id: body.sessionId ?? null,
+      journey_id: body.journeyId ?? null,
       user_id: user?.id ?? null,
       metadata: body.metadata ?? {},
     });
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
         tripId: body.tripId ?? null,
         shareId: body.shareId ?? null,
         path: body.path ?? null,
+        journeyId: body.journeyId ?? null,
         error,
       });
       return NextResponse.json({ ok: false, skipped: true }, { status: 202 });

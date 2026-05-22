@@ -17,6 +17,11 @@ type GroupAssignmentInput = {
   prompt: string;
 };
 
+type AnalyticsContext = {
+  journeyId: string | null;
+  sessionId: string | null;
+};
+
 function parseGroupAssignments(rawValue: FormDataEntryValue | null) {
   const raw = String(rawValue || "").trim();
 
@@ -53,6 +58,18 @@ function parseGroupAssignments(rawValue: FormDataEntryValue | null) {
       } satisfies GroupAssignmentInput;
     })
     .filter((assignment): assignment is GroupAssignmentInput => Boolean(assignment));
+}
+
+function parseAnalyticsId(rawValue: FormDataEntryValue | null) {
+  const value = String(rawValue || "").trim();
+  return value || null;
+}
+
+function getAnalyticsContext(formData: FormData): AnalyticsContext {
+  return {
+    journeyId: parseAnalyticsId(formData.get("analytics_journey_id")),
+    sessionId: parseAnalyticsId(formData.get("analytics_session_id")),
+  };
 }
 
 async function requireAuthenticatedUser() {
@@ -170,6 +187,7 @@ async function removeTripAssetsByTripIds({
 }
 
 export async function createTripAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
   const title = String(formData.get("title") || "").trim();
   const location = String(formData.get("location") || "").trim();
   const startDate = String(formData.get("start_date") || "").trim();
@@ -219,6 +237,8 @@ export async function createTripAction(formData: FormData) {
     tripId: trip.id,
     userId: user.id,
     path: `/trips/${trip.id}`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
     metadata: {
       location,
       selectedColor,
@@ -234,6 +254,7 @@ export async function createTripAction(formData: FormData) {
 }
 
 export async function createGroupHuntAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
   const title = String(formData.get("title") || "").trim();
   const location = String(formData.get("location") || "").trim();
   const startDate = String(formData.get("start_date") || "").trim();
@@ -328,6 +349,8 @@ export async function createGroupHuntAction(formData: FormData) {
     tripId,
     userId: user.id,
     path: `/group-hunts/${hunt.id}`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
     metadata: {
       groupHuntId: hunt.id,
       groupSize,
@@ -343,6 +366,7 @@ export async function createGroupHuntAction(formData: FormData) {
 }
 
 export async function joinGroupHuntAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
   const inviteToken = String(formData.get("invite_token") || "").trim();
 
   if (!inviteToken) {
@@ -415,6 +439,8 @@ export async function joinGroupHuntAction(formData: FormData) {
     tripId,
     userId: user.id,
     path: `/join/${inviteToken}`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
     metadata: {
       groupHuntId: hunt.id,
       participantId: participant.id,
@@ -436,6 +462,7 @@ export async function signOutAction() {
 }
 
 export async function deleteTripAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
   const tripId = String(formData.get("trip_id") || "").trim();
 
   if (!tripId) {
@@ -480,6 +507,8 @@ export async function deleteTripAction(formData: FormData) {
     tripId,
     userId: user.id,
     path: "/dashboard",
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
     metadata: {
       location: trip.location,
       shareId: trip.share_id ?? null,
@@ -497,6 +526,7 @@ export async function deleteTripAction(formData: FormData) {
 }
 
 export async function deleteGroupHuntAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
   const groupHuntId = String(formData.get("group_hunt_id") || "").trim();
 
   if (!groupHuntId) {
@@ -558,6 +588,8 @@ export async function deleteGroupHuntAction(formData: FormData) {
     eventName: "group_hunt_deleted",
     userId: user.id,
     path: "/dashboard",
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
     metadata: {
       groupHuntId,
       location: hunt.location,
@@ -581,6 +613,7 @@ export async function deleteGroupHuntAction(formData: FormData) {
 }
 
 export async function updateGroupHuntSharingAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
   const groupHuntId = String(formData.get("group_hunt_id") || "").trim();
   const nextPublicValue = String(formData.get("is_public") || "").trim() === "true";
 
@@ -611,6 +644,8 @@ export async function updateGroupHuntSharingAction(formData: FormData) {
     eventName: nextPublicValue ? "group_hunt_published" : "group_hunt_unpublished",
     userId: user.id,
     path: `/group-hunts/${groupHuntId}`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
     metadata: {
       groupHuntId,
       location: hunt.location,

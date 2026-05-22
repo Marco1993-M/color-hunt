@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Fredoka } from "next/font/google";
 import { redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
 import { createClient } from "@/lib/supabase/server";
@@ -91,6 +92,24 @@ const seoTopicLinks = [
     title: "Creative travel activities",
     description: "Low-friction travel ideas that give the day a creative lens and a shareable outcome.",
     tone: "bg-[#eef7df] text-[#4c8e3b]",
+  },
+  {
+    href: "/group-photo-challenge",
+    title: "Group photo challenge",
+    description: "A shared color game that turns one day with friends into posters everyone sees differently.",
+    tone: "bg-[#e9f7ef] text-[#2a9d84]",
+  },
+  {
+    href: "/travel-games-for-friends",
+    title: "Travel games for friends",
+    description: "Low-friction travel ideas that give group trips a playful structure and a better souvenir.",
+    tone: "bg-[#fff1db] text-[#d56f2d]",
+  },
+  {
+    href: "/weekend-activities-with-friends",
+    title: "Weekend activities with friends",
+    description: "A simple shared challenge for city afternoons, beach days, birthdays, and weekends away.",
+    tone: "bg-[#e7f0ff] text-[#2f61df]",
   },
 ];
 const homepageFaqs = [
@@ -359,9 +378,20 @@ export default async function Home({ searchParams }: HomeProps) {
             </Link>
             <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[rgba(67,58,97,0.56)]">colorhunt.quest · See places differently</p>
           </div>
-          <Link className="header-utility-link" href={user ? "/dashboard" : "#start"}>
+          <TrackedLink
+            className="header-utility-link"
+            href={user ? "/dashboard" : "#start"}
+            eventName="landing_cta_clicked"
+            metadata={{
+              challengeColorName,
+              destination: user ? "/dashboard" : "#start",
+              isAuthenticated: Boolean(user),
+              isChallengeFlow,
+              source: "landing_header",
+            }}
+          >
             {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Jump to the hunt"}
-          </Link>
+          </TrackedLink>
         </header>
 
         <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-start lg:gap-10">
@@ -401,9 +431,17 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
 
               <div className="game-start-rail">
-                <Link
+                <TrackedLink
                   className="button-primary w-full sm:w-auto"
                   href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+                  eventName="landing_cta_clicked"
+                  metadata={{
+                    challengeColorName,
+                    destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
+                    isAuthenticated: Boolean(user),
+                    isChallengeFlow,
+                    source: "landing_hero",
+                  }}
                 >
                   {user
                     ? isChallengeFlow
@@ -412,7 +450,7 @@ export default async function Home({ searchParams }: HomeProps) {
                         ? "Resume your guest hunt"
                         : "Start your next hunt"
                     : "Start your first hunt"}
-                </Link>
+                </TrackedLink>
                 <p className="micro-copy text-[rgba(67,58,97,0.66)]">
                   {isChallengeFlow
                     ? `Sign in with Google and take on this ${challengeColorName} poster challenge.`

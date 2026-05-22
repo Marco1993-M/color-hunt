@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { joinGroupHuntAction } from "@/app/actions";
+import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { getGroupParticipantByInviteToken, getTripForParticipant } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -114,6 +115,7 @@ export default async function JoinGroupHuntPage({ params }: JoinGroupHuntPagePro
           </p>
 
           <form action={joinGroupHuntAction} className="mt-6">
+            <AnalyticsHiddenFields />
             <input type="hidden" name="invite_token" value={inviteToken} />
             <button className="button-primary w-full sm:w-auto" type="submit">
               Join this hunt
