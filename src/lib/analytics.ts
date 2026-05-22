@@ -7,21 +7,38 @@ type AnalyticsPayload = {
   metadata?: Record<string, unknown>;
 };
 
-function getSessionId() {
-  const storageKey = "spd_session_id";
-  const existing = window.sessionStorage.getItem(storageKey);
+const SESSION_STORAGE_KEY = "spd_session_id";
+const JOURNEY_STORAGE_KEY = "spd_journey_id";
+
+function getOrCreateStorageId(storage: Storage, key: string) {
+  const existing = storage.getItem(key);
 
   if (existing) {
     return existing;
   }
 
   const nextId = crypto.randomUUID();
-  window.sessionStorage.setItem(storageKey, nextId);
+  storage.setItem(key, nextId);
   return nextId;
+}
+
+export function getAnalyticsIds() {
+  try {
+    return {
+      sessionId: getOrCreateStorageId(window.sessionStorage, SESSION_STORAGE_KEY),
+      journeyId: getOrCreateStorageId(window.localStorage, JOURNEY_STORAGE_KEY),
+    };
+  } catch {
+    return {
+      sessionId: crypto.randomUUID(),
+      journeyId: crypto.randomUUID(),
+    };
+  }
 }
 
 export async function trackEvent({ eventName, tripId = null, shareId = null, metadata = {} }: AnalyticsPayload) {
   try {
+    const { sessionId, journeyId } = getAnalyticsIds();
     const response = await fetch("/api/events", {
       method: "POST",
       headers: {
@@ -33,7 +50,8 @@ export async function trackEvent({ eventName, tripId = null, shareId = null, met
         tripId,
         shareId,
         path: window.location.pathname,
-        sessionId: getSessionId(),
+        sessionId,
+        journeyId,
         metadata,
       }),
     });

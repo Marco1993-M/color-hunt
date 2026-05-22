@@ -6,6 +6,8 @@ type ServerAnalyticsPayload = {
   shareId?: string | null;
   userId?: string | null;
   path?: string | null;
+  sessionId?: string | null;
+  journeyId?: string | null;
   metadata?: Record<string, unknown>;
 };
 
@@ -15,6 +17,8 @@ export async function trackServerEvent({
   shareId = null,
   userId = null,
   path = null,
+  sessionId = null,
+  journeyId = null,
   metadata = {},
 }: ServerAnalyticsPayload) {
   try {
@@ -25,7 +29,8 @@ export async function trackServerEvent({
       trip_id: tripId,
       share_id: shareId,
       path,
-      session_id: null,
+      session_id: sessionId,
+      journey_id: journeyId,
       user_id: userId,
       metadata,
     });
@@ -36,6 +41,8 @@ export async function trackServerEvent({
       shareId,
       userId,
       path,
+      sessionId,
+      journeyId,
       error,
     });
     // Server-side analytics should never interrupt the product flow.
