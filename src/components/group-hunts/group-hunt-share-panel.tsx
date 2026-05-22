@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { updateGroupHuntSharingAction } from "@/app/actions";
+import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
 
 type GroupHuntSharePanelProps = {
@@ -39,6 +40,7 @@ export function GroupHuntSharePanel({
         </div>
 
         <form action={updateGroupHuntSharingAction} className="w-full lg:w-auto">
+          <AnalyticsHiddenFields />
           <input type="hidden" name="group_hunt_id" value={groupHuntId} />
           <input type="hidden" name="is_public" value={initialIsPublic ? "false" : "true"} />
           <button className={`${initialIsPublic ? "button-secondary" : "button-primary"} w-full lg:w-auto`} type="submit">

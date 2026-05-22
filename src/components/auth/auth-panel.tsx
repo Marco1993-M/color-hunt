@@ -25,6 +25,15 @@ export function AuthPanel({
     setError(null);
     setMessage(null);
 
+    trackEvent({
+      eventName: "guest_start_clicked",
+      metadata: {
+        source: "landing_auth_panel",
+        nextPath,
+        challengeColorName,
+      },
+    });
+
     startTransition(async () => {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.signInAnonymously();

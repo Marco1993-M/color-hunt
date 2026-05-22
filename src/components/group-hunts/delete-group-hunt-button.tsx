@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteGroupHuntAction } from "@/app/actions";
+import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 
 type DeleteGroupHuntButtonProps = {
   groupHuntId: string;
@@ -28,6 +29,7 @@ export function DeleteGroupHuntButton({ groupHuntId, groupHuntTitle }: DeleteGro
         setIsSubmitting(true);
       }}
     >
+      <AnalyticsHiddenFields />
       <input type="hidden" name="group_hunt_id" value={groupHuntId} />
       <button
         className="w-full rounded-full border border-[rgba(166,58,58,0.18)] bg-[rgba(255,246,246,0.92)] px-5 py-3 text-sm font-semibold text-[#a63a3a] transition hover:bg-[rgba(255,240,240,0.98)] sm:w-auto"

@@ -31,6 +31,16 @@ export function SocialAuthButtons({
   function handleProvider(provider: ProviderName) {
     setError(null);
 
+    trackEvent({
+      eventName: "social_auth_clicked",
+      tripId,
+      metadata: {
+        source,
+        mode,
+        provider,
+      },
+    });
+
     startTransition(async () => {
       const supabase = createClient();
       const {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { trackEvent } from "@/lib/analytics";
 import type { MissionSeed } from "@/lib/missions";
 
@@ -123,6 +124,7 @@ export function NewTripBuilder({
   return (
     <>
       <form action={huntMode === "group" ? createGroupAction : createSoloAction} className="mt-8 grid gap-5">
+        <AnalyticsHiddenFields />
         {challengeShareId ? <input type="hidden" name="challenge_share_id" value={challengeShareId} /> : null}
         {challengeColor ? <input type="hidden" name="challenge_color_name" value={challengeColor} /> : null}
         {huntMode === "group" ? <input type="hidden" name="group_size" value={groupSize} /> : null}
