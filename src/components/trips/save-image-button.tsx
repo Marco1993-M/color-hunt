@@ -113,8 +113,8 @@ export function SaveImageButton({
         {!posterData && !fileUrl
           ? "The main poster asset is still being prepared. Try again in a moment."
           : isPending
-          ? "Preparing the poster image for your phone’s share and save options."
-          : "Open your phone’s native save and share options for the poster."}
+          ? "Opening your phone's save and share options."
+          : "Save the poster or pass it into your phone's share sheet."}
       </p>
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>

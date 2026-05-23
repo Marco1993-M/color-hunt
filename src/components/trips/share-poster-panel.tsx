@@ -58,6 +58,7 @@ export function SharePosterPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const isComplete = currentPhotoCount >= maxPhotos;
+  const canShowPosterActions = isComplete;
   const retentionSummary = getRetentionSummaryLabel({
     isPublic,
     photoCount: currentPhotoCount,
@@ -245,39 +246,23 @@ export function SharePosterPanel({
     <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="eyebrow">Share Poster</p>
-          <h3 className="panel-title mt-2 text-2xl font-semibold">Give this Color Hunt poster a public URL.</h3>
+          <p className="eyebrow">Poster actions</p>
+          <h3 className="panel-title mt-2 text-2xl font-semibold">Take the poster with you first.</h3>
           <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
-            Turn sharing on when the grid feels ready. The public page keeps the focus on the finished poster, not the private trip tools.
+            Save it fast, share it naturally, and only think about the public link if you actually want to send people back into Color Hunt.
           </p>
         </div>
-        <button
-          className={`${isPublic ? "button-secondary" : "button-primary"} w-full sm:w-auto`}
-          type="button"
-          onClick={() => handleToggle(!isPublic)}
-          disabled={isPending || !schemaReady}
-        >
-          {isPending ? "Saving..." : isPublic ? "Turn sharing off" : "Publish poster"}
-        </button>
       </div>
 
-      {!isComplete ? (
+      {!canShowPosterActions ? (
         <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-          Finish all {maxPhotos} frames before publishing. The public page and downloads are reserved for completed posters.
+          Finish all {maxPhotos} frames before the poster actions unlock. The public page and share tools only open once the hunt feels complete.
         </p>
-      ) : null}
-
-      {!schemaReady ? (
-        <p className="mt-4 text-sm leading-7 text-[#a0611d]">
-          Sharing is ready in the app, but your database still needs the latest `supabase/schema.sql` updates first.
-        </p>
-      ) : null}
-
-      {isPublic && shareUrl ? (
+      ) : (
         <div className="mt-5 rounded-[1.4rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.55)] p-4">
-          <p className="eyebrow">Share and Download</p>
+          <p className="eyebrow">Save and share</p>
           <p className="body-copy mt-2 text-sm">
-            Your poster is live. Save it fast, share it natively, or send the challenge on while the moment still feels fresh.
+            The poster is ready. Save it, send it through your phone's share sheet, or export a different format while the moment still feels fresh.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
@@ -289,19 +274,23 @@ export function SharePosterPanel({
               fileName={`${location.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-post-4x5.png`}
               buttonLabel="Save poster"
             />
-            <ShareLinkButton
-              tripId={tripId}
-              shareId={shareId}
-              url={shareUrl}
-              title={`Color Hunt · ${location}`}
-              text={`One place. One color. Nine moments. ${location}`}
-              fileUrl={exportUrls?.post ?? null}
-              buttonLabel="Share poster"
-              buttonDescription="Share the finished poster from your phone’s native sheet"
-            />
-            <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
-              Copy poster link
-            </button>
+            {isPublic && shareUrl ? (
+              <>
+                <ShareLinkButton
+                  tripId={tripId}
+                  shareId={shareId}
+                  url={shareUrl}
+                  title={`Color Hunt · ${location}`}
+                  text={`One place. One color. Nine moments. ${location}`}
+                  fileUrl={exportUrls?.post ?? null}
+                  buttonLabel="Share poster"
+                  buttonDescription="Send the finished poster from your phone's native share sheet"
+                />
+                <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
+                  Copy poster link
+                </button>
+              </>
+            ) : null}
           </div>
 
           <div className="mt-5">
@@ -313,100 +302,139 @@ export function SharePosterPanel({
             />
           </div>
 
-          <p className="eyebrow mt-5">Public Link</p>
-          <p className="body-copy mt-2 break-all text-sm">{shareUrl}</p>
-          <a
-            className="button-secondary mt-4 w-full sm:w-auto"
-            href={shareUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() =>
-              trackEvent({
-                eventName: "share_link_opened_from_dashboard",
-                tripId,
-                shareId,
-              })
-            }
-          >
-            View public poster
-          </a>
-
-          <div className="mt-5 rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/55 p-4">
-            <p className="eyebrow">Challenge a friend</p>
-            <p className="body-copy mt-2 text-sm">
-              Invite someone into the same place and trip window, but give them a different color to hunt so the posters come out completely different.
+          {!isPublic ? (
+            <p className="body-copy mt-4 text-xs sm:text-sm">
+              Want a shareable link too? Publish the poster below and Color Hunt will give it a clean public page.
             </p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <label className="field-label" htmlFor="challenge-color-name">
-                  Challenge color
-                </label>
-                <select
-                  id="challenge-color-name"
-                  className="field-input"
-                  value={challengeColorName}
-                  onChange={(event) => {
-                    const nextValue = event.target.value;
-                    setChallengeColorName(nextValue);
-                    trackEvent({
-                      eventName: "challenge_color_changed",
-                      tripId,
-                      shareId,
-                      metadata: {
-                        challengeColorName: nextValue,
-                      },
-                    });
+          ) : null}
+        </div>
+      )}
+
+      <div className="mt-5 rounded-[1.4rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.48)] p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="eyebrow">Public sharing</p>
+            <p className="body-copy mt-2 text-sm">
+              {isPublic
+                ? "Your poster already has a public Color Hunt page."
+                : "Publish the poster when you want a clean public page and a link you can send around."}
+            </p>
+          </div>
+          <button
+            className={`${isPublic ? "button-secondary" : "button-primary"} w-full sm:w-auto`}
+            type="button"
+            onClick={() => handleToggle(!isPublic)}
+            disabled={isPending || !schemaReady || !isComplete}
+          >
+            {isPending ? "Saving..." : isPublic ? "Turn sharing off" : "Publish poster"}
+          </button>
+        </div>
+
+        {!schemaReady ? (
+          <p className="mt-4 text-sm leading-7 text-[#a0611d]">
+            Sharing is ready in the app, but your database still needs the latest `supabase/schema.sql` updates first.
+          </p>
+        ) : null}
+
+        {isPublic && shareUrl ? (
+          <>
+            <p className="eyebrow mt-5">Public Link</p>
+            <p className="body-copy mt-2 break-all text-sm">{shareUrl}</p>
+            <a
+              className="button-secondary mt-4 w-full sm:w-auto"
+              href={shareUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() =>
+                trackEvent({
+                  eventName: "share_link_opened_from_dashboard",
+                  tripId,
+                  shareId,
+                })
+              }
+            >
+              View public poster
+            </a>
+          </>
+        ) : null}
+      </div>
+
+      {isPublic && shareUrl ? (
+        <div className="mt-5 rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/55 p-4">
+          <p className="eyebrow">Challenge a friend</p>
+          <p className="body-copy mt-2 text-sm">
+            Invite someone into the same place and trip window, but give them a different color to hunt so the posters come out completely different.
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <label className="field-label" htmlFor="challenge-color-name">
+                Challenge color
+              </label>
+              <select
+                id="challenge-color-name"
+                className="field-input"
+                value={challengeColorName}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setChallengeColorName(nextValue);
+                  trackEvent({
+                    eventName: "challenge_color_changed",
+                    tripId,
+                    shareId,
+                    metadata: {
+                      challengeColorName: nextValue,
+                    },
+                  });
+                }}
+              >
+                {missionSeeds.map((mission) => (
+                  <option key={mission.color_name} value={mission.color_name}>
+                    {mission.color_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {challengeUrl ? (
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <ShareLinkButton
+                  tripId={tripId}
+                  shareId={shareId}
+                  url={challengeUrl}
+                  title={`You've been challenged to hunt ${challengeColorName}`}
+                  text={`Take on the ${challengeColorName} Color Hunt in ${location}. Collect nine moments and make your own poster.`}
+                  buttonLabel="Share challenge"
+                  buttonDescription="Send a challenge invite from your phone’s native share sheet"
+                  eventName="challenge_link_shared_native"
+                  metadata={{
+                    challengeColorName,
+                  }}
+                  className="button-primary w-full sm:w-auto"
+                />
+                <button
+                  className="button-secondary w-full sm:w-auto"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(challengeUrl);
+                      trackEvent({
+                        eventName: "challenge_link_copied",
+                        tripId,
+                        shareId,
+                        metadata: {
+                          challengeColorName,
+                        },
+                      });
+                      setMessage("Challenge invite copied.");
+                      setError(null);
+                    } catch {
+                      setError("Could not copy the challenge link automatically.");
+                    }
                   }}
                 >
-                  {missionSeeds.map((mission) => (
-                    <option key={mission.color_name} value={mission.color_name}>
-                      {mission.color_name}
-                    </option>
-                  ))}
-                </select>
+                  Copy invite link
+                </button>
               </div>
-              {challengeUrl ? (
-                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-                  <ShareLinkButton
-                    tripId={tripId}
-                    shareId={shareId}
-                    url={challengeUrl}
-                    title={`You've been challenged to hunt ${challengeColorName}`}
-                    text={`Take on the ${challengeColorName} Color Hunt in ${location}. Collect nine moments and make your own poster.`}
-                    buttonLabel="Share challenge"
-                    buttonDescription="Send a challenge invite from your phone’s native share sheet"
-                    eventName="challenge_link_shared_native"
-                    metadata={{
-                      challengeColorName,
-                    }}
-                    className="button-primary w-full sm:w-auto"
-                  />
-                  <button
-                    className="button-secondary w-full sm:w-auto"
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(challengeUrl);
-                        trackEvent({
-                          eventName: "challenge_link_copied",
-                          tripId,
-                          shareId,
-                          metadata: {
-                            challengeColorName,
-                          },
-                        });
-                        setMessage("Challenge invite copied.");
-                        setError(null);
-                      } catch {
-                        setError("Could not copy the challenge link automatically.");
-                      }
-                    }}
-                  >
-                    Copy invite link
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            ) : null}
           </div>
         </div>
       ) : null}

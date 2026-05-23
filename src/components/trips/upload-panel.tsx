@@ -628,9 +628,11 @@ export function UploadPanel({
               source: selectedSource ?? "unknown",
             },
           });
-          await warmPosterExports({ awaitPost: true });
+          void warmPosterExports();
+          setStatus("All 9 frames are in. Your poster is ready for the next step.");
+        } else {
+          setStatus(filesToUpload.length > 1 ? `${filesToUpload.length} photos added to your grid.` : "Photo added to your grid.");
         }
-        setStatus(filesToUpload.length > 1 ? `${filesToUpload.length} photos added to your grid.` : "Photo added to your grid.");
         router.refresh();
       } catch (uploadFailure) {
         const message =
