@@ -172,6 +172,11 @@ function getCenteredTitleBaseY({
   return titleBlockTop + fittedTitleSize;
 }
 
+function estimateMetaSegmentWidth(value: string, fontSize: number, weight: "regular" | "semibold") {
+  const coefficient = weight === "semibold" ? 0.62 : 0.56;
+  return Math.max(fontSize * 1.2, value.length * fontSize * coefficient);
+}
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -258,6 +263,7 @@ function getPosterSvgText({
   const titleLineHeight = Math.round(layout.titleSize * layout.titleLeading);
   const metaDividerOffset = formatId === "story" ? 34 : 18;
   const metaY = layout.posterPadding + 96 + titleLines.length * titleLineHeight + 54;
+  const contentCenterX = (format.width - layout.canvasPaddingX * 2) / 2;
   const titleBaseY = getCenteredTitleBaseY({
     formatId,
     posterPadding: layout.posterPadding,
@@ -270,9 +276,19 @@ function getPosterSvgText({
   const titleMarkup = titleLines
     .map((line, index) => {
       const y = titleBaseY + index * titleLineHeight;
-      return `<text x="${layout.posterPadding}" y="${y}" font-size="${layout.titleSize}" font-weight="600" letter-spacing="-6" fill="${posterTone}">${escapeXml(line.toUpperCase())}</text>`;
+      return `<text x="${contentCenterX}" y="${y}" text-anchor="middle" font-size="${layout.titleSize}" font-weight="600" letter-spacing="-6" fill="${posterTone}">${escapeXml(line.toUpperCase())}</text>`;
     })
     .join("");
+  const leadText = "EXPLORING";
+  const bodyText = trip.location.toUpperCase();
+  const yearText = tripYear;
+  const gapPrimary = Math.max(18, layout.metaSize * 0.62);
+  const gapSecondary = Math.max(18, layout.metaSize * 0.58);
+  const leadWidth = estimateMetaSegmentWidth(leadText, layout.metaSize, "semibold");
+  const bodyWidth = estimateMetaSegmentWidth(bodyText, layout.metaSize, "regular");
+  const yearWidth = estimateMetaSegmentWidth(yearText, layout.metaSize, "semibold");
+  const metaTotalWidth = leadWidth + gapPrimary + bodyWidth + gapSecondary + yearWidth;
+  const metaStartX = contentCenterX - metaTotalWidth / 2;
   const footerY = format.height - layout.canvasPaddingY - layout.posterPadding + 4;
   const regularFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__REGULAR__); font-weight: 400; font-style: normal; }`;
   const semiboldFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__SEMIBOLD__); font-weight: 600; font-style: normal; }`;
@@ -307,8 +323,9 @@ function getPosterSvgText({
         />
         <text
           class="poster-serif"
-          x="${layout.canvasPaddingX + layout.posterPadding}"
+          x="${format.width / 2}"
           y="${layout.canvasPaddingY + 48}"
+          text-anchor="middle"
           font-size="${layout.kickerSize}"
           font-weight="600"
           letter-spacing="3.5"
@@ -324,13 +341,13 @@ function getPosterSvgText({
             stroke="${withAlpha(posterTone, 0.16)}"
             stroke-width="1"
           />
-          <text x="${layout.posterPadding}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.84)" font-weight="600">
+          <text x="${metaStartX}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.84)" font-weight="600">
             ${escapeXml("Exploring")}
           </text>
-          <text x="${layout.posterPadding + 148}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.58)">
-            ${escapeXml(trip.location)}
+          <text x="${metaStartX + leadWidth + gapPrimary}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.58)">
+            ${escapeXml(trip.location.toUpperCase())}
           </text>
-          <text x="${layout.posterPadding + 148 + Math.max(trip.location.length, 10) * layout.metaSize * 0.48 + 28}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.46)" font-weight="600">
+          <text x="${metaStartX + leadWidth + gapPrimary + bodyWidth + gapSecondary}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.46)" font-weight="600">
             ${escapeXml(tripYear)}
           </text>
         </g>
@@ -558,6 +575,7 @@ export async function createPosterImageResponse({
             style={{
               display: "flex",
               width: "100%",
+              justifyContent: "center",
               paddingBottom: 24,
               borderBottom: "1px solid rgba(94,126,152,0.12)",
               color: "rgba(32,26,23,0.6)",
@@ -573,6 +591,7 @@ export async function createPosterImageResponse({
           <div
             style={{
               display: "flex",
+              justifyContent: "center",
               marginTop: 28,
               fontSize: layout.titleSize,
               lineHeight: layout.titleLeading,
@@ -580,6 +599,7 @@ export async function createPosterImageResponse({
               textTransform: "uppercase",
               color: posterTone,
               fontWeight: 600,
+              textAlign: "center",
             }}
           >
             {locationLabel}
@@ -588,16 +608,18 @@ export async function createPosterImageResponse({
           <div
             style={{
               display: "flex",
+              justifyContent: "center",
               marginTop: 30,
               paddingTop: 24,
               borderTop: `1px solid ${posterTone}18`,
               fontSize: layout.metaSize,
               letterSpacing: "0.08em",
               color: "rgba(32,26,23,0.56)",
+              textAlign: "center",
             }}
           >
             <span style={{ fontWeight: 600, color: "rgba(32,26,23,0.82)" }}>Exploring</span>
-            <span style={{ marginLeft: 14 }}>{trip.location}</span>
+            <span style={{ marginLeft: 14 }}>{trip.location.toUpperCase()}</span>
             <span style={{ marginLeft: 14, fontWeight: 600, color: "rgba(32,26,23,0.46)" }}>{tripYear}</span>
           </div>
 

@@ -62,6 +62,12 @@ const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 990, y: 2416, width: 584, height: 769 },
 ];
 const STORY_COLLAGE_DRAW_ORDER = [1, 4, 2, 3, 6, 5, 7, 8, 0];
+const STORY_COLLAGE_BASE_SLOT_SHADOW: StoryCollageShadow = {
+  blur: 10,
+  offsetX: 2,
+  offsetY: 6,
+  color: "rgba(32, 24, 18, 0.12)",
+};
 const STORY_COLLAGE_ELEVATED_SLOT_SHADOWS = new Map<number, StoryCollageShadow>([
   [
     3,
@@ -145,6 +151,87 @@ function drawStoryCollageColorCard(
   );
 
   context.restore();
+}
+
+function drawCenteredMetaLine({
+  context,
+  centerX,
+  y,
+  leadText,
+  bodyText,
+  yearText,
+  fontSize,
+}: {
+  context: CanvasRenderingContext2D;
+  centerX: number;
+  y: number;
+  leadText: string;
+  bodyText: string;
+  yearText: string;
+  fontSize: number;
+}) {
+  const gapPrimary = Math.max(18, fontSize * 0.62);
+  const gapSecondary = Math.max(18, fontSize * 0.58);
+
+  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.08em");
+  const leadWidth = context.measureText(leadText).width;
+
+  context.font = `400 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.08em");
+  const bodyWidth = context.measureText(bodyText).width;
+
+  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.08em");
+  const yearWidth = context.measureText(yearText).width;
+
+  const totalWidth = leadWidth + gapPrimary + bodyWidth + gapSecondary + yearWidth;
+  const startX = centerX - totalWidth / 2;
+
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
+
+  context.fillStyle = "rgba(32,26,23,0.84)";
+  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.08em");
+  context.fillText(leadText, startX, y);
+
+  context.fillStyle = "rgba(32,26,23,0.58)";
+  context.font = `400 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.08em");
+  context.fillText(bodyText, startX + leadWidth + gapPrimary, y);
+
+  context.fillStyle = "rgba(32,26,23,0.46)";
+  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.08em");
+  context.fillText(yearText, startX + leadWidth + gapPrimary + bodyWidth + gapSecondary, y);
+}
+
+function applyStoryCollagePhotoFinish(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const highlight = context.createLinearGradient(x, y, x, y + height);
+  highlight.addColorStop(0, "rgba(255, 251, 244, 0.16)");
+  highlight.addColorStop(0.28, "rgba(255, 248, 238, 0.06)");
+  highlight.addColorStop(0.52, "rgba(255, 255, 255, 0)");
+  highlight.addColorStop(1, "rgba(72, 50, 28, 0.08)");
+  context.fillStyle = highlight;
+  context.fillRect(x, y, width, height);
+
+  context.fillStyle = "rgba(247, 239, 229, 0.045)";
+  context.fillRect(x, y, width, height);
+
+  const sideShade = context.createLinearGradient(x, y, x + width, y);
+  sideShade.addColorStop(0, "rgba(92, 66, 42, 0.04)");
+  sideShade.addColorStop(0.18, "rgba(255, 255, 255, 0)");
+  sideShade.addColorStop(0.82, "rgba(255, 255, 255, 0)");
+  sideShade.addColorStop(1, "rgba(92, 66, 42, 0.05)");
+  context.fillStyle = sideShade;
+  context.fillRect(x, y, width, height);
 }
 
 function buildRoundedRectPath(
@@ -542,6 +629,7 @@ async function renderManualPosterBlob({
   const panelY = layout.canvasPaddingY;
   const panelWidth = canvas.width - layout.canvasPaddingX * 2;
   const panelHeight = canvas.height - layout.canvasPaddingY * 2;
+  const panelCenterX = panelX + panelWidth / 2;
 
   buildRoundedRectPath(context, panelX, panelY, panelWidth, panelHeight, layout.radius);
   context.fillStyle = "#fbf9f4";
@@ -569,9 +657,9 @@ async function renderManualPosterBlob({
       : Math.floor((Math.floor(availableGridHeight * layout.gridHeightScale) - layout.gap * 2) / 3);
   context.fillStyle = "rgba(32,26,23,0.6)";
   context.font = `600 ${layout.kickerSize}px ui-sans-serif, system-ui, sans-serif`;
-  context.textAlign = "left";
+  context.textAlign = "center";
   setCanvasLetterSpacing(context, "0.16em");
-  context.fillText("COLOR HUNT", panelX + layout.posterPadding, panelY + (formatId === "story" ? 48 : formatId === "square" ? 42 : 36));
+  context.fillText("COLOR HUNT", panelCenterX, panelY + (formatId === "story" ? 48 : formatId === "square" ? 42 : 36));
 
   context.strokeStyle = "rgba(94,126,152,0.14)";
   context.beginPath();
@@ -594,9 +682,10 @@ async function renderManualPosterBlob({
 
   context.fillStyle = data.posterTone;
   context.font = `600 ${fittedTitleSize}px "Cormorant Garamond", Georgia, serif`;
+  context.textAlign = "center";
   setCanvasLetterSpacing(context, "0px");
   titleLines.forEach((line, index) => {
-    context.fillText(line, panelX + layout.posterPadding, titleBaseY + index * titleLineHeight);
+    context.fillText(line, panelCenterX, titleBaseY + index * titleLineHeight);
   });
 
   context.strokeStyle = "rgba(90,120,150,0.16)";
@@ -605,25 +694,15 @@ async function renderManualPosterBlob({
   context.lineTo(panelX + panelWidth - layout.posterPadding, metaY - metaDividerOffset);
   context.stroke();
 
-  context.fillStyle = "rgba(32,26,23,0.84)";
-  context.font = `600 ${layout.metaSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  context.fillText("EXPLORING", panelX + layout.posterPadding, metaY);
-
-  context.fillStyle = "rgba(32,26,23,0.58)";
-  context.font = `400 ${layout.metaSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  context.fillText(data.location.toUpperCase(), panelX + layout.posterPadding + (formatId === "story" ? 286 : 198), metaY);
-
-  context.fillStyle = "rgba(32,26,23,0.46)";
-  context.font = `600 ${layout.metaSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  const locationMetrics = context.measureText(data.location.toUpperCase());
-  context.fillText(
-    data.tripYear,
-    panelX + layout.posterPadding + (formatId === "story" ? 286 : 198) + locationMetrics.width + (formatId === "story" ? 30 : 24),
-    metaY,
-  );
+  drawCenteredMetaLine({
+    context,
+    centerX: panelCenterX,
+    y: metaY,
+    leadText: "EXPLORING",
+    bodyText: data.location.toUpperCase(),
+    yearText: data.tripYear,
+    fontSize: layout.metaSize,
+  });
 
   const gridTop = panelY + layout.posterPadding + titleBlockHeight + metaBlockHeight + layout.gridTopMargin;
 
@@ -763,7 +842,9 @@ async function renderStoryCollageBlob({
     const drawHeight = image.height * scale;
     const drawX = x + (width - drawWidth) / 2;
     const drawY = y + (height - drawHeight) / 2;
-    const shadow = includeShadow ? STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index) : null;
+    const shadow = includeShadow
+      ? STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index) ?? STORY_COLLAGE_BASE_SLOT_SHADOW
+      : null;
 
     renderingContext.save();
 
@@ -778,6 +859,7 @@ async function renderStoryCollageBlob({
     renderingContext.rect(x, y, width, height);
     renderingContext.clip();
     renderingContext.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    applyStoryCollagePhotoFinish(renderingContext, x, y, width, height);
     renderingContext.restore();
   }
 
