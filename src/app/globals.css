@@ -784,9 +784,9 @@ img {
 .poster-topline {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.9rem;
   border-bottom: 1px solid rgba(94, 126, 152, 0.12);
 }
 
@@ -800,7 +800,9 @@ img {
 }
 
 .poster-hero {
-  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  margin-top: 1.05rem;
 }
 
 .poster-location {
@@ -811,28 +813,38 @@ img {
   letter-spacing: -0.068em;
   text-transform: uppercase;
   text-wrap: balance;
+  text-align: center;
+  margin: 0 auto;
 }
 
 .poster-meta-line {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 1.15rem;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
+  justify-content: center;
+  margin-top: 1.05rem;
+  padding-top: 0.95rem;
   border-top: 1px solid rgba(53, 37, 30, 0.07);
 }
 
 .poster-meta-line-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.38rem 0.9rem;
   font-size: 0.88rem;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: rgba(32, 26, 23, 0.56);
+  text-align: center;
 }
 
 .poster-meta-line-lead {
   font-weight: 700;
   color: rgba(32, 26, 23, 0.88);
+}
+
+.poster-meta-line-body {
+  color: rgba(32, 26, 23, 0.58);
 }
 
 .poster-meta-line-year {
@@ -862,7 +874,7 @@ img {
 }
 
 .poster-footer {
-  padding-top: 1.45rem;
+  padding-top: 1.35rem;
   border-top: 1px solid rgba(94, 126, 152, 0.1);
 }
 
@@ -888,8 +900,8 @@ img {
 }
 
 .poster-frame[data-export-format="post"] .poster-meta-line {
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
+  margin-top: 0.95rem;
+  padding-top: 0.9rem;
 }
 
 .poster-frame[data-export-format="post"] .poster-grid-shell {
