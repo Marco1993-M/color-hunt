@@ -34,16 +34,16 @@ export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetPr
       </div>
 
       <div className="poster-hero">
-        <div>
-          <p className="poster-location" style={{ color: posterTone }}>
-            {locationLabel}
-          </p>
-        </div>
+        <p className="poster-location" style={{ color: posterTone }}>
+          {locationLabel}
+        </p>
       </div>
 
       <div className="poster-meta-line" style={{ borderColor: `${posterTone}24` }}>
         <p className="poster-meta-line-copy">
-          <span className="poster-meta-line-lead">Exploring</span> {trip.location} <span className="poster-meta-line-year">{tripYear}</span>
+          <span className="poster-meta-line-lead">Exploring</span>
+          <span className="poster-meta-line-body">{trip.location}</span>
+          <span className="poster-meta-line-year">{tripYear}</span>
         </p>
       </div>
 
