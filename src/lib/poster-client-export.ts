@@ -19,6 +19,10 @@ type StoryCollageSlot = {
   y: number;
   width: number;
   height: number;
+  zoom?: number;
+  focalX?: number;
+  focalY?: number;
+  role?: "hero" | "supporting" | "accent" | "color-card";
 };
 
 type StoryCollageShadow = {
@@ -51,15 +55,15 @@ const STORY_COLLAGE_TEMPLATE_URL = "/poster-template-story-collage.png";
 const STORY_COLLAGE_TEMPLATE_WIDTH = 1974;
 const STORY_COLLAGE_TEMPLATE_HEIGHT = 3508;
 const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
-  { x: 761, y: 323, width: 269, height: 370 },
-  { x: 991, y: 485, width: 788, height: 1029 },
-  { x: 331, y: 651, width: 596, height: 601 },
-  { x: 795, y: 842, width: 269, height: 370 },
-  { x: 169, y: 1217, width: 854, height: 865 },
-  { x: 820, y: 1442, width: 443, height: 631 },
-  { x: 1090, y: 1622, width: 716, height: 942 },
-  { x: 409, y: 2150, width: 651, height: 876 },
-  { x: 990, y: 2416, width: 584, height: 769 },
+  { x: 761, y: 323, width: 269, height: 370, role: "color-card" },
+  { x: 991, y: 485, width: 788, height: 1029, zoom: 1.04, focalX: 0.52, focalY: 0.42, role: "hero" },
+  { x: 331, y: 651, width: 596, height: 601, zoom: 1.03, focalX: 0.48, focalY: 0.38, role: "supporting" },
+  { x: 795, y: 842, width: 269, height: 370, zoom: 1.12, focalX: 0.5, focalY: 0.34, role: "accent" },
+  { x: 169, y: 1217, width: 854, height: 865, zoom: 1.02, focalX: 0.46, focalY: 0.5, role: "hero" },
+  { x: 820, y: 1442, width: 443, height: 631, zoom: 1.1, focalX: 0.52, focalY: 0.42, role: "accent" },
+  { x: 1090, y: 1622, width: 716, height: 942, zoom: 1.05, focalX: 0.5, focalY: 0.44, role: "supporting" },
+  { x: 409, y: 2150, width: 651, height: 876, zoom: 1.03, focalX: 0.48, focalY: 0.42, role: "supporting" },
+  { x: 990, y: 2416, width: 584, height: 769, zoom: 1.07, focalX: 0.5, focalY: 0.46, role: "accent" },
 ];
 const STORY_COLLAGE_DRAW_ORDER = [1, 4, 2, 3, 6, 5, 7, 8, 0];
 const STORY_COLLAGE_BASE_SLOT_SHADOW: StoryCollageShadow = {
@@ -213,25 +217,72 @@ function applyStoryCollagePhotoFinish(
   y: number,
   width: number,
   height: number,
+  role: StoryCollageSlot["role"] = "supporting",
 ) {
+  const isHero = role === "hero";
+  const isAccent = role === "accent";
+  const topHighlight = isHero ? 0.13 : isAccent ? 0.18 : 0.16;
+  const midHighlight = isHero ? 0.04 : isAccent ? 0.08 : 0.06;
+  const bottomShade = isHero ? 0.06 : isAccent ? 0.1 : 0.08;
+  const warmWash = isHero ? 0.03 : isAccent ? 0.06 : 0.045;
+  const edgeShade = isHero ? 0.03 : isAccent ? 0.06 : 0.045;
+
   const highlight = context.createLinearGradient(x, y, x, y + height);
-  highlight.addColorStop(0, "rgba(255, 251, 244, 0.16)");
-  highlight.addColorStop(0.28, "rgba(255, 248, 238, 0.06)");
+  highlight.addColorStop(0, `rgba(255, 251, 244, ${topHighlight})`);
+  highlight.addColorStop(0.28, `rgba(255, 248, 238, ${midHighlight})`);
   highlight.addColorStop(0.52, "rgba(255, 255, 255, 0)");
-  highlight.addColorStop(1, "rgba(72, 50, 28, 0.08)");
+  highlight.addColorStop(1, `rgba(72, 50, 28, ${bottomShade})`);
   context.fillStyle = highlight;
   context.fillRect(x, y, width, height);
 
-  context.fillStyle = "rgba(247, 239, 229, 0.045)";
+  context.fillStyle = `rgba(247, 239, 229, ${warmWash})`;
   context.fillRect(x, y, width, height);
 
   const sideShade = context.createLinearGradient(x, y, x + width, y);
-  sideShade.addColorStop(0, "rgba(92, 66, 42, 0.04)");
+  sideShade.addColorStop(0, `rgba(92, 66, 42, ${edgeShade})`);
   sideShade.addColorStop(0.18, "rgba(255, 255, 255, 0)");
   sideShade.addColorStop(0.82, "rgba(255, 255, 255, 0)");
-  sideShade.addColorStop(1, "rgba(92, 66, 42, 0.05)");
+  sideShade.addColorStop(1, `rgba(92, 66, 42, ${edgeShade + 0.01})`);
   context.fillStyle = sideShade;
   context.fillRect(x, y, width, height);
+}
+
+function getStoryCollageDrawRect({
+  slot,
+  image,
+  scaleX,
+  scaleY,
+}: {
+  slot: StoryCollageSlot;
+  image: CanvasImageSource & { width: number; height: number };
+  scaleX: number;
+  scaleY: number;
+}) {
+  const x = slot.x * scaleX;
+  const y = slot.y * scaleY;
+  const width = slot.width * scaleX;
+  const height = slot.height * scaleY;
+  const zoom = slot.zoom ?? 1;
+  const focalX = slot.focalX ?? 0.5;
+  const focalY = slot.focalY ?? 0.5;
+  const scale = Math.max(width / image.width, height / image.height) * zoom;
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const overflowX = Math.max(0, drawWidth - width);
+  const overflowY = Math.max(0, drawHeight - height);
+  const drawX = x - overflowX * focalX;
+  const drawY = y - overflowY * focalY;
+
+  return {
+    x,
+    y,
+    width,
+    height,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight,
+  };
 }
 
 function buildRoundedRectPath(
@@ -833,20 +884,25 @@ async function renderStoryCollageBlob({
       return;
     }
 
-    const x = slot.x * scaleX;
-    const y = slot.y * scaleY;
-    const width = slot.width * scaleX;
-    const height = slot.height * scaleY;
-    const scale = Math.max(width / image.width, height / image.height);
-    const drawWidth = image.width * scale;
-    const drawHeight = image.height * scale;
-    const drawX = x + (width - drawWidth) / 2;
-    const drawY = y + (height - drawHeight) / 2;
+    const { x, y, width, height, drawX, drawY, drawWidth, drawHeight } = getStoryCollageDrawRect({
+      slot,
+      image,
+      scaleX,
+      scaleY,
+    });
     const shadow = includeShadow
       ? STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index) ?? STORY_COLLAGE_BASE_SLOT_SHADOW
       : null;
 
     renderingContext.save();
+
+    if (slot.role === "hero") {
+      renderingContext.filter = "saturate(0.96) contrast(0.99) brightness(1.01)";
+    } else if (slot.role === "accent") {
+      renderingContext.filter = "saturate(0.91) contrast(0.95) brightness(1.02)";
+    } else {
+      renderingContext.filter = "saturate(0.94) contrast(0.97) brightness(1.01)";
+    }
 
     if (shadow) {
       renderingContext.shadowBlur = shadow.blur * scaleX;
@@ -859,7 +915,8 @@ async function renderStoryCollageBlob({
     renderingContext.rect(x, y, width, height);
     renderingContext.clip();
     renderingContext.drawImage(image, drawX, drawY, drawWidth, drawHeight);
-    applyStoryCollagePhotoFinish(renderingContext, x, y, width, height);
+    renderingContext.filter = "none";
+    applyStoryCollagePhotoFinish(renderingContext, x, y, width, height, slot.role);
     renderingContext.restore();
   }
 
@@ -897,6 +954,8 @@ function getPosterBlobCacheKey({
     formatId,
     themeId,
     location: posterData.location,
+    locationLabel: posterData.locationLabel,
+    missionColorName: posterData.missionColorName,
     tripYear: posterData.tripYear,
     posterTone: posterData.posterTone,
     photoUrls: posterData.photoUrls,
