@@ -131,8 +131,8 @@ const homepageFaqs = [
 ];
 
 const payoffPoster = {
-  title: "Hoedspruit, South Africa",
-  subtitle: "Exploring Hoedspruit, South Africa 2026",
+  title: "Lisbon, Portugal",
+  subtitle: "Exploring Lisbon, Portugal 2026",
   tone: "from-[#f7e8ae] via-[#edc34d] to-[#d89c23]",
 };
 
@@ -397,6 +397,35 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-start lg:gap-10">
           <div className="space-y-6 pt-1 sm:space-y-8 sm:pt-6">
             <div className="hero-copy-shell">
+              <div className="landing-poster-teasers" aria-hidden="true">
+                <article className="landing-teaser-poster landing-teaser-poster-main">
+                  <div className="landing-teaser-topline">
+                    <span>Color Hunt</span>
+                  </div>
+                  <div className="landing-teaser-hero">
+                    <p className="landing-teaser-title">{payoffPoster.title}</p>
+                    <p className="landing-teaser-subtitle">{payoffPoster.subtitle}</p>
+                  </div>
+                  <div className="landing-teaser-grid">
+                    {Array.from({ length: 9 }).map((_, index) => (
+                      <span
+                        key={`teaser-main-${index}`}
+                        className={`landing-teaser-cell bg-gradient-to-br ${payoffPoster.tone}`}
+                      />
+                    ))}
+                  </div>
+                </article>
+
+                <article className="landing-teaser-poster landing-teaser-poster-secondary">
+                  <div className="landing-teaser-collage">
+                    <span className="landing-teaser-collage-card landing-teaser-collage-card-one bg-gradient-to-br from-[#ffd632] via-[#ffb45a] to-[#ff7b67]" />
+                    <span className="landing-teaser-collage-card landing-teaser-collage-card-two bg-gradient-to-br from-[#b6e9ff] via-[#77b8ff] to-[#3e73ee]" />
+                    <span className="landing-teaser-collage-card landing-teaser-collage-card-three bg-gradient-to-br from-[#d3f6ab] via-[#7fd96c] to-[#2a9d84]" />
+                    <span className="landing-teaser-collage-card landing-teaser-collage-card-four bg-gradient-to-br from-[#ffd2ea] via-[#f08fd0] to-[#b956b8]" />
+                  </div>
+                </article>
+              </div>
+
               <div className="hero-topline inline-flex items-center gap-3 rounded-full border border-[rgba(88,58,134,0.12)] bg-[rgba(255,255,255,0.76)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(45,34,74,0.72)] shadow-[0_14px_40px_rgba(72,48,110,0.1)]">
                 <div className="brand-dotline">
                   <span />
