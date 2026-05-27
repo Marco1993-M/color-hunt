@@ -12,7 +12,7 @@ export type PosterCaptureData = {
   photoUrls: Array<string | null>;
 };
 
-export type PosterThemeId = "classic" | "story-collage";
+export type PosterThemeId = "classic" | "story-collage" | "story-scrapbook";
 
 type StoryCollageSlot = {
   x: number;
@@ -30,6 +30,21 @@ type StoryCollageShadow = {
   offsetX: number;
   offsetY: number;
   color: string;
+};
+
+type StoryScrapbookCardKind = "frame" | "sticker" | "polaroid" | "cutout";
+
+type StoryScrapbookSlot = {
+  kind: StoryScrapbookCardKind;
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+  angle: number;
+  accent: string;
+  cropZoom?: number;
+  focalX?: number;
+  focalY?: number;
 };
 
 type ManualLayout = {
@@ -102,6 +117,129 @@ const STORY_COLLAGE_ELEVATED_SLOT_SHADOWS = new Map<number, StoryCollageShadow>(
   ],
 ]);
 const STORY_COLLAGE_REPAINT_AFTER_OVERLAY = [5, 8];
+const STORY_SCRAPBOOK_PAPER = "#f8f1e7";
+const STORY_SCRAPBOOK_PAPER_SHADE = "#f2e8dc";
+const STORY_SCRAPBOOK_WHITE = "#fffdfa";
+const STORY_SCRAPBOOK_INK = "#18263b";
+const STORY_SCRAPBOOK_SOFT_INK = "#4b5770";
+const STORY_SCRAPBOOK_GREEN = "#2a8b5b";
+const STORY_SCRAPBOOK_PINK = "#f58dbb";
+const STORY_SCRAPBOOK_CORAL = "#f38b7d";
+const STORY_SCRAPBOOK_SKY = "#83beee";
+const STORY_SCRAPBOOK_BUTTER = "#f3d76f";
+const STORY_SCRAPBOOK_LILAC = "#ceb8ec";
+const STORY_SCRAPBOOK_PEACH = "#f5c8b8";
+const STORY_SCRAPBOOK_MINT = "#bfe3d2";
+const STORY_SCRAPBOOK_SLOTS: StoryScrapbookSlot[] = [
+  {
+    kind: "frame",
+    centerX: 248,
+    centerY: 574,
+    width: 392,
+    height: 276,
+    angle: -2.5,
+    accent: STORY_SCRAPBOOK_PINK,
+    cropZoom: 1.03,
+    focalX: 0.5,
+    focalY: 0.42,
+  },
+  {
+    kind: "sticker",
+    centerX: 732,
+    centerY: 534,
+    width: 256,
+    height: 196,
+    angle: 4,
+    accent: STORY_SCRAPBOOK_LILAC,
+    cropZoom: 1.08,
+    focalX: 0.5,
+    focalY: 0.48,
+  },
+  {
+    kind: "frame",
+    centerX: 846,
+    centerY: 760,
+    width: 246,
+    height: 334,
+    angle: 1.5,
+    accent: STORY_SCRAPBOOK_SKY,
+    cropZoom: 1.07,
+    focalX: 0.52,
+    focalY: 0.38,
+  },
+  {
+    kind: "frame",
+    centerX: 314,
+    centerY: 874,
+    width: 452,
+    height: 286,
+    angle: -0.8,
+    accent: STORY_SCRAPBOOK_PEACH,
+    cropZoom: 1.03,
+    focalX: 0.5,
+    focalY: 0.48,
+  },
+  {
+    kind: "polaroid",
+    centerX: 626,
+    centerY: 964,
+    width: 214,
+    height: 292,
+    angle: 2.2,
+    accent: STORY_SCRAPBOOK_BUTTER,
+    cropZoom: 1.08,
+    focalX: 0.5,
+    focalY: 0.38,
+  },
+  {
+    kind: "cutout",
+    centerX: 890,
+    centerY: 1074,
+    width: 182,
+    height: 238,
+    angle: 5.5,
+    accent: STORY_SCRAPBOOK_MINT,
+    cropZoom: 1.1,
+    focalX: 0.52,
+    focalY: 0.34,
+  },
+  {
+    kind: "sticker",
+    centerX: 234,
+    centerY: 1266,
+    width: 208,
+    height: 256,
+    angle: -7,
+    accent: STORY_SCRAPBOOK_LILAC,
+    cropZoom: 1.08,
+    focalX: 0.48,
+    focalY: 0.42,
+  },
+  {
+    kind: "frame",
+    centerX: 724,
+    centerY: 1386,
+    width: 356,
+    height: 504,
+    angle: -2.2,
+    accent: STORY_SCRAPBOOK_CORAL,
+    cropZoom: 1.02,
+    focalX: 0.5,
+    focalY: 0.4,
+  },
+  {
+    kind: "cutout",
+    centerX: 418,
+    centerY: 1568,
+    width: 232,
+    height: 164,
+    angle: 6,
+    accent: STORY_SCRAPBOOK_GREEN,
+    cropZoom: 1.07,
+    focalX: 0.48,
+    focalY: 0.46,
+  },
+];
 
 let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
 const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
@@ -305,6 +443,43 @@ function buildRoundedRectPath(
   context.lineTo(x, y + nextRadius);
   context.quadraticCurveTo(x, y, x + nextRadius, y);
   context.closePath();
+}
+
+function degreesToRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function createCanvasContext(width: number, height: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Couldn't prepare the poster canvas.");
+  }
+
+  return { canvas, context };
+}
+
+function drawRotatedCanvas({
+  context,
+  source,
+  centerX,
+  centerY,
+  angle,
+}: {
+  context: CanvasRenderingContext2D;
+  source: HTMLCanvasElement;
+  centerX: number;
+  centerY: number;
+  angle: number;
+}) {
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(degreesToRadians(angle));
+  context.drawImage(source, -source.width / 2, -source.height / 2);
+  context.restore();
 }
 
 function wrapPosterTitle(title: string, maxLineLength = 15) {
@@ -553,6 +728,80 @@ async function ensureFontsReady() {
   }
 }
 
+function hexToRgb(color: string) {
+  const cleaned = color.replace("#", "");
+  const nextColor = cleaned.length === 3 ? cleaned.split("").map((value) => value + value).join("") : cleaned;
+  const value = Number.parseInt(nextColor, 16);
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function rgba(color: string, alpha: number) {
+  const { r, g, b } = hexToRgb(color);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function fitFontSizeToWidth({
+  context,
+  text,
+  maxWidth,
+  initialSize,
+  minSize,
+  fontFamily,
+  fontWeight = 700,
+}: {
+  context: CanvasRenderingContext2D;
+  text: string;
+  maxWidth: number;
+  initialSize: number;
+  minSize: number;
+  fontFamily: string;
+  fontWeight?: number;
+}) {
+  let nextSize = initialSize;
+
+  while (nextSize > minSize) {
+    context.font = `${fontWeight} ${nextSize}px ${fontFamily}`;
+
+    if (context.measureText(text).width <= maxWidth) {
+      return nextSize;
+    }
+
+    nextSize -= 1;
+  }
+
+  return minSize;
+}
+
+function drawStrokedFillText({
+  context,
+  text,
+  x,
+  y,
+  fillStyle,
+  strokeStyle,
+  strokeWidth,
+}: {
+  context: CanvasRenderingContext2D;
+  text: string;
+  x: number;
+  y: number;
+  fillStyle: string;
+  strokeStyle: string;
+  strokeWidth: number;
+}) {
+  context.strokeStyle = strokeStyle;
+  context.lineWidth = strokeWidth;
+  context.lineJoin = "round";
+  context.miterLimit = 2;
+  context.strokeText(text, x, y);
+  context.fillStyle = fillStyle;
+  context.fillText(text, x, y);
+}
+
 async function renderPostFromLiveLayout({
   data,
   layoutSourceId,
@@ -658,6 +907,10 @@ async function renderManualPosterBlob({
 }) {
   if (formatId === "story" && themeId === "story-collage") {
     return await renderStoryCollageBlob({ data });
+  }
+
+  if (formatId === "story" && themeId === "story-scrapbook") {
+    return await renderStoryScrapbookBlob({ data });
   }
 
   const format = getPosterExportFormat(formatId);
@@ -822,6 +1075,681 @@ async function renderManualPosterBlob({
     canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error("Couldn't prepare the poster image."));
+        return;
+      }
+
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+function drawStoryScrapbookPaperBackground(context: CanvasRenderingContext2D, width: number, height: number) {
+  const gradient = context.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, STORY_SCRAPBOOK_PAPER);
+  gradient.addColorStop(1, STORY_SCRAPBOOK_PAPER_SHADE);
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+
+  for (let index = 0; index < 650; index += 1) {
+    const x = ((index * 73.17) % width) + ((index % 11) - 5) * 0.7;
+    const y = ((index * 41.91) % height) + ((index % 7) - 3) * 0.8;
+    const radius = 1 + (index % 3) * 0.55;
+    const alpha = 0.04 + (index % 5) * 0.012;
+    context.fillStyle = `rgba(255,255,255,${alpha})`;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.strokeStyle = "rgba(129, 103, 82, 0.09)";
+  context.lineWidth = 1;
+  for (let index = 0; index < 260; index += 1) {
+    const x = (index * 57.3) % (width - 100);
+    const y = (index * 29.6) % height;
+    const lineWidth = 16 + ((index * 19) % 76);
+    context.beginPath();
+    context.moveTo(x, y);
+    context.lineTo(x + lineWidth, y);
+    context.stroke();
+  }
+
+  context.fillStyle = "rgba(255,255,255,0.18)";
+  context.fillRect(width / 2 - 3, 0, 6, height);
+  context.fillStyle = "rgba(120, 96, 76, 0.06)";
+  context.fillRect(width / 2 + 3, 0, 4, height);
+
+  const washOne = context.createRadialGradient(width * 0.75, height * 0.18, 40, width * 0.75, height * 0.18, 280);
+  washOne.addColorStop(0, "rgba(245, 141, 187, 0.12)");
+  washOne.addColorStop(1, "rgba(245, 141, 187, 0)");
+  context.fillStyle = washOne;
+  context.fillRect(0, 0, width, height);
+
+  const washTwo = context.createRadialGradient(width * 0.18, height * 0.53, 32, width * 0.18, height * 0.53, 240);
+  washTwo.addColorStop(0, "rgba(131, 190, 238, 0.1)");
+  washTwo.addColorStop(1, "rgba(131, 190, 238, 0)");
+  context.fillStyle = washTwo;
+  context.fillRect(0, 0, width, height);
+}
+
+function getStoryScrapbookShadow(slot: StoryScrapbookSlot) {
+  if (slot.kind === "frame" || slot.kind === "polaroid") {
+    return {
+      blur: 20,
+      offsetX: 0,
+      offsetY: 10,
+      color: "rgba(42, 24, 18, 0.18)",
+    };
+  }
+
+  return {
+    blur: 16,
+    offsetX: 0,
+    offsetY: 8,
+    color: "rgba(42, 24, 18, 0.14)",
+  };
+}
+
+function getStoryScrapbookPhotoRect(slot: StoryScrapbookSlot, cardWidth: number, cardHeight: number) {
+  switch (slot.kind) {
+    case "polaroid":
+      return {
+        x: 13,
+        y: 13,
+        width: cardWidth - 26,
+        height: cardHeight - 94,
+        radius: 18,
+      };
+    case "sticker":
+      return {
+        x: 28,
+        y: 28,
+        width: slot.width,
+        height: slot.height,
+        radius: 22,
+      };
+    case "cutout":
+      return {
+        x: 32,
+        y: 32,
+        width: slot.width,
+        height: slot.height,
+        radius: 24,
+      };
+    default:
+      return {
+        x: 15,
+        y: 15,
+        width: cardWidth - 30,
+        height: cardHeight - 30,
+        radius: 22,
+      };
+  }
+}
+
+function drawStoryScrapbookPhoto({
+  context,
+  image,
+  slot,
+  photoRect,
+}: {
+  context: CanvasRenderingContext2D;
+  image: HTMLImageElement | null;
+  slot: StoryScrapbookSlot;
+  photoRect: { x: number; y: number; width: number; height: number; radius: number };
+}) {
+  context.save();
+  buildRoundedRectPath(context, photoRect.x, photoRect.y, photoRect.width, photoRect.height, photoRect.radius);
+  context.clip();
+
+  if (!image) {
+    const fallback = context.createLinearGradient(
+      photoRect.x,
+      photoRect.y,
+      photoRect.x + photoRect.width,
+      photoRect.y + photoRect.height,
+    );
+    fallback.addColorStop(0, rgba(slot.accent, 0.74));
+    fallback.addColorStop(1, "rgba(255,255,255,0.72)");
+    context.fillStyle = fallback;
+    context.fillRect(photoRect.x, photoRect.y, photoRect.width, photoRect.height);
+    context.restore();
+    return;
+  }
+
+  const zoom = slot.cropZoom ?? 1.04;
+  const focalX = slot.focalX ?? 0.5;
+  const focalY = slot.focalY ?? 0.44;
+  const scale = Math.max(photoRect.width / image.width, photoRect.height / image.height) * zoom;
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const overflowX = Math.max(0, drawWidth - photoRect.width);
+  const overflowY = Math.max(0, drawHeight - photoRect.height);
+  const drawX = photoRect.x - overflowX * focalX;
+  const drawY = photoRect.y - overflowY * focalY;
+
+  context.filter = slot.kind === "cutout" ? "saturate(0.98) contrast(0.96) brightness(1.03)" : "saturate(0.95) contrast(0.97) brightness(1.02)";
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  context.filter = "none";
+
+  const gloss = context.createLinearGradient(photoRect.x, photoRect.y, photoRect.x, photoRect.y + photoRect.height);
+  gloss.addColorStop(0, "rgba(255,255,255,0.16)");
+  gloss.addColorStop(0.32, "rgba(255,248,242,0.05)");
+  gloss.addColorStop(1, "rgba(78,54,36,0.08)");
+  context.fillStyle = gloss;
+  context.fillRect(photoRect.x, photoRect.y, photoRect.width, photoRect.height);
+
+  const edgeShade = context.createLinearGradient(photoRect.x, photoRect.y, photoRect.x + photoRect.width, photoRect.y);
+  edgeShade.addColorStop(0, "rgba(92,66,42,0.05)");
+  edgeShade.addColorStop(0.2, "rgba(255,255,255,0)");
+  edgeShade.addColorStop(0.8, "rgba(255,255,255,0)");
+  edgeShade.addColorStop(1, "rgba(92,66,42,0.06)");
+  context.fillStyle = edgeShade;
+  context.fillRect(photoRect.x, photoRect.y, photoRect.width, photoRect.height);
+  context.restore();
+}
+
+function makeStoryScrapbookCard({
+  slot,
+  image,
+  index,
+}: {
+  slot: StoryScrapbookSlot;
+  image: HTMLImageElement | null;
+  index: number;
+}) {
+  const stickerPadding = slot.kind === "sticker" ? 28 : slot.kind === "cutout" ? 32 : 0;
+  const width = slot.width + stickerPadding * 2;
+  const height = slot.height + stickerPadding * 2;
+  const { canvas, context } = createCanvasContext(width, height);
+  const photoRect = getStoryScrapbookPhotoRect(slot, width, height);
+
+  if (slot.kind === "cutout") {
+    context.fillStyle = STORY_SCRAPBOOK_WHITE;
+    buildRoundedRectPath(context, photoRect.x - 14, photoRect.y - 14, photoRect.width + 28, photoRect.height + 28, 28);
+    context.fill();
+    drawStoryScrapbookPhoto({ context, image, slot, photoRect });
+    context.strokeStyle = "rgba(232, 218, 206, 0.92)";
+    context.lineWidth = 2;
+    buildRoundedRectPath(context, photoRect.x, photoRect.y, photoRect.width, photoRect.height, photoRect.radius);
+    context.stroke();
+
+    context.fillStyle = "rgba(255,255,255,0.92)";
+    context.beginPath();
+    context.arc(width - 34, 28, 16, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = STORY_SCRAPBOOK_PINK;
+    context.font = `700 18px ui-sans-serif, system-ui, sans-serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText("★", width - 34, 29);
+    return canvas;
+  }
+
+  context.fillStyle = STORY_SCRAPBOOK_WHITE;
+  buildRoundedRectPath(context, 0, 0, width, height, slot.kind === "sticker" ? 34 : 24);
+  context.fill();
+  context.strokeStyle = "rgba(226, 211, 198, 0.92)";
+  context.lineWidth = 2;
+  buildRoundedRectPath(context, 0, 0, width, height, slot.kind === "sticker" ? 34 : 24);
+  context.stroke();
+
+  drawStoryScrapbookPhoto({ context, image, slot, photoRect });
+
+  if (slot.kind === "polaroid") {
+    context.fillStyle = "rgba(248, 244, 236, 1)";
+    buildRoundedRectPath(context, 18, height - 62, width - 36, 42, 16);
+    context.fill();
+    context.fillStyle = STORY_SCRAPBOOK_SOFT_INK;
+    context.font = `700 15px ui-sans-serif, system-ui, sans-serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    setCanvasLetterSpacing(context, "0.12em");
+    context.fillText("COLOR CLUB", width / 2, height - 41);
+    setCanvasLetterSpacing(context, "0px");
+  }
+
+  if (slot.kind === "sticker" && (index === 1 || index === 6)) {
+    context.fillStyle = "rgba(255,255,255,0.94)";
+    buildRoundedRectPath(context, 22, 16, 90, 32, 14);
+    context.fill();
+    context.fillStyle = STORY_SCRAPBOOK_INK;
+    context.font = `700 16px ui-sans-serif, system-ui, sans-serif`;
+    context.textAlign = "left";
+    context.textBaseline = "top";
+    setCanvasLetterSpacing(context, "0.12em");
+    context.fillText("CLUB", 36, 24);
+    setCanvasLetterSpacing(context, "0px");
+  }
+
+  return canvas;
+}
+
+function drawStoryScrapbookSpeechBubble({
+  context,
+  centerX,
+  centerY,
+  width,
+  text,
+}: {
+  context: CanvasRenderingContext2D;
+  centerX: number;
+  centerY: number;
+  width: number;
+  text: string;
+}) {
+  const { canvas, context: bubbleContext } = createCanvasContext(width + 46, 130);
+  bubbleContext.fillStyle = STORY_SCRAPBOOK_WHITE;
+  buildRoundedRectPath(bubbleContext, 0, 0, width, 92, 42);
+  bubbleContext.fill();
+  bubbleContext.strokeStyle = "rgba(234, 220, 206, 1)";
+  bubbleContext.lineWidth = 2;
+  buildRoundedRectPath(bubbleContext, 0, 0, width, 92, 42);
+  bubbleContext.stroke();
+  bubbleContext.beginPath();
+  bubbleContext.moveTo(width - 106, 80);
+  bubbleContext.lineTo(width - 70, 116);
+  bubbleContext.lineTo(width - 52, 82);
+  bubbleContext.closePath();
+  bubbleContext.fill();
+  bubbleContext.stroke();
+
+  bubbleContext.fillStyle = STORY_SCRAPBOOK_PINK;
+  const bubbleFontSize = fitFontSizeToWidth({
+    context: bubbleContext,
+    text,
+    maxWidth: width - 60,
+    initialSize: 28,
+    minSize: 18,
+    fontFamily: `ui-sans-serif, system-ui, sans-serif`,
+  });
+  bubbleContext.font = `700 ${bubbleFontSize}px ui-sans-serif, system-ui, sans-serif`;
+  bubbleContext.textAlign = "left";
+  bubbleContext.textBaseline = "top";
+  bubbleContext.fillText(text, 30, 24);
+
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(degreesToRadians(-2));
+  context.shadowBlur = 16;
+  context.shadowOffsetY = 8;
+  context.shadowColor = "rgba(41, 21, 18, 0.12)";
+  context.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  context.shadowColor = "transparent";
+  context.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  context.restore();
+}
+
+function drawStoryScrapbookBow({
+  context,
+  centerX,
+  centerY,
+  angle,
+}: {
+  context: CanvasRenderingContext2D;
+  centerX: number;
+  centerY: number;
+  angle: number;
+}) {
+  const { canvas, context: bowContext } = createCanvasContext(180, 150);
+  bowContext.fillStyle = STORY_SCRAPBOOK_WHITE;
+  bowContext.beginPath();
+  bowContext.ellipse(45, 64, 38, 36, 0, 0, Math.PI * 2);
+  bowContext.ellipse(135, 64, 38, 36, 0, 0, Math.PI * 2);
+  bowContext.fill();
+  bowContext.beginPath();
+  bowContext.moveTo(68, 78);
+  bowContext.lineTo(92, 62);
+  bowContext.lineTo(118, 78);
+  bowContext.lineTo(92, 104);
+  bowContext.closePath();
+  bowContext.fill();
+  bowContext.beginPath();
+  bowContext.moveTo(44, 88);
+  bowContext.lineTo(68, 82);
+  bowContext.lineTo(58, 136);
+  bowContext.closePath();
+  bowContext.fill();
+  bowContext.beginPath();
+  bowContext.moveTo(140, 88);
+  bowContext.lineTo(116, 82);
+  bowContext.lineTo(126, 136);
+  bowContext.closePath();
+  bowContext.fill();
+
+  bowContext.fillStyle = STORY_SCRAPBOOK_PINK;
+  bowContext.beginPath();
+  bowContext.ellipse(47, 64, 24, 22, 0, 0, Math.PI * 2);
+  bowContext.fill();
+  bowContext.fillStyle = STORY_SCRAPBOOK_GREEN;
+  bowContext.beginPath();
+  bowContext.ellipse(133, 64, 24, 22, 0, 0, Math.PI * 2);
+  bowContext.fill();
+  bowContext.fillStyle = STORY_SCRAPBOOK_BUTTER;
+  bowContext.beginPath();
+  bowContext.moveTo(80, 80);
+  bowContext.lineTo(92, 70);
+  bowContext.lineTo(106, 80);
+  bowContext.lineTo(92, 96);
+  bowContext.closePath();
+  bowContext.fill();
+
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(degreesToRadians(angle));
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 8;
+  context.shadowColor = "rgba(41, 21, 18, 0.11)";
+  context.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  context.shadowColor = "transparent";
+  context.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  context.restore();
+}
+
+function drawStoryScrapbookBadge({
+  context,
+  centerX,
+  centerY,
+  text,
+  color,
+  angle = 0,
+}: {
+  context: CanvasRenderingContext2D;
+  centerX: number;
+  centerY: number;
+  text: string;
+  color: string;
+  angle?: number;
+}) {
+  const { canvas, context: badgeContext } = createCanvasContext(188, 70);
+  badgeContext.fillStyle = color;
+  buildRoundedRectPath(badgeContext, 0, 0, canvas.width, canvas.height, 28);
+  badgeContext.fill();
+  badgeContext.fillStyle = STORY_SCRAPBOOK_WHITE;
+  badgeContext.font = `700 24px ui-sans-serif, system-ui, sans-serif`;
+  badgeContext.textAlign = "center";
+  badgeContext.textBaseline = "middle";
+  setCanvasLetterSpacing(badgeContext, "0.1em");
+  badgeContext.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
+  setCanvasLetterSpacing(badgeContext, "0px");
+
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(degreesToRadians(angle));
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 8;
+  context.shadowColor = "rgba(41, 21, 18, 0.1)";
+  context.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  context.shadowColor = "transparent";
+  context.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  context.restore();
+}
+
+function drawStoryScrapbookLocationTicket({
+  context,
+  centerX,
+  centerY,
+  locationLabel,
+  tone,
+}: {
+  context: CanvasRenderingContext2D;
+  centerX: number;
+  centerY: number;
+  locationLabel: string;
+  tone: string;
+}) {
+  const city = locationLabel.split(",")[0]?.trim() || "COLOR HUNT";
+  const region = locationLabel.split(",").slice(1).join(",").trim() || locationLabel.trim() || "POSTER CLUB";
+  const { canvas, context: ticketContext } = createCanvasContext(292, 102);
+
+  ticketContext.fillStyle = STORY_SCRAPBOOK_WHITE;
+  buildRoundedRectPath(ticketContext, 0, 0, canvas.width, canvas.height, 24);
+  ticketContext.fill();
+  ticketContext.strokeStyle = "rgba(229, 214, 202, 1)";
+  ticketContext.lineWidth = 2;
+  buildRoundedRectPath(ticketContext, 0, 0, canvas.width, canvas.height, 24);
+  ticketContext.stroke();
+
+  ticketContext.fillStyle = tone;
+  ticketContext.fillRect(22, 20, 62, 62);
+  ticketContext.fillStyle = STORY_SCRAPBOOK_PINK;
+  ticketContext.fillRect(90, 20, 22, 62);
+
+  const citySize = fitFontSizeToWidth({
+    context: ticketContext,
+    text: city.toUpperCase(),
+    maxWidth: 136,
+    initialSize: 13,
+    minSize: 10,
+    fontFamily: `"Cormorant Garamond", Georgia, serif`,
+    fontWeight: 700,
+  });
+  const regionSize = fitFontSizeToWidth({
+    context: ticketContext,
+    text: region.toUpperCase(),
+    maxWidth: 136,
+    initialSize: 22,
+    minSize: 14,
+    fontFamily: `"Cormorant Garamond", Georgia, serif`,
+    fontWeight: 700,
+  });
+
+  ticketContext.fillStyle = STORY_SCRAPBOOK_SOFT_INK;
+  ticketContext.font = `700 ${citySize}px "Cormorant Garamond", Georgia, serif`;
+  ticketContext.textAlign = "left";
+  ticketContext.textBaseline = "top";
+  ticketContext.fillText(city.toUpperCase(), 132, 22);
+  ticketContext.fillStyle = STORY_SCRAPBOOK_INK;
+  ticketContext.font = `700 ${regionSize}px "Cormorant Garamond", Georgia, serif`;
+  ticketContext.fillText(region.toUpperCase(), 132, 44);
+
+  context.save();
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 8;
+  context.shadowColor = "rgba(41, 21, 18, 0.1)";
+  context.drawImage(canvas, centerX - canvas.width / 2, centerY - canvas.height / 2);
+  context.shadowColor = "transparent";
+  context.drawImage(canvas, centerX - canvas.width / 2, centerY - canvas.height / 2);
+  context.restore();
+}
+
+async function renderStoryScrapbookBlob({
+  data,
+}: {
+  data: PosterCaptureData;
+}) {
+  const format = getPosterExportFormat("story");
+  const { canvas, context } = createCanvasContext(format.width, format.height);
+
+  await ensureFontsReady();
+  drawStoryScrapbookPaperBackground(context, canvas.width, canvas.height);
+
+  const loadedImages = await Promise.all(
+    data.photoUrls.map(async (sourceUrl) => {
+      if (!sourceUrl) {
+        return null;
+      }
+
+      try {
+        return await loadPosterImage(sourceUrl);
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const titleFontFamily = `"Cormorant Garamond", Georgia, serif`;
+  const colorTone = data.posterTone || STORY_SCRAPBOOK_GREEN;
+  const titleStrokeWidth = 7;
+  const titleY = 166;
+  const issueY = 236;
+  const titleGap = 26;
+  const titleStartX = 92;
+  const baseTitleSize = 74;
+  const colorWord = data.missionColorName.toUpperCase();
+
+  context.fillStyle = STORY_SCRAPBOOK_INK;
+  context.font = `700 18px ui-sans-serif, system-ui, sans-serif`;
+  context.textAlign = "left";
+  context.textBaseline = "top";
+  setCanvasLetterSpacing(context, "0.18em");
+  context.fillText("COLOR HUNT SOCIAL CLUB", 88, 92);
+  setCanvasLetterSpacing(context, "0px");
+
+  context.font = `italic 400 22px ${titleFontFamily}`;
+  context.fillStyle = "rgba(75, 87, 112, 0.64)";
+  context.fillText("summer scrapbook issue", 88, 122);
+
+  const theText = "THE";
+  const issueText = "ISSUE";
+  const theSize = fitFontSizeToWidth({
+    context,
+    text: theText,
+    maxWidth: 148,
+    initialSize: baseTitleSize,
+    minSize: 60,
+    fontFamily: titleFontFamily,
+  });
+  const colorSize = fitFontSizeToWidth({
+    context,
+    text: colorWord,
+    maxWidth: 470,
+    initialSize: baseTitleSize,
+    minSize: 54,
+    fontFamily: titleFontFamily,
+  });
+  const issueSize = fitFontSizeToWidth({
+    context,
+    text: issueText,
+    maxWidth: 340,
+    initialSize: baseTitleSize,
+    minSize: 56,
+    fontFamily: titleFontFamily,
+  });
+
+  context.font = `700 ${theSize}px ${titleFontFamily}`;
+  const theWidth = context.measureText(theText).width;
+  context.font = `700 ${colorSize}px ${titleFontFamily}`;
+  const colorWidth = context.measureText(colorWord).width;
+  const firstLineWidth = theWidth + titleGap + colorWidth;
+  const issueCenterX = titleStartX + firstLineWidth / 2 + 18;
+
+  context.textBaseline = "top";
+  context.textAlign = "left";
+  context.font = `700 ${theSize}px ${titleFontFamily}`;
+  drawStrokedFillText({
+    context,
+    text: theText,
+    x: titleStartX,
+    y: titleY,
+    fillStyle: STORY_SCRAPBOOK_PINK,
+    strokeStyle: STORY_SCRAPBOOK_WHITE,
+    strokeWidth: titleStrokeWidth,
+  });
+  context.font = `700 ${colorSize}px ${titleFontFamily}`;
+  drawStrokedFillText({
+    context,
+    text: colorWord,
+    x: titleStartX + theWidth + titleGap,
+    y: titleY,
+    fillStyle: colorTone,
+    strokeStyle: STORY_SCRAPBOOK_WHITE,
+    strokeWidth: titleStrokeWidth,
+  });
+  context.font = `700 ${issueSize}px ${titleFontFamily}`;
+  context.textAlign = "center";
+  drawStrokedFillText({
+    context,
+    text: issueText,
+    x: issueCenterX,
+    y: issueY,
+    fillStyle: STORY_SCRAPBOOK_INK,
+    strokeStyle: STORY_SCRAPBOOK_WHITE,
+    strokeWidth: titleStrokeWidth,
+  });
+
+  context.textAlign = "left";
+  context.font = `400 26px ${titleFontFamily}`;
+  context.fillStyle = "rgba(75, 87, 112, 0.7)";
+  context.fillText(`Exploring ${data.locationLabel} • ${data.tripYear}`, 92, 320);
+
+  drawStoryScrapbookLocationTicket({
+    context,
+    centerX: 838,
+    centerY: 242,
+    locationLabel: data.locationLabel,
+    tone: colorTone,
+  });
+
+  STORY_SCRAPBOOK_SLOTS.forEach((slot, index) => {
+    const card = makeStoryScrapbookCard({
+      slot,
+      image: loadedImages[index] ?? null,
+      index,
+    });
+    const shadow = getStoryScrapbookShadow(slot);
+
+    context.save();
+    context.translate(slot.centerX, slot.centerY);
+    context.rotate(degreesToRadians(slot.angle));
+    context.shadowBlur = shadow.blur;
+    context.shadowOffsetX = shadow.offsetX;
+    context.shadowOffsetY = shadow.offsetY;
+    context.shadowColor = shadow.color;
+    context.drawImage(card, -card.width / 2, -card.height / 2);
+    context.shadowColor = "transparent";
+    context.drawImage(card, -card.width / 2, -card.height / 2);
+    context.restore();
+  });
+
+  const bubbleColorText = data.missionColorName.trim().toLowerCase();
+  drawStoryScrapbookSpeechBubble({
+    context,
+    centerX: 680,
+    centerY: 670,
+    width: 360,
+    text: `${bubbleColorText} on ${bubbleColorText}?`,
+  });
+  drawStoryScrapbookBadge({
+    context,
+    centerX: 256,
+    centerY: 1510,
+    text: "WEEKEND",
+    color: STORY_SCRAPBOOK_CORAL,
+    angle: -6,
+  });
+  drawStoryScrapbookBadge({
+    context,
+    centerX: 742,
+    centerY: 1588,
+    text: "CLUB PICK",
+    color: STORY_SCRAPBOOK_GREEN,
+    angle: 5,
+  });
+  drawStoryScrapbookBow({
+    context,
+    centerX: 896,
+    centerY: 1542,
+    angle: 11,
+  });
+  drawStoryScrapbookBow({
+    context,
+    centerX: 126,
+    centerY: 930,
+    angle: -18,
+  });
+
+  context.font = `700 20px ui-sans-serif, system-ui, sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "top";
+  setCanvasLetterSpacing(context, "0.06em");
+  context.fillStyle = "rgba(75, 87, 112, 0.56)";
+  context.fillText("TURN ONE COLOR INTO A KEEPSAKE WORTH POSTING", canvas.width / 2, 1812);
+  setCanvasLetterSpacing(context, "0px");
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Couldn't prepare the scrapbook poster image."));
         return;
       }
 
