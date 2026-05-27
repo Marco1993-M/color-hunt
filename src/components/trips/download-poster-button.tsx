@@ -30,6 +30,10 @@ type PosterDownloadOption = {
   previewClassName: string;
 };
 
+function requiresPreparedDownload(themeId: PosterThemeId) {
+  return themeId === "story-collage" || themeId === "story-scrapbook";
+}
+
 export function DownloadPosterButton({
   shareId,
   exportUrls,
@@ -67,6 +71,15 @@ export function DownloadPosterButton({
               fileSuffix: "story-collage-9x16",
               previewClassName: "download-format-preview-story-collage",
             },
+            {
+              key: "story-scrapbook",
+              formatId: "story" as const,
+              themeId: "story-scrapbook" as const,
+              label: "Story scrapbook",
+              description: "Scrapbook-pop 9:16",
+              fileSuffix: "story-scrapbook-9x16",
+              previewClassName: "download-format-preview-story-scrapbook",
+            },
           ]
         : []),
     ],
@@ -88,7 +101,7 @@ export function DownloadPosterButton({
         themeId: option.themeId,
       });
 
-      if (option.themeId === "story-collage") {
+      if (requiresPreparedDownload(option.themeId)) {
         const objectUrl = URL.createObjectURL(blob);
         const previousUrl = preparedUrlRefs.current[option.key];
 
@@ -119,13 +132,11 @@ export function DownloadPosterButton({
       return;
     }
 
-    const collageOption = options.find((option) => option.themeId === "story-collage");
-
-    if (!collageOption) {
-      return;
-    }
-
-    void warmOption(collageOption);
+    options
+      .filter((option) => requiresPreparedDownload(option.themeId))
+      .forEach((option) => {
+        void warmOption(option);
+      });
   }
 
   useEffect(() => {
@@ -142,24 +153,25 @@ export function DownloadPosterButton({
       return;
     }
 
-    const collageOption = options.find((option) => option.themeId === "story-collage");
+    options
+      .filter((option) => requiresPreparedDownload(option.themeId))
+      .forEach((option) => {
+        if (
+          preparedOptions[option.key] ||
+          warmingOptions[option.key] ||
+          failedOptions[option.key]
+        ) {
+          return;
+        }
 
-    if (
-      !collageOption ||
-      preparedOptions[collageOption.key] ||
-      warmingOptions[collageOption.key] ||
-      failedOptions[collageOption.key]
-    ) {
-      return;
-    }
-
-    void warmOption(collageOption);
+        void warmOption(option);
+      });
   }, [failedOptions, isOpen, options, posterData, preparedOptions, warmingOptions]);
 
   async function handleDownload(option: PosterDownloadOption) {
     setError(null);
 
-    if (option.themeId === "story-collage") {
+    if (requiresPreparedDownload(option.themeId)) {
       const preparedUrl = preparedDownloadUrls[option.key];
 
       if (!preparedUrl) {
@@ -168,8 +180,8 @@ export function DownloadPosterButton({
         }
         setError(
           failedOptions[option.key]
-            ? "Couldn't prepare the collage template."
-            : "Story collage is still warming up.",
+            ? `Couldn't prepare the ${option.label.toLowerCase()}.`
+            : `${option.label} is still warming up.`,
         );
         return;
       }
@@ -278,7 +290,7 @@ export function DownloadPosterButton({
               disabled={
                 isPending ||
                 warmingOptions[option.key] ||
-                (option.themeId === "story-collage" && !preparedDownloadUrls[option.key]) ||
+                (requiresPreparedDownload(option.themeId) && !preparedDownloadUrls[option.key]) ||
                 (!posterData && !exportUrls?.[option.formatId])
               }
             >
@@ -293,7 +305,7 @@ export function DownloadPosterButton({
                     ? "Warming..."
                     : failedOptions[option.key]
                     ? "Unavailable"
-                    : option.themeId === "story-collage" && !preparedDownloadUrls[option.key]
+                    : requiresPreparedDownload(option.themeId) && !preparedDownloadUrls[option.key]
                     ? "Warming..."
                     : option.label}
                 </span>
