@@ -1887,9 +1887,9 @@ async function renderStoryScrapbookBlob({
 
   context.lineJoin = "round";
   context.miterLimit = 2;
-  context.shadowBlur = 10;
-  context.shadowOffsetY = 7;
-  context.shadowColor = "rgba(34, 24, 18, 0.18)";
+  context.shadowBlur = 0;
+  context.shadowOffsetY = 0;
+  context.shadowColor = "transparent";
 
   context.font = `700 ${theSize}px ${titleFontFamily}`;
   const theWidth = context.measureText(theText).width;
