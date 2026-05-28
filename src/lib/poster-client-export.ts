@@ -1834,14 +1834,12 @@ async function renderStoryScrapbookBlob({
 
   context.drawImage(templateAssets.overlay, 0, 0, canvas.width, canvas.height);
 
-  const scaleX = canvas.width / STORY_SCRAPBOOK_TEMPLATE_WIDTH;
-  const scaleY = canvas.height / STORY_SCRAPBOOK_TEMPLATE_HEIGHT;
   const titleFontFamily = `"Arial Rounded MT Bold", "Arial Black", ui-sans-serif, system-ui, sans-serif`;
   const serifFontFamily = `"Cormorant Garamond", Georgia, serif`;
-  const titleStartX = 92 * scaleX;
-  const titleGap = 28 * scaleX;
-  const titleTopY = 138 * scaleY;
-  const titleSecondLineY = 286 * scaleY;
+  const titleStartX = 88;
+  const titleGap = 26;
+  const titleTopY = 148;
+  const titleSecondLineY = 286;
   const colorWord = data.missionColorName.toUpperCase();
   const theText = "THE";
   const huntText = "HUNT";
@@ -1850,48 +1848,48 @@ async function renderStoryScrapbookBlob({
   context.textAlign = "left";
   context.textBaseline = "top";
   context.fillStyle = STORY_SCRAPBOOK_INK;
-  context.font = `700 ${18 * scaleY}px ui-sans-serif, system-ui, sans-serif`;
+  context.font = "700 18px ui-sans-serif, system-ui, sans-serif";
   setCanvasLetterSpacing(context, "0.18em");
-  context.fillText("COLOR HUNT SOCIAL CLUB", 88 * scaleX, 92 * scaleY);
+  context.fillText("COLOR HUNT SOCIAL CLUB", 88, 76);
   setCanvasLetterSpacing(context, "0px");
 
-  context.font = `italic 400 ${22 * scaleY}px ${serifFontFamily}`;
+  context.font = `italic 400 24px ${serifFontFamily}`;
   context.fillStyle = "rgba(75, 87, 112, 0.64)";
-  context.fillText("summer scrapbook chapter", 88 * scaleX, 122 * scaleY);
+  context.fillText("summer scrapbook chapter", 88, 116);
 
   const theSize = fitFontSizeToWidth({
     context,
     text: theText,
-    maxWidth: 320 * scaleX,
-    initialSize: 104 * scaleY,
-    minSize: 72 * scaleY,
+    maxWidth: 280,
+    initialSize: 118,
+    minSize: 86,
     fontFamily: titleFontFamily,
     fontWeight: 700,
   });
   const colorSize = fitFontSizeToWidth({
     context,
     text: colorWord,
-    maxWidth: 860 * scaleX,
-    initialSize: 104 * scaleY,
-    minSize: 64 * scaleY,
+    maxWidth: 660,
+    initialSize: 118,
+    minSize: 76,
     fontFamily: titleFontFamily,
     fontWeight: 700,
   });
   const huntSize = fitFontSizeToWidth({
     context,
     text: huntText,
-    maxWidth: 620 * scaleX,
-    initialSize: 104 * scaleY,
-    minSize: 68 * scaleY,
+    maxWidth: 420,
+    initialSize: 118,
+    minSize: 82,
     fontFamily: titleFontFamily,
     fontWeight: 700,
   });
 
   context.lineJoin = "round";
   context.miterLimit = 2;
-  context.shadowBlur = 8 * scaleX;
-  context.shadowOffsetY = 6 * scaleY;
-  context.shadowColor = "rgba(34, 24, 18, 0.16)";
+  context.shadowBlur = 10;
+  context.shadowOffsetY = 7;
+  context.shadowColor = "rgba(34, 24, 18, 0.18)";
 
   context.font = `700 ${theSize}px ${titleFontFamily}`;
   const theWidth = context.measureText(theText).width;
@@ -1900,9 +1898,9 @@ async function renderStoryScrapbookBlob({
     text: theText,
     x: titleStartX,
     y: titleTopY,
-    fillStyle: STORY_SCRAPBOOK_GREEN,
+    fillStyle: STORY_SCRAPBOOK_PINK,
     strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 22 * scaleX,
+    strokeWidth: 18,
   });
 
   context.font = `700 ${colorSize}px ${titleFontFamily}`;
@@ -1913,7 +1911,7 @@ async function renderStoryScrapbookBlob({
     y: titleTopY,
     fillStyle: data.posterTone || STORY_SCRAPBOOK_GREEN,
     strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 22 * scaleX,
+    strokeWidth: 18,
   });
 
   context.font = `700 ${huntSize}px ${titleFontFamily}`;
@@ -1924,23 +1922,23 @@ async function renderStoryScrapbookBlob({
     y: titleSecondLineY,
     fillStyle: STORY_SCRAPBOOK_GREEN,
     strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 22 * scaleX,
+    strokeWidth: 18,
   });
 
   const subtitleText = `Exploring ${data.locationLabel} · ${data.tripYear}`;
   const subtitleSize = fitFontSizeToWidth({
     context,
     text: subtitleText,
-    maxWidth: 1080 * scaleX,
-    initialSize: 24 * scaleY,
-    minSize: 18 * scaleY,
+    maxWidth: 760,
+    initialSize: 32,
+    minSize: 22,
     fontFamily: serifFontFamily,
     fontWeight: 400,
   });
   context.shadowColor = "transparent";
   context.font = `400 ${subtitleSize}px ${serifFontFamily}`;
   context.fillStyle = "rgba(75, 87, 112, 0.72)";
-  context.fillText(subtitleText, 92 * scaleX, 420 * scaleY);
+  context.fillText(subtitleText, 88, 432);
   context.restore();
 
   return await new Promise<Blob>((resolve, reject) => {
