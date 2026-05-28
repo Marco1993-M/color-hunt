@@ -47,6 +47,28 @@ type StoryScrapbookSlot = {
   focalY?: number;
 };
 
+type StoryScrapbookTemplateSlotSpec = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zoom?: number;
+  focalX?: number;
+  focalY?: number;
+  matchesColor: (red: number, green: number, blue: number, alpha: number) => boolean;
+};
+
+type StoryScrapbookTemplateSlotAsset = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zoom?: number;
+  focalX?: number;
+  focalY?: number;
+  maskCanvas: HTMLCanvasElement;
+};
+
 type ManualLayout = {
   canvasPaddingX: number;
   canvasPaddingY: number;
@@ -69,6 +91,9 @@ type ManualLayout = {
 const STORY_COLLAGE_TEMPLATE_URL = "/poster-template-story-collage.png";
 const STORY_COLLAGE_TEMPLATE_WIDTH = 1974;
 const STORY_COLLAGE_TEMPLATE_HEIGHT = 3508;
+const STORY_SCRAPBOOK_TEMPLATE_URL = "/poster-template-story-scrapbook.png";
+const STORY_SCRAPBOOK_TEMPLATE_WIDTH = 1974;
+const STORY_SCRAPBOOK_TEMPLATE_HEIGHT = 3508;
 const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 761, y: 323, width: 269, height: 370, role: "color-card" },
   { x: 991, y: 485, width: 788, height: 1029, zoom: 1.04, focalX: 0.52, focalY: 0.42, role: "hero" },
@@ -130,6 +155,98 @@ const STORY_SCRAPBOOK_BUTTER = "#f3d76f";
 const STORY_SCRAPBOOK_LILAC = "#ceb8ec";
 const STORY_SCRAPBOOK_PEACH = "#f5c8b8";
 const STORY_SCRAPBOOK_MINT = "#bfe3d2";
+const STORY_SCRAPBOOK_TEMPLATE_SLOTS: StoryScrapbookTemplateSlotSpec[] = [
+  {
+    x: 238,
+    y: 891,
+    width: 707,
+    height: 474,
+    zoom: 1.03,
+    focalX: 0.5,
+    focalY: 0.45,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 220 && g >= 165 && g <= 210 && b >= 45 && b <= 105,
+  },
+  {
+    x: 927,
+    y: 956,
+    width: 544,
+    height: 544,
+    zoom: 1.06,
+    focalX: 0.5,
+    focalY: 0.42,
+    matchesColor: (r, g, b, a) => a > 250 && r <= 30 && g >= 70 && g <= 120 && b <= 30,
+  },
+  {
+    x: 1377,
+    y: 1188,
+    width: 436,
+    height: 664,
+    zoom: 1.04,
+    focalX: 0.5,
+    focalY: 0.46,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 240 && g >= 120 && g <= 170 && b <= 80,
+  },
+  {
+    x: 178,
+    y: 1449,
+    width: 829,
+    height: 529,
+    zoom: 1.02,
+    focalX: 0.48,
+    focalY: 0.48,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 140 && r <= 190 && g >= 140 && g <= 190 && b >= 140 && b <= 190,
+  },
+  {
+    x: 984,
+    y: 1750,
+    width: 592,
+    height: 595,
+    zoom: 1.06,
+    focalX: 0.5,
+    focalY: 0.44,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 190 && g <= 70 && b >= 20 && b <= 120,
+  },
+  {
+    x: 132,
+    y: 2067,
+    width: 472,
+    height: 621,
+    zoom: 1.03,
+    focalX: 0.48,
+    focalY: 0.42,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 180 && r <= 235 && g >= 220 && b <= 120,
+  },
+  {
+    x: 644,
+    y: 2234,
+    width: 419,
+    height: 576,
+    zoom: 1.04,
+    focalX: 0.5,
+    focalY: 0.44,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 40 && r <= 120 && g >= 200 && b >= 140 && b <= 225,
+  },
+  {
+    x: 281,
+    y: 2803,
+    width: 552,
+    height: 383,
+    zoom: 1.05,
+    focalX: 0.5,
+    focalY: 0.48,
+    matchesColor: (r, g, b, a) => a > 250 && r <= 100 && g <= 100 && b >= 220,
+  },
+  {
+    x: 1126,
+    y: 2402,
+    width: 651,
+    height: 863,
+    zoom: 1.02,
+    focalX: 0.5,
+    focalY: 0.46,
+    matchesColor: (r, g, b, a) => a > 250 && r >= 60 && r <= 110 && g >= 190 && b >= 215,
+  },
+];
 const STORY_SCRAPBOOK_SLOTS: StoryScrapbookSlot[] = [
   {
     kind: "frame",
@@ -242,6 +359,9 @@ const STORY_SCRAPBOOK_SLOTS: StoryScrapbookSlot[] = [
 ];
 
 let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
+let storyScrapbookTemplatePromise:
+  | Promise<{ overlay: HTMLCanvasElement; slots: StoryScrapbookTemplateSlotAsset[] }>
+  | null = null;
 const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
 
 function setCanvasLetterSpacing(context: CanvasRenderingContext2D, value: string) {
@@ -716,6 +836,80 @@ async function loadStoryCollageOverlay(targetWidth: number, targetHeight: number
   }
 
   return await storyCollageOverlayPromise;
+}
+
+async function loadStoryScrapbookTemplateAssets(targetWidth: number, targetHeight: number) {
+  if (!storyScrapbookTemplatePromise) {
+    storyScrapbookTemplatePromise = (async () => {
+      let templateImage: HTMLImageElement;
+
+      try {
+        templateImage = await loadStaticImage(STORY_SCRAPBOOK_TEMPLATE_URL);
+      } catch {
+        storyScrapbookTemplatePromise = null;
+        throw new Error("Couldn't fetch the scrapbook template.");
+      }
+
+      const { canvas: overlayCanvas, context: overlayContext } = createCanvasContext(targetWidth, targetHeight);
+      overlayContext.drawImage(templateImage, 0, 0, targetWidth, targetHeight);
+      const overlayImageData = overlayContext.getImageData(0, 0, targetWidth, targetHeight);
+      const overlayPixels = overlayImageData.data;
+      const scaleX = targetWidth / STORY_SCRAPBOOK_TEMPLATE_WIDTH;
+      const scaleY = targetHeight / STORY_SCRAPBOOK_TEMPLATE_HEIGHT;
+
+      const slots = STORY_SCRAPBOOK_TEMPLATE_SLOTS.map((slot) => {
+        const x = Math.round(slot.x * scaleX);
+        const y = Math.round(slot.y * scaleY);
+        const width = Math.round(slot.width * scaleX);
+        const height = Math.round(slot.height * scaleY);
+        const { canvas: maskCanvas, context: maskContext } = createCanvasContext(width, height);
+        const maskImageData = maskContext.createImageData(width, height);
+        const maskPixels = maskImageData.data;
+
+        for (let localY = 0; localY < height; localY += 1) {
+          for (let localX = 0; localX < width; localX += 1) {
+            const sourceX = x + localX;
+            const sourceY = y + localY;
+            const overlayIndex = (sourceY * targetWidth + sourceX) * 4;
+            const red = overlayPixels[overlayIndex];
+            const green = overlayPixels[overlayIndex + 1];
+            const blue = overlayPixels[overlayIndex + 2];
+            const alpha = overlayPixels[overlayIndex + 3];
+
+            if (!slot.matchesColor(red, green, blue, alpha)) {
+              continue;
+            }
+
+            const maskIndex = (localY * width + localX) * 4;
+            maskPixels[maskIndex] = 255;
+            maskPixels[maskIndex + 1] = 255;
+            maskPixels[maskIndex + 2] = 255;
+            maskPixels[maskIndex + 3] = 255;
+            overlayPixels[overlayIndex + 3] = 0;
+          }
+        }
+
+        maskContext.putImageData(maskImageData, 0, 0);
+
+        return {
+          x,
+          y,
+          width,
+          height,
+          zoom: slot.zoom,
+          focalX: slot.focalX,
+          focalY: slot.focalY,
+          maskCanvas,
+        };
+      });
+
+      overlayContext.putImageData(overlayImageData, 0, 0);
+
+      return { overlay: overlayCanvas, slots };
+    })();
+  }
+
+  return await storyScrapbookTemplatePromise;
 }
 
 async function ensureFontsReady() {
@@ -1552,6 +1746,55 @@ function drawStoryScrapbookLocationTicket({
   context.restore();
 }
 
+function drawStoryScrapbookTemplateSlot({
+  context,
+  image,
+  slot,
+  fallbackColor,
+}: {
+  context: CanvasRenderingContext2D;
+  image: HTMLImageElement | null;
+  slot: StoryScrapbookTemplateSlotAsset;
+  fallbackColor: string;
+}) {
+  const { canvas: slotCanvas, context: slotContext } = createCanvasContext(slot.width, slot.height);
+
+  if (image) {
+    const zoom = slot.zoom ?? 1.04;
+    const focalX = slot.focalX ?? 0.5;
+    const focalY = slot.focalY ?? 0.45;
+    const scale = Math.max(slot.width / image.width, slot.height / image.height) * zoom;
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    const overflowX = Math.max(0, drawWidth - slot.width);
+    const overflowY = Math.max(0, drawHeight - slot.height);
+    const drawX = -overflowX * focalX;
+    const drawY = -overflowY * focalY;
+
+    slotContext.filter = "saturate(0.97) contrast(0.98) brightness(1.02)";
+    slotContext.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    slotContext.filter = "none";
+
+    const gloss = slotContext.createLinearGradient(0, 0, 0, slot.height);
+    gloss.addColorStop(0, "rgba(255,255,255,0.12)");
+    gloss.addColorStop(0.28, "rgba(255,248,242,0.04)");
+    gloss.addColorStop(1, "rgba(78,54,36,0.06)");
+    slotContext.fillStyle = gloss;
+    slotContext.fillRect(0, 0, slot.width, slot.height);
+  } else {
+    const fallback = slotContext.createLinearGradient(0, 0, slot.width, slot.height);
+    fallback.addColorStop(0, rgba(fallbackColor, 0.8));
+    fallback.addColorStop(1, "rgba(255,255,255,0.62)");
+    slotContext.fillStyle = fallback;
+    slotContext.fillRect(0, 0, slot.width, slot.height);
+  }
+
+  slotContext.globalCompositeOperation = "destination-in";
+  slotContext.drawImage(slot.maskCanvas, 0, 0, slot.width, slot.height);
+  slotContext.globalCompositeOperation = "source-over";
+  context.drawImage(slotCanvas, slot.x, slot.y, slot.width, slot.height);
+}
+
 async function renderStoryScrapbookBlob({
   data,
 }: {
@@ -1563,175 +1806,73 @@ async function renderStoryScrapbookBlob({
   await ensureFontsReady();
   drawStoryScrapbookPaperBackground(context, canvas.width, canvas.height);
 
-  const loadedImages = await Promise.all(
-    data.photoUrls.map(async (sourceUrl) => {
-      if (!sourceUrl) {
-        return null;
-      }
+  const [templateAssets, loadedImages] = await Promise.all([
+    loadStoryScrapbookTemplateAssets(canvas.width, canvas.height),
+    Promise.all(
+      data.photoUrls.map(async (sourceUrl) => {
+        if (!sourceUrl) {
+          return null;
+        }
 
-      try {
-        return await loadPosterImage(sourceUrl);
-      } catch {
-        return null;
-      }
-    }),
-  );
+        try {
+          return await loadPosterImage(sourceUrl);
+        } catch {
+          return null;
+        }
+      }),
+    ),
+  ]);
 
-  const titleFontFamily = `"Cormorant Garamond", Georgia, serif`;
-  const colorTone = data.posterTone || STORY_SCRAPBOOK_GREEN;
-  const titleStrokeWidth = 7;
-  const titleY = 166;
-  const huntY = 246;
-  const titleGap = 28;
-  const titleStartX = 92;
-  const baseTitleSize = 88;
-  const colorWord = data.missionColorName.toUpperCase();
+  templateAssets.slots.forEach((slot, index) => {
+    drawStoryScrapbookTemplateSlot({
+      context,
+      image: loadedImages[index] ?? null,
+      slot,
+      fallbackColor: data.posterTone || STORY_SCRAPBOOK_GREEN,
+    });
+  });
 
-  context.fillStyle = STORY_SCRAPBOOK_INK;
-  context.font = `700 18px ui-sans-serif, system-ui, sans-serif`;
+  context.drawImage(templateAssets.overlay, 0, 0, canvas.width, canvas.height);
+
+  const scaleX = canvas.width / STORY_SCRAPBOOK_TEMPLATE_WIDTH;
+  const scaleY = canvas.height / STORY_SCRAPBOOK_TEMPLATE_HEIGHT;
+
+  context.save();
+  context.fillStyle = STORY_SCRAPBOOK_PAPER;
+  context.fillRect(78 * scaleX, 134 * scaleY, 520 * scaleX, 62 * scaleY);
+  context.fillStyle = "rgba(75, 87, 112, 0.64)";
+  context.font = `${22 * scaleY}px "Cormorant Garamond", Georgia, serif`;
   context.textAlign = "left";
   context.textBaseline = "top";
-  setCanvasLetterSpacing(context, "0.18em");
-  context.fillText("COLOR HUNT SOCIAL CLUB", 88, 92);
-  setCanvasLetterSpacing(context, "0px");
+  context.fillText("summer scrapbook chapter", 90 * scaleX, 140 * scaleY);
 
-  context.font = `italic 400 22px ${titleFontFamily}`;
-  context.fillStyle = "rgba(75, 87, 112, 0.64)";
-  context.fillText("summer scrapbook issue", 88, 122);
-
-  const theText = "THE";
+  const huntFontFamily = `"Arial Rounded MT Bold", "Arial Black", ui-sans-serif, system-ui, sans-serif`;
   const huntText = "HUNT";
-  const theSize = fitFontSizeToWidth({
-    context,
-    text: theText,
-    maxWidth: 180,
-    initialSize: baseTitleSize,
-    minSize: 68,
-    fontFamily: titleFontFamily,
-  });
-  const colorSize = fitFontSizeToWidth({
-    context,
-    text: colorWord,
-    maxWidth: 540,
-    initialSize: baseTitleSize,
-    minSize: 62,
-    fontFamily: titleFontFamily,
-  });
   const huntSize = fitFontSizeToWidth({
     context,
     text: huntText,
-    maxWidth: 360,
-    initialSize: baseTitleSize,
-    minSize: 64,
-    fontFamily: titleFontFamily,
+    maxWidth: 560 * scaleX,
+    initialSize: 186 * scaleY,
+    minSize: 130 * scaleY,
+    fontFamily: huntFontFamily,
+    fontWeight: 700,
   });
-
-  context.font = `700 ${theSize}px ${titleFontFamily}`;
-  const theWidth = context.measureText(theText).width;
-
-  context.textBaseline = "top";
-  context.textAlign = "left";
-  context.font = `700 ${theSize}px ${titleFontFamily}`;
-  drawStrokedFillText({
-    context,
-    text: theText,
-    x: titleStartX,
-    y: titleY,
-    fillStyle: STORY_SCRAPBOOK_PINK,
-    strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: titleStrokeWidth,
-  });
-  context.font = `700 ${colorSize}px ${titleFontFamily}`;
-  drawStrokedFillText({
-    context,
-    text: colorWord,
-    x: titleStartX + theWidth + titleGap,
-    y: titleY,
-    fillStyle: colorTone,
-    strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: titleStrokeWidth,
-  });
-  context.font = `700 ${huntSize}px ${titleFontFamily}`;
+  context.font = `700 ${huntSize}px ${huntFontFamily}`;
+  context.lineJoin = "round";
+  context.miterLimit = 2;
+  context.shadowBlur = 8 * scaleX;
+  context.shadowOffsetY = 6 * scaleY;
+  context.shadowColor = "rgba(34, 24, 18, 0.16)";
   drawStrokedFillText({
     context,
     text: huntText,
-    x: titleStartX,
-    y: huntY,
-    fillStyle: STORY_SCRAPBOOK_INK,
+    x: 92 * scaleX,
+    y: 508 * scaleY,
+    fillStyle: "#0b6a1f",
     strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: titleStrokeWidth,
+    strokeWidth: 24 * scaleX,
   });
-
-  context.textAlign = "left";
-  context.font = `400 26px ${titleFontFamily}`;
-  context.fillStyle = "rgba(75, 87, 112, 0.7)";
-  context.fillText(`Exploring ${data.locationLabel} • ${data.tripYear}`, 92, 338);
-
-  STORY_SCRAPBOOK_SLOTS.forEach((slot, index) => {
-    const card = makeStoryScrapbookCard({
-      slot,
-      image: loadedImages[index] ?? null,
-      index,
-    });
-    const shadow = getStoryScrapbookShadow(slot);
-
-    context.save();
-    context.translate(slot.centerX, slot.centerY);
-    context.rotate(degreesToRadians(slot.angle));
-    context.shadowBlur = shadow.blur;
-    context.shadowOffsetX = shadow.offsetX;
-    context.shadowOffsetY = shadow.offsetY;
-    context.shadowColor = shadow.color;
-    context.drawImage(card, -card.width / 2, -card.height / 2);
-    context.shadowColor = "transparent";
-    context.drawImage(card, -card.width / 2, -card.height / 2);
-    context.restore();
-  });
-
-  const bubbleColorText = data.missionColorName.trim().toLowerCase();
-  drawStoryScrapbookSpeechBubble({
-    context,
-    centerX: 680,
-    centerY: 670,
-    width: 360,
-    text: `${bubbleColorText} on ${bubbleColorText}?`,
-  });
-  drawStoryScrapbookBadge({
-    context,
-    centerX: 256,
-    centerY: 1510,
-    text: "WEEKEND",
-    color: STORY_SCRAPBOOK_CORAL,
-    angle: -6,
-  });
-  drawStoryScrapbookBadge({
-    context,
-    centerX: 742,
-    centerY: 1588,
-    text: "CLUB PICK",
-    color: STORY_SCRAPBOOK_GREEN,
-    angle: 5,
-  });
-  drawStoryScrapbookBow({
-    context,
-    centerX: 896,
-    centerY: 1542,
-    angle: 11,
-  });
-  drawStoryScrapbookBow({
-    context,
-    centerX: 126,
-    centerY: 930,
-    angle: -18,
-  });
-
-  context.font = `700 20px ui-sans-serif, system-ui, sans-serif`;
-  context.textAlign = "center";
-  context.textBaseline = "top";
-  setCanvasLetterSpacing(context, "0.06em");
-  context.fillStyle = "rgba(75, 87, 112, 0.56)";
-  context.fillText("TURN ONE COLOR INTO A KEEPSAKE WORTH POSTING", canvas.width / 2, 1812);
-  setCanvasLetterSpacing(context, "0px");
+  context.restore();
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
