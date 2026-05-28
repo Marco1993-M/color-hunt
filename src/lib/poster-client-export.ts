@@ -1581,10 +1581,10 @@ async function renderStoryScrapbookBlob({
   const colorTone = data.posterTone || STORY_SCRAPBOOK_GREEN;
   const titleStrokeWidth = 7;
   const titleY = 166;
-  const issueY = 236;
-  const titleGap = 26;
+  const huntY = 246;
+  const titleGap = 28;
   const titleStartX = 92;
-  const baseTitleSize = 74;
+  const baseTitleSize = 88;
   const colorWord = data.missionColorName.toUpperCase();
 
   context.fillStyle = STORY_SCRAPBOOK_INK;
@@ -1600,38 +1600,34 @@ async function renderStoryScrapbookBlob({
   context.fillText("summer scrapbook issue", 88, 122);
 
   const theText = "THE";
-  const issueText = "ISSUE";
+  const huntText = "HUNT";
   const theSize = fitFontSizeToWidth({
     context,
     text: theText,
-    maxWidth: 148,
+    maxWidth: 180,
     initialSize: baseTitleSize,
-    minSize: 60,
+    minSize: 68,
     fontFamily: titleFontFamily,
   });
   const colorSize = fitFontSizeToWidth({
     context,
     text: colorWord,
-    maxWidth: 470,
+    maxWidth: 540,
     initialSize: baseTitleSize,
-    minSize: 54,
+    minSize: 62,
     fontFamily: titleFontFamily,
   });
-  const issueSize = fitFontSizeToWidth({
+  const huntSize = fitFontSizeToWidth({
     context,
-    text: issueText,
-    maxWidth: 340,
+    text: huntText,
+    maxWidth: 360,
     initialSize: baseTitleSize,
-    minSize: 56,
+    minSize: 64,
     fontFamily: titleFontFamily,
   });
 
   context.font = `700 ${theSize}px ${titleFontFamily}`;
   const theWidth = context.measureText(theText).width;
-  context.font = `700 ${colorSize}px ${titleFontFamily}`;
-  const colorWidth = context.measureText(colorWord).width;
-  const firstLineWidth = theWidth + titleGap + colorWidth;
-  const issueCenterX = titleStartX + firstLineWidth / 2 + 18;
 
   context.textBaseline = "top";
   context.textAlign = "left";
@@ -1655,13 +1651,12 @@ async function renderStoryScrapbookBlob({
     strokeStyle: STORY_SCRAPBOOK_WHITE,
     strokeWidth: titleStrokeWidth,
   });
-  context.font = `700 ${issueSize}px ${titleFontFamily}`;
-  context.textAlign = "center";
+  context.font = `700 ${huntSize}px ${titleFontFamily}`;
   drawStrokedFillText({
     context,
-    text: issueText,
-    x: issueCenterX,
-    y: issueY,
+    text: huntText,
+    x: titleStartX,
+    y: huntY,
     fillStyle: STORY_SCRAPBOOK_INK,
     strokeStyle: STORY_SCRAPBOOK_WHITE,
     strokeWidth: titleStrokeWidth,
@@ -1670,15 +1665,7 @@ async function renderStoryScrapbookBlob({
   context.textAlign = "left";
   context.font = `400 26px ${titleFontFamily}`;
   context.fillStyle = "rgba(75, 87, 112, 0.7)";
-  context.fillText(`Exploring ${data.locationLabel} • ${data.tripYear}`, 92, 320);
-
-  drawStoryScrapbookLocationTicket({
-    context,
-    centerX: 838,
-    centerY: 242,
-    locationLabel: data.locationLabel,
-    tone: colorTone,
-  });
+  context.fillText(`Exploring ${data.locationLabel} • ${data.tripYear}`, 92, 338);
 
   STORY_SCRAPBOOK_SLOTS.forEach((slot, index) => {
     const card = makeStoryScrapbookCard({
