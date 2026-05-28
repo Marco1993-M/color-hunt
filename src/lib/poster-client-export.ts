@@ -1836,42 +1836,111 @@ async function renderStoryScrapbookBlob({
 
   const scaleX = canvas.width / STORY_SCRAPBOOK_TEMPLATE_WIDTH;
   const scaleY = canvas.height / STORY_SCRAPBOOK_TEMPLATE_HEIGHT;
+  const titleFontFamily = `"Arial Rounded MT Bold", "Arial Black", ui-sans-serif, system-ui, sans-serif`;
+  const serifFontFamily = `"Cormorant Garamond", Georgia, serif`;
+  const titleStartX = 92 * scaleX;
+  const titleGap = 28 * scaleX;
+  const titleTopY = 138 * scaleY;
+  const titleSecondLineY = 286 * scaleY;
+  const colorWord = data.missionColorName.toUpperCase();
+  const theText = "THE";
+  const huntText = "HUNT";
 
   context.save();
-  context.fillStyle = STORY_SCRAPBOOK_PAPER;
-  context.fillRect(78 * scaleX, 134 * scaleY, 520 * scaleX, 62 * scaleY);
-  context.fillStyle = "rgba(75, 87, 112, 0.64)";
-  context.font = `${22 * scaleY}px "Cormorant Garamond", Georgia, serif`;
   context.textAlign = "left";
   context.textBaseline = "top";
-  context.fillText("summer scrapbook chapter", 90 * scaleX, 140 * scaleY);
+  context.fillStyle = STORY_SCRAPBOOK_INK;
+  context.font = `700 ${18 * scaleY}px ui-sans-serif, system-ui, sans-serif`;
+  setCanvasLetterSpacing(context, "0.18em");
+  context.fillText("COLOR HUNT SOCIAL CLUB", 88 * scaleX, 92 * scaleY);
+  setCanvasLetterSpacing(context, "0px");
 
-  const huntFontFamily = `"Arial Rounded MT Bold", "Arial Black", ui-sans-serif, system-ui, sans-serif`;
-  const huntText = "HUNT";
+  context.font = `italic 400 ${22 * scaleY}px ${serifFontFamily}`;
+  context.fillStyle = "rgba(75, 87, 112, 0.64)";
+  context.fillText("summer scrapbook chapter", 88 * scaleX, 122 * scaleY);
+
+  const theSize = fitFontSizeToWidth({
+    context,
+    text: theText,
+    maxWidth: 320 * scaleX,
+    initialSize: 104 * scaleY,
+    minSize: 72 * scaleY,
+    fontFamily: titleFontFamily,
+    fontWeight: 700,
+  });
+  const colorSize = fitFontSizeToWidth({
+    context,
+    text: colorWord,
+    maxWidth: 860 * scaleX,
+    initialSize: 104 * scaleY,
+    minSize: 64 * scaleY,
+    fontFamily: titleFontFamily,
+    fontWeight: 700,
+  });
   const huntSize = fitFontSizeToWidth({
     context,
     text: huntText,
-    maxWidth: 560 * scaleX,
-    initialSize: 186 * scaleY,
-    minSize: 130 * scaleY,
-    fontFamily: huntFontFamily,
+    maxWidth: 620 * scaleX,
+    initialSize: 104 * scaleY,
+    minSize: 68 * scaleY,
+    fontFamily: titleFontFamily,
     fontWeight: 700,
   });
-  context.font = `700 ${huntSize}px ${huntFontFamily}`;
+
   context.lineJoin = "round";
   context.miterLimit = 2;
   context.shadowBlur = 8 * scaleX;
   context.shadowOffsetY = 6 * scaleY;
   context.shadowColor = "rgba(34, 24, 18, 0.16)";
+
+  context.font = `700 ${theSize}px ${titleFontFamily}`;
+  const theWidth = context.measureText(theText).width;
+  drawStrokedFillText({
+    context,
+    text: theText,
+    x: titleStartX,
+    y: titleTopY,
+    fillStyle: STORY_SCRAPBOOK_GREEN,
+    strokeStyle: STORY_SCRAPBOOK_WHITE,
+    strokeWidth: 22 * scaleX,
+  });
+
+  context.font = `700 ${colorSize}px ${titleFontFamily}`;
+  drawStrokedFillText({
+    context,
+    text: colorWord,
+    x: titleStartX + theWidth + titleGap,
+    y: titleTopY,
+    fillStyle: data.posterTone || STORY_SCRAPBOOK_GREEN,
+    strokeStyle: STORY_SCRAPBOOK_WHITE,
+    strokeWidth: 22 * scaleX,
+  });
+
+  context.font = `700 ${huntSize}px ${titleFontFamily}`;
   drawStrokedFillText({
     context,
     text: huntText,
-    x: 92 * scaleX,
-    y: 508 * scaleY,
-    fillStyle: "#0b6a1f",
+    x: titleStartX,
+    y: titleSecondLineY,
+    fillStyle: STORY_SCRAPBOOK_GREEN,
     strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 24 * scaleX,
+    strokeWidth: 22 * scaleX,
   });
+
+  const subtitleText = `Exploring ${data.locationLabel} · ${data.tripYear}`;
+  const subtitleSize = fitFontSizeToWidth({
+    context,
+    text: subtitleText,
+    maxWidth: 1080 * scaleX,
+    initialSize: 24 * scaleY,
+    minSize: 18 * scaleY,
+    fontFamily: serifFontFamily,
+    fontWeight: 400,
+  });
+  context.shadowColor = "transparent";
+  context.font = `400 ${subtitleSize}px ${serifFontFamily}`;
+  context.fillStyle = "rgba(75, 87, 112, 0.72)";
+  context.fillText(subtitleText, 92 * scaleX, 420 * scaleY);
   context.restore();
 
   return await new Promise<Blob>((resolve, reject) => {
