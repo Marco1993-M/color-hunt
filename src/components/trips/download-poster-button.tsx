@@ -31,7 +31,7 @@ type PosterDownloadOption = {
 };
 
 function requiresPreparedDownload(themeId: PosterThemeId) {
-  return themeId === "story-collage" || themeId === "story-scrapbook";
+  return themeId === "story-scrapbook";
 }
 
 export function DownloadPosterButton({
@@ -63,15 +63,6 @@ export function DownloadPosterButton({
       ...(posterData
         ? [
             {
-              key: "story-collage",
-              formatId: "story" as const,
-              themeId: "story-collage" as const,
-              label: "Story collage",
-              description: "Taped 9:16 collage",
-              fileSuffix: "story-collage-9x16",
-              previewClassName: "download-format-preview-story-collage",
-            },
-            {
               key: "story-scrapbook",
               formatId: "story" as const,
               themeId: "story-scrapbook" as const,
@@ -87,7 +78,7 @@ export function DownloadPosterButton({
   );
 
   async function warmOption(option: PosterDownloadOption) {
-    if (!posterData || preparedOptions[option.key] || warmingOptions[option.key] || failedOptions[option.key]) {
+    if (!posterData || preparedOptions[option.key] || warmingOptions[option.key]) {
       return;
     }
 
@@ -304,7 +295,7 @@ export function DownloadPosterButton({
                     : warmingOptions[option.key]
                     ? "Warming..."
                     : failedOptions[option.key]
-                    ? "Unavailable"
+                    ? "Try again"
                     : requiresPreparedDownload(option.themeId) && !preparedDownloadUrls[option.key]
                     ? "Warming..."
                     : option.label}
