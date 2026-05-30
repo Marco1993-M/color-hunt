@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
 import { DeleteTripButton } from "@/components/trips/delete-trip-button";
+import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { UploadPanel } from "@/components/trips/upload-panel";
 import { requireUser } from "@/lib/auth";
 import { getPhotoUrl, getTripBundle } from "@/lib/data";
@@ -65,6 +66,9 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               <p className="eyebrow">{trip.location}</p>
               <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">{trip.title}</h1>
               <p className="body-copy mt-4 max-w-xl text-base">{mission.prompt}</p>
+              <div className="mt-5 max-w-xl">
+                <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} compact />
+              </div>
 
               {isGroupTrip ? (
                 <div className="mt-5 rounded-[1.5rem] border border-[rgba(47,97,223,0.14)] bg-[rgba(47,97,223,0.08)] p-4">

@@ -461,6 +461,58 @@ export async function signOutAction() {
   redirect("/");
 }
 
+export async function updateTripTitleAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
+  const tripId = String(formData.get("trip_id") || "").trim();
+  const nextTitle = String(formData.get("title") || "").trim();
+
+  if (!tripId) {
+    throw new Error("Trip ID is required.");
+  }
+
+  if (!nextTitle) {
+    throw new Error("Poster title is required.");
+  }
+
+  const user = await requireAuthenticatedUser();
+  const supabase = await createClient();
+
+  const { data: trip, error: tripError } = await supabase
+    .from("trips")
+    .update({
+      title: nextTitle,
+    })
+    .eq("id", tripId)
+    .eq("user_id", user.id)
+    .select("id, title, location, share_id")
+    .single();
+
+  if (tripError || !trip) {
+    throw tripError ?? new Error("Unable to update the poster title.");
+  }
+
+  await trackServerEvent({
+    eventName: "trip_title_updated",
+    tripId: trip.id,
+    userId: user.id,
+    path: `/trips/${trip.id}/poster`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
+    metadata: {
+      location: trip.location,
+      shareId: trip.share_id ?? null,
+      title: trip.title,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/trips/${trip.id}`);
+  revalidatePath(`/trips/${trip.id}/poster`);
+  if (trip.share_id) {
+    revalidatePath(`/poster/${trip.share_id}`);
+  }
+}
+
 export async function deleteTripAction(formData: FormData) {
   const analytics = getAnalyticsContext(formData);
   const tripId = String(formData.get("trip_id") || "").trim();

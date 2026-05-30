@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPublicTripBundleByShareId } from "@/lib/data";
 import { buildOgPalette, createOgImageResponse } from "@/lib/og-image";
-import { getPosterLocationLabel } from "@/lib/poster";
+import { getPosterTitleLabel } from "@/lib/poster";
 
 export const alt = "Color Hunt public poster";
 export const size = {
@@ -24,7 +24,7 @@ export default async function PosterOgImage({ params }: PosterOgImageProps) {
 
   const { trip, mission } = bundle;
   const palette = buildOgPalette(mission.color_hex);
-  const locationLabel = getPosterLocationLabel(trip.location);
+  const posterTitle = getPosterTitleLabel(trip.title, trip.location);
 
   return await createOgImageResponse(
     <div
@@ -88,7 +88,7 @@ export default async function PosterOgImage({ params }: PosterOgImageProps) {
                 maxWidth: 560,
               }}
             >
-              {locationLabel}
+              {posterTitle}
             </div>
             <div
               style={{

@@ -48,7 +48,7 @@ export default async function NewTripPage({ searchParams }: NewTripPageProps) {
           <p className="eyebrow">{isChallengeFlow ? "New Challenge" : "New Trip"}</p>
           <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">Build the challenge around one place.</h1>
           <p className="body-copy mt-3 max-w-2xl text-base">
-            Keep the setup simple. Name the trip, pin the location, and choose whether the color arrives by chance or by instinct.
+            Keep the setup simple. Give the poster a title, pin the location, and choose whether the color arrives by chance or by instinct.
           </p>
 
           {isChallengeFlow ? (

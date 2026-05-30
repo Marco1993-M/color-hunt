@@ -6,7 +6,7 @@ import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
 import { getPosterExportForTrip, getPublicTripBundleByShareId } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 
 type PublicPosterPageProps = {
   params: Promise<{ shareId: string }>;
@@ -62,8 +62,8 @@ export async function generateMetadata({ params }: PublicPosterPageProps): Promi
   }
 
   const { trip, mission } = bundle;
-  const title = `${trip.location} ${mission.color_name} poster`;
-  const description = `A public Color Hunt poster from ${trip.location}. Hunt ${mission.color_name}, collect nine moments, and see the place differently.`;
+  const title = `${trip.title} | Color Hunt`;
+  const description = `A public Color Hunt poster titled ${trip.title}, created in ${trip.location}. Hunt ${mission.color_name}, collect nine moments, and see the place differently.`;
   const imageUrl = `/poster/${shareId}/opengraph-image`;
   const canonicalUrl = `/poster/${shareId}`;
 
@@ -74,7 +74,7 @@ export async function generateMetadata({ params }: PublicPosterPageProps): Promi
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: `${trip.location} · ${mission.color_name} | Color Hunt`,
+      title: `${trip.title} | Color Hunt`,
       description,
       type: "article",
       url: canonicalUrl,
@@ -83,13 +83,13 @@ export async function generateMetadata({ params }: PublicPosterPageProps): Promi
           url: imageUrl,
           width: 1080,
           height: 1350,
-          alt: `${mission.color_name} Color Hunt poster from ${trip.location}`,
+          alt: `${trip.title} poster from Color Hunt`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${trip.location} · ${mission.color_name} | Color Hunt`,
+      title: `${trip.title} | Color Hunt`,
       description,
       images: [imageUrl],
     },
@@ -135,7 +135,9 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
     story: storyExport?.image_url,
     square: squareExport?.image_url,
   };
+  const posterTitle = getPosterTitleLabel(trip.title, trip.location);
   const posterData = {
+    posterTitle,
     locationLabel: getPosterLocationLabel(trip.location),
     location: trip.location,
     missionColorName: mission.color_name,
@@ -146,8 +148,8 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
   const posterJsonLd = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
-    name: `${trip.location} ${mission.color_name} poster`,
-    description: `A public Color Hunt poster from ${trip.location}, built from nine ${mission.color_name} moments.`,
+    name: trip.title,
+    description: `A public Color Hunt poster titled ${trip.title}, built from nine ${mission.color_name} moments in ${trip.location}.`,
     url: `https://colorhunt.quest/poster/${shareId}`,
     image: `https://colorhunt.quest/poster/${shareId}/opengraph-image`,
     creator: {

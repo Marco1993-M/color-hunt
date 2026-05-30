@@ -5,10 +5,11 @@ import { PosterSheet } from "@/components/trips/poster-sheet";
 import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
 import { PosterReadyWatcher } from "@/components/trips/poster-ready-watcher";
+import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { requireUser } from "@/lib/auth";
 import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 import { isAnonymousUser } from "@/lib/user-state";
 
 type PosterPageProps = {
@@ -39,7 +40,9 @@ export default async function PosterPage({ params }: PosterPageProps) {
     story: storyExport?.image_url,
     square: squareExport?.image_url,
   };
+  const posterTitle = getPosterTitleLabel(trip.title, trip.location);
   const posterData = {
+    posterTitle,
     locationLabel: getPosterLocationLabel(trip.location),
     location: trip.location,
     missionColorName: mission.color_name,
@@ -78,6 +81,10 @@ export default async function PosterPage({ params }: PosterPageProps) {
             </p>
           </div>
         ) : null}
+
+        <div className="mb-6 max-w-2xl">
+          <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} compact />
+        </div>
 
         <PosterSheet id="trip-poster-sheet" trip={trip} mission={mission} photos={photos} />
         <PosterExportWarmup tripId={trip.id} enabled={isComplete} />
