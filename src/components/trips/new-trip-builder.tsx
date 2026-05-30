@@ -133,13 +133,13 @@ export function NewTripBuilder({
         ) : null}
         <div>
           <label className="field-label" htmlFor="title">
-            Trip title
+            Poster title
           </label>
           <input
             id="title"
             name="title"
             className="field-input"
-            placeholder="Lisbon after blue hour"
+            placeholder="The Green Hunt"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             required
@@ -161,35 +161,42 @@ export function NewTripBuilder({
           />
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className="field-label" htmlFor="start_date">
-              Start date
-            </label>
-            <input
-              id="start_date"
-              name="start_date"
-              className="field-input"
-              type="date"
-              value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-            />
-          </div>
+        {huntMode === "group" ? (
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className="field-label" htmlFor="start_date">
+                Start date
+              </label>
+              <input
+                id="start_date"
+                name="start_date"
+                className="field-input"
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+              />
+            </div>
 
-          <div>
-            <label className="field-label" htmlFor="end_date">
-              End date
-            </label>
-            <input
-              id="end_date"
-              name="end_date"
-              className="field-input"
-              type="date"
-              value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
-            />
+            <div>
+              <label className="field-label" htmlFor="end_date">
+                End date
+              </label>
+              <input
+                id="end_date"
+                name="end_date"
+                className="field-input"
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <input type="hidden" name="start_date" value={startDate} />
+            <input type="hidden" name="end_date" value={endDate} />
+          </>
+        )}
 
         <div>
           <label className="field-label" htmlFor="color_name">
@@ -233,7 +240,7 @@ export function NewTripBuilder({
             >
               <p className="text-lg font-semibold text-[var(--ink)]">Solo Hunt</p>
               <p className="body-copy mt-2 text-sm">
-                Keep it simple. Pick one color for yourself and make one poster from your own nine moments.
+                Keep it simple. Set the poster title, choose one color for yourself, and make one poster from your own nine moments.
               </p>
             </button>
 
@@ -256,7 +263,7 @@ export function NewTripBuilder({
             >
               <p className="text-lg font-semibold text-[var(--ink)]">Group Challenge</p>
               <p className="body-copy mt-2 text-sm">
-                Auto-assign a different color to each person and generate invite links for the full group.
+                Auto-assign a different color to each person, generate invite links for the full group, and keep everyone on the same trip window.
               </p>
             </button>
           </div>
