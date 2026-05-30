@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { getPhotoUrl } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTripYear } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear } from "@/lib/poster";
 import {
   getPosterExportFormat,
   type PosterExportFormatId,
@@ -257,8 +257,8 @@ function getPosterSvgText({
   const format = getPosterExportFormat(formatId);
   const layout = getFormatLayout(format.id);
   const tripYear = getPosterTripYear(trip.created_at, trip.start_date, trip.end_date);
-  const locationLabel = getPosterLocationLabel(trip.location);
-  const titleLines = wrapPosterTitle(locationLabel, formatId);
+  const posterTitle = getPosterTitleLabel(trip.title, trip.location);
+  const titleLines = wrapPosterTitle(posterTitle, formatId);
   const posterTone = mission.color_hex;
   const titleLineHeight = Math.round(layout.titleSize * layout.titleLeading);
   const metaDividerOffset = formatId === "story" ? 34 : 18;
@@ -413,7 +413,7 @@ export async function renderPosterPngBuffer({
           .replace("__REGULAR__", toBase64(posterFonts.regular))
           .replace("__SEMIBOLD__", toBase64(posterFonts.semibold));
   const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
-  const titleLines = wrapPosterTitle(getPosterLocationLabel(trip.location), formatId);
+  const titleLines = wrapPosterTitle(getPosterTitleLabel(trip.title, trip.location), formatId);
   const posterWidth = format.width - layout.canvasPaddingX * 2;
   const posterHeight = format.height - layout.canvasPaddingY * 2;
   const contentWidth = posterWidth - layout.posterPadding * 2;
@@ -520,9 +520,10 @@ export async function createPosterImageResponse({
   const tripYear = getPosterTripYear(trip.created_at, trip.start_date, trip.end_date);
   const posterTone = mission.color_hex;
   const locationLabel = getPosterLocationLabel(trip.location);
+  const posterTitle = getPosterTitleLabel(trip.title, trip.location);
   const posterFonts = await loadPosterFonts();
   const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
-  const titleLines = wrapPosterTitle(locationLabel, formatId);
+  const titleLines = wrapPosterTitle(posterTitle, formatId);
 
   const posterWidth = format.width - layout.canvasPaddingX * 2;
   const posterHeight = format.height - layout.canvasPaddingY * 2;
@@ -602,7 +603,7 @@ export async function createPosterImageResponse({
               textAlign: "center",
             }}
           >
-            {locationLabel}
+            {posterTitle}
           </div>
 
           <div

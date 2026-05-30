@@ -4,6 +4,7 @@ import { toBlob } from "html-to-image";
 import { getPosterExportFormat, type PosterExportFormatId } from "@/lib/poster-export";
 
 export type PosterCaptureData = {
+  posterTitle: string;
   locationLabel: string;
   location: string;
   missionColorName: string;
@@ -1137,7 +1138,7 @@ async function renderManualPosterBlob({
   context.stroke();
 
   const contentWidth = panelWidth - layout.posterPadding * 2;
-  const titleLines = wrapPosterTitle(data.locationLabel.toUpperCase(), formatId === "story" ? 11 : formatId === "square" ? 13 : 15);
+  const titleLines = wrapPosterTitle(data.posterTitle.toUpperCase(), formatId === "story" ? 11 : formatId === "square" ? 13 : 15);
   const fittedTitleSize = getFittedTitleSize(context, titleLines, contentWidth * (formatId === "story" ? 0.98 : 0.94), layout.titleSize, formatId === "story" ? 140 : 88);
   const titleLineHeight = Math.round(fittedTitleSize * layout.titleLeading);
   const titleBlockHeight =
@@ -1837,12 +1838,8 @@ async function renderStoryScrapbookBlob({
   const titleFontFamily = `"Arial Rounded MT Bold", "Arial Black", ui-sans-serif, system-ui, sans-serif`;
   const serifFontFamily = `"Cormorant Garamond", Georgia, serif`;
   const titleStartX = 88;
-  const titleGap = 26;
   const titleTopY = 148;
-  const titleSecondLineY = 286;
-  const colorWord = data.missionColorName.toUpperCase();
-  const theText = "THE";
-  const huntText = "HUNT";
+  const titleLines = wrapPosterTitle(data.posterTitle.toUpperCase(), 13);
 
   context.save();
   context.textAlign = "left";
@@ -1857,75 +1854,37 @@ async function renderStoryScrapbookBlob({
   context.fillStyle = "rgba(75, 87, 112, 0.64)";
   context.fillText("summer scrapbook chapter", 88, 116);
 
-  const theSize = fitFontSizeToWidth({
+  const longestLine = titleLines.reduce((winner, line) => (line.length > winner.length ? line : winner), titleLines[0] || "");
+  const titleSize = fitFontSizeToWidth({
     context,
-    text: theText,
-    maxWidth: 280,
-    initialSize: 118,
-    minSize: 86,
+    text: longestLine,
+    maxWidth: 980,
+    initialSize: 126,
+    minSize: 84,
     fontFamily: titleFontFamily,
     fontWeight: 700,
   });
-  const colorSize = fitFontSizeToWidth({
-    context,
-    text: colorWord,
-    maxWidth: 660,
-    initialSize: 118,
-    minSize: 76,
-    fontFamily: titleFontFamily,
-    fontWeight: 700,
-  });
-  const huntSize = fitFontSizeToWidth({
-    context,
-    text: huntText,
-    maxWidth: 420,
-    initialSize: 118,
-    minSize: 82,
-    fontFamily: titleFontFamily,
-    fontWeight: 700,
-  });
+  const titleLineHeight = Math.round(titleSize * 0.88);
 
   context.lineJoin = "round";
   context.miterLimit = 2;
   context.shadowBlur = 0;
   context.shadowOffsetY = 0;
   context.shadowColor = "transparent";
-
-  context.font = `700 ${theSize}px ${titleFontFamily}`;
-  const theWidth = context.measureText(theText).width;
-  drawStrokedFillText({
-    context,
-    text: theText,
-    x: titleStartX,
-    y: titleTopY,
-    fillStyle: STORY_SCRAPBOOK_PINK,
-    strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 18,
+  context.font = `700 ${titleSize}px ${titleFontFamily}`;
+  titleLines.forEach((line, index) => {
+    drawStrokedFillText({
+      context,
+      text: line,
+      x: titleStartX,
+      y: titleTopY + index * titleLineHeight,
+      fillStyle: index === 0 && titleLines.length > 1 ? STORY_SCRAPBOOK_PINK : data.posterTone || STORY_SCRAPBOOK_GREEN,
+      strokeStyle: STORY_SCRAPBOOK_WHITE,
+      strokeWidth: 18,
+    });
   });
 
-  context.font = `700 ${colorSize}px ${titleFontFamily}`;
-  drawStrokedFillText({
-    context,
-    text: colorWord,
-    x: titleStartX + theWidth + titleGap,
-    y: titleTopY,
-    fillStyle: data.posterTone || STORY_SCRAPBOOK_GREEN,
-    strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 18,
-  });
-
-  context.font = `700 ${huntSize}px ${titleFontFamily}`;
-  drawStrokedFillText({
-    context,
-    text: huntText,
-    x: titleStartX,
-    y: titleSecondLineY,
-    fillStyle: STORY_SCRAPBOOK_GREEN,
-    strokeStyle: STORY_SCRAPBOOK_WHITE,
-    strokeWidth: 18,
-  });
-
-  const subtitleText = `Exploring ${data.locationLabel} · ${data.tripYear}`;
+  const subtitleText = `Exploring ${data.location} · ${data.tripYear}`;
   const subtitleSize = fitFontSizeToWidth({
     context,
     text: subtitleText,
@@ -2076,6 +2035,7 @@ function getPosterBlobCacheKey({
   return JSON.stringify({
     formatId,
     themeId,
+    posterTitle: posterData.posterTitle,
     location: posterData.location,
     locationLabel: posterData.locationLabel,
     missionColorName: posterData.missionColorName,

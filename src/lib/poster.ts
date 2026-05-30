@@ -10,6 +10,16 @@ export function getPosterLocationLabel(location: string) {
   return location.toUpperCase();
 }
 
+export function getPosterTitleLabel(title: string | null | undefined, location: string) {
+  const normalizedTitle = String(title || "").trim();
+
+  if (normalizedTitle) {
+    return normalizedTitle.toUpperCase();
+  }
+
+  return getPosterLocationLabel(location);
+}
+
 export function buildPosterFrameSlots<T>(items: T[], frameCount = POSTER_FRAME_COUNT) {
   return Array.from({ length: frameCount }, (_, index) => items[index] ?? null);
 }
