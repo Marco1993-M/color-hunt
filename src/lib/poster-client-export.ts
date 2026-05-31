@@ -2,6 +2,7 @@
 
 import { toBlob } from "html-to-image";
 import { getPosterExportFormat, type PosterExportFormatId } from "@/lib/poster-export";
+import { getPosterSubtitle } from "@/lib/poster";
 
 export type PosterCaptureData = {
   posterTitle: string;
@@ -420,54 +421,21 @@ function drawCenteredMetaLine({
   context,
   centerX,
   y,
-  leadText,
-  bodyText,
-  yearText,
+  text,
   fontSize,
 }: {
   context: CanvasRenderingContext2D;
   centerX: number;
   y: number;
-  leadText: string;
-  bodyText: string;
-  yearText: string;
+  text: string;
   fontSize: number;
 }) {
-  const gapPrimary = Math.max(18, fontSize * 0.62);
-  const gapSecondary = Math.max(18, fontSize * 0.58);
-
-  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  context.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
   setCanvasLetterSpacing(context, "0.08em");
-  const leadWidth = context.measureText(leadText).width;
-
-  context.font = `400 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  const bodyWidth = context.measureText(bodyText).width;
-
-  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  const yearWidth = context.measureText(yearText).width;
-
-  const totalWidth = leadWidth + gapPrimary + bodyWidth + gapSecondary + yearWidth;
-  const startX = centerX - totalWidth / 2;
-
-  context.textAlign = "left";
+  context.textAlign = "center";
   context.textBaseline = "alphabetic";
-
-  context.fillStyle = "rgba(32,26,23,0.84)";
-  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  context.fillText(leadText, startX, y);
-
-  context.fillStyle = "rgba(32,26,23,0.58)";
-  context.font = `400 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  context.fillText(bodyText, startX + leadWidth + gapPrimary, y);
-
-  context.fillStyle = "rgba(32,26,23,0.46)";
-  context.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
-  setCanvasLetterSpacing(context, "0.08em");
-  context.fillText(yearText, startX + leadWidth + gapPrimary + bodyWidth + gapSecondary, y);
+  context.fillStyle = "rgba(32,26,23,0.62)";
+  context.fillText(text, centerX, y);
 }
 
 function applyStoryCollagePhotoFinish(
@@ -1197,9 +1165,7 @@ async function renderManualPosterBlob({
     context,
     centerX: panelCenterX,
     y: metaY,
-    leadText: "EXPLORING",
-    bodyText: data.location.toUpperCase(),
-    yearText: data.tripYear,
+    text: getPosterSubtitle(data.missionColorName).toUpperCase(),
     fontSize: layout.metaSize,
   });
 
@@ -1884,7 +1850,7 @@ async function renderStoryScrapbookBlob({
     });
   });
 
-  const subtitleText = `Exploring ${data.location} · ${data.tripYear}`;
+  const subtitleText = getPosterSubtitle(data.missionColorName);
   const subtitleSize = fitFontSizeToWidth({
     context,
     text: subtitleText,

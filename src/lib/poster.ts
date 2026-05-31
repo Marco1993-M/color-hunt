@@ -20,6 +20,16 @@ export function getPosterTitleLabel(title: string | null | undefined, location: 
   return getPosterLocationLabel(location);
 }
 
+export function getPosterSubtitle(colorName: string | null | undefined) {
+  const normalizedColor = String(colorName || "").trim();
+
+  if (!normalizedColor) {
+    return "A color story in nine frames";
+  }
+
+  return `A ${normalizedColor} story in nine frames`;
+}
+
 export function buildPosterFrameSlots<T>(items: T[], frameCount = POSTER_FRAME_COUNT) {
   return Array.from({ length: frameCount }, (_, index) => items[index] ?? null);
 }

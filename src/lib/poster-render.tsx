@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { getPhotoUrl } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterSubtitle, getPosterTitleLabel, getPosterTripYear } from "@/lib/poster";
 import {
   getPosterExportFormat,
   type PosterExportFormatId,
@@ -256,8 +256,8 @@ function getPosterSvgText({
 }) {
   const format = getPosterExportFormat(formatId);
   const layout = getFormatLayout(format.id);
-  const tripYear = getPosterTripYear(trip.created_at, trip.start_date, trip.end_date);
   const posterTitle = getPosterTitleLabel(trip.title, trip.location);
+  const posterSubtitle = getPosterSubtitle(mission.color_name);
   const titleLines = wrapPosterTitle(posterTitle, formatId);
   const posterTone = mission.color_hex;
   const titleLineHeight = Math.round(layout.titleSize * layout.titleLeading);
@@ -279,16 +279,6 @@ function getPosterSvgText({
       return `<text x="${contentCenterX}" y="${y}" text-anchor="middle" font-size="${layout.titleSize}" font-weight="600" letter-spacing="-6" fill="${posterTone}">${escapeXml(line.toUpperCase())}</text>`;
     })
     .join("");
-  const leadText = "EXPLORING";
-  const bodyText = trip.location.toUpperCase();
-  const yearText = tripYear;
-  const gapPrimary = Math.max(18, layout.metaSize * 0.62);
-  const gapSecondary = Math.max(18, layout.metaSize * 0.58);
-  const leadWidth = estimateMetaSegmentWidth(leadText, layout.metaSize, "semibold");
-  const bodyWidth = estimateMetaSegmentWidth(bodyText, layout.metaSize, "regular");
-  const yearWidth = estimateMetaSegmentWidth(yearText, layout.metaSize, "semibold");
-  const metaTotalWidth = leadWidth + gapPrimary + bodyWidth + gapSecondary + yearWidth;
-  const metaStartX = contentCenterX - metaTotalWidth / 2;
   const footerY = format.height - layout.canvasPaddingY - layout.posterPadding + 4;
   const regularFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__REGULAR__); font-weight: 400; font-style: normal; }`;
   const semiboldFontFace = `@font-face { font-family: 'PosterCormorant'; src: url(data:font/ttf;base64,__SEMIBOLD__); font-weight: 600; font-style: normal; }`;
@@ -341,14 +331,8 @@ function getPosterSvgText({
             stroke="${withAlpha(posterTone, 0.16)}"
             stroke-width="1"
           />
-          <text x="${metaStartX}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.84)" font-weight="600">
-            ${escapeXml("Exploring")}
-          </text>
-          <text x="${metaStartX + leadWidth + gapPrimary}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.58)">
-            ${escapeXml(trip.location.toUpperCase())}
-          </text>
-          <text x="${metaStartX + leadWidth + gapPrimary + bodyWidth + gapSecondary}" y="${metaY}" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.46)" font-weight="600">
-            ${escapeXml(tripYear)}
+          <text x="${contentCenterX}" y="${metaY}" text-anchor="middle" font-size="${layout.metaSize}" fill="rgba(32,26,23,0.62)" font-weight="500" letter-spacing="2.2">
+            ${escapeXml(posterSubtitle.toUpperCase())}
           </text>
         </g>
         <line
@@ -517,10 +501,9 @@ export async function createPosterImageResponse({
 }) {
   const format = getPosterExportFormat(formatId);
   const layout = getFormatLayout(format.id);
-  const tripYear = getPosterTripYear(trip.created_at, trip.start_date, trip.end_date);
   const posterTone = mission.color_hex;
-  const locationLabel = getPosterLocationLabel(trip.location);
   const posterTitle = getPosterTitleLabel(trip.title, trip.location);
+  const posterSubtitle = getPosterSubtitle(mission.color_name);
   const posterFonts = await loadPosterFonts();
   const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
   const titleLines = wrapPosterTitle(posterTitle, formatId);
@@ -615,13 +598,12 @@ export async function createPosterImageResponse({
               borderTop: `1px solid ${posterTone}18`,
               fontSize: layout.metaSize,
               letterSpacing: "0.08em",
-              color: "rgba(32,26,23,0.56)",
+              color: "rgba(32,26,23,0.62)",
               textAlign: "center",
+              alignItems: "center",
             }}
           >
-            <span style={{ fontWeight: 600, color: "rgba(32,26,23,0.82)" }}>Exploring</span>
-            <span style={{ marginLeft: 14 }}>{trip.location.toUpperCase()}</span>
-            <span style={{ marginLeft: 14, fontWeight: 600, color: "rgba(32,26,23,0.46)" }}>{tripYear}</span>
+            {posterSubtitle.toUpperCase()}
           </div>
 
           <div
