@@ -1,6 +1,6 @@
 import { Cormorant_Garamond } from "next/font/google";
 import { getPhotoUrl } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterTitleLabel, getPosterTripYear } from "@/lib/poster";
+import { buildPosterFrameSlots, getPosterSubtitle, getPosterTitleLabel } from "@/lib/poster";
 import type { Mission, Photo, Trip } from "@/lib/types";
 
 const posterSerif = Cormorant_Garamond({
@@ -20,8 +20,8 @@ type PosterSheetProps = {
 
 export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetProps) {
   const posterTitle = getPosterTitleLabel(trip.title, trip.location);
+  const posterSubtitle = getPosterSubtitle(mission.color_name);
   const posterTone = mission.color_hex;
-  const tripYear = getPosterTripYear(trip.created_at, trip.start_date, trip.end_date);
   const posterSlots = buildPosterFrameSlots(photos);
 
   return (
@@ -40,11 +40,7 @@ export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetPr
       </div>
 
       <div className="poster-meta-line" style={{ borderColor: `${posterTone}24` }}>
-        <p className="poster-meta-line-copy">
-          <span className="poster-meta-line-lead">Exploring</span>
-          <span className="poster-meta-line-body">{trip.location}</span>
-          <span className="poster-meta-line-year">{tripYear}</span>
-        </p>
+        <p className="poster-meta-line-copy">{posterSubtitle}</p>
       </div>
 
       <div className="poster-grid-shell poster-postcard-grid mt-6">
