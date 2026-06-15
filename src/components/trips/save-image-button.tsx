@@ -7,7 +7,9 @@ import {
   renderPosterBlob,
   shareOrDownloadBlob,
   type PosterCaptureData,
+  type PosterThemeId,
 } from "@/lib/poster-client-export";
+import type { PosterExportFormatId } from "@/lib/poster-export";
 
 type SaveImageButtonProps = {
   fileUrl?: string | null;
@@ -18,6 +20,8 @@ type SaveImageButtonProps = {
   shareId?: string | null;
   buttonLabel?: string;
   className?: string;
+  formatId?: PosterExportFormatId;
+  themeId?: PosterThemeId;
 };
 
 export function SaveImageButton({
@@ -29,6 +33,8 @@ export function SaveImageButton({
   shareId = null,
   buttonLabel = "Save image",
   className = "button-primary w-full sm:w-auto",
+  formatId = "post",
+  themeId = "classic",
 }: SaveImageButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +53,9 @@ export function SaveImageButton({
       if (posterData) {
         const blob = await renderPosterBlob({
           posterData,
-          formatId: "post",
+          formatId,
           layoutSourceId,
+          themeId,
         });
         const mode = await shareOrDownloadBlob(blob, fileName);
         trackEvent({
@@ -57,7 +64,8 @@ export function SaveImageButton({
           shareId,
           metadata: {
             mode: "canvas_render",
-            exportFormat: "post",
+            exportFormat: formatId,
+            posterTheme: themeId,
           },
         });
         return;
@@ -82,7 +90,8 @@ export function SaveImageButton({
         shareId,
         metadata: {
           mode: "cached_file",
-          exportFormat: "post",
+          exportFormat: formatId,
+          posterTheme: themeId,
         },
       });
     } catch (openFailure) {
@@ -93,7 +102,8 @@ export function SaveImageButton({
         shareId,
         metadata: {
           message,
-          exportFormat: "post",
+          exportFormat: formatId,
+          posterTheme: themeId,
         },
       });
       setError(message);

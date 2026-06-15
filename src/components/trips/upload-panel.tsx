@@ -26,6 +26,7 @@ type UploadPanelProps = {
   maxPhotos: number;
   bucketName: string;
   photos: Photo[];
+  enablePosterWarmup?: boolean;
 };
 
 const acceptedFileTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -38,6 +39,7 @@ export function UploadPanel({
   maxPhotos,
   bucketName,
   photos,
+  enablePosterWarmup = true,
 }: UploadPanelProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedSource, setSelectedSource] = useState<"camera" | "library" | null>(null);
@@ -55,6 +57,10 @@ export function UploadPanel({
   const remaining = useMemo(() => Math.max(maxPhotos - currentCount, 0), [currentCount, maxPhotos]);
 
   async function warmPosterExports(options?: { force?: boolean; awaitPost?: boolean }) {
+    if (!enablePosterWarmup) {
+      return;
+    }
+
     const force = options?.force === true;
     const awaitPost = options?.awaitPost === true;
 
@@ -275,7 +281,7 @@ export function UploadPanel({
             photoCount: nextPhotos.length,
           },
         });
-        if (nextPhotos.length >= maxPhotos) {
+        if (enablePosterWarmup && nextPhotos.length >= maxPhotos) {
           void warmPosterExports({ force: true });
         }
         setStatus(successMessage);
