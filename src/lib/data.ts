@@ -183,7 +183,84 @@ export async function getTripBundle(tripId: string, userId: string) {
   }
 
   if (!trip || !mission) {
-    return null;
+    const admin = createAdminClient();
+    const [adminTripResult, adminMissionResult, adminPhotosResult] = await Promise.all([
+      admin
+        .from("trips")
+        .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+        .eq("id", tripId)
+        .eq("user_id", userId)
+        .maybeSingle(),
+      admin
+        .from("missions")
+        .select("id, trip_id, color_name, color_hex, prompt, max_photos, created_at")
+        .eq("trip_id", tripId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from("photos")
+        .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+        .eq("trip_id", tripId)
+        .eq("user_id", userId)
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true }),
+    ]);
+
+    let adminTrip = adminTripResult.data ? normalizeTrip(adminTripResult.data as Trip) : null;
+    let adminTripError = adminTripResult.error as SupabaseErrorLike | null;
+
+    if (isMissingCoverColumns(adminTripError)) {
+      const fallbackAdminTripResult = (await admin
+        .from("trips")
+        .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+        .eq("id", tripId)
+        .eq("user_id", userId)
+        .maybeSingle()) as typeof adminTripResult;
+
+      adminTrip = fallbackAdminTripResult.data ? normalizeTrip(fallbackAdminTripResult.data as Trip) : null;
+      adminTripError = fallbackAdminTripResult.error;
+    }
+
+    if (adminTripError) {
+      throw adminTripError;
+    }
+
+    if (adminMissionResult.error) {
+      throw adminMissionResult.error;
+    }
+
+    let adminPhotos = adminPhotosResult.data;
+    let adminPhotosError = adminPhotosResult.error as SupabaseErrorLike | null;
+
+    if (isMissingSortOrderColumn(adminPhotosError)) {
+      const fallbackAdminPhotosResult = await admin
+        .from("photos")
+        .select("id, trip_id, mission_id, user_id, image_url, storage_path, caption, dominant_color, color_match_score, created_at")
+        .eq("trip_id", tripId)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true });
+
+      adminPhotos = (fallbackAdminPhotosResult.data ?? []).map((photo) => ({
+        ...photo,
+        sort_order: null,
+      })) as Photo[];
+      adminPhotosError = fallbackAdminPhotosResult.error;
+    }
+
+    if (adminPhotosError) {
+      throw adminPhotosError;
+    }
+
+    if (!adminTrip || !adminMissionResult.data) {
+      return null;
+    }
+
+    return {
+      trip: adminTrip,
+      mission: adminMissionResult.data as Mission,
+      photos: sortPhotosByDisplayOrder((adminPhotos ?? []) as Photo[]),
+    };
   }
 
   return {
