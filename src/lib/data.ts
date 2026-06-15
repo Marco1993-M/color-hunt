@@ -79,7 +79,7 @@ export async function getTripsForUser(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("trips")
-    .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+    .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -95,7 +95,7 @@ export async function getTripBundle(tripId: string, userId: string) {
   const [{ data: trip }, { data: mission }, photosResult] = await Promise.all([
     supabase
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
       .eq("id", tripId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -142,7 +142,7 @@ export async function getTripBundle(tripId: string, userId: string) {
   }
 
   return {
-    trip,
+    trip: trip as Trip,
     mission,
     photos: sortPhotosByDisplayOrder((photos ?? []) as Photo[]),
   };
@@ -180,7 +180,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   const supabase = await createClient();
   const tripResult = await supabase
     .from("trips")
-    .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+    .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
     .eq("share_id", shareId)
     .eq("is_public", true)
     .maybeSingle();
@@ -452,7 +452,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
   if (participantIds.length > 0) {
     const { data: allTrips, error: allTripsError } = await admin
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
       .eq("group_hunt_id", groupHuntId);
 
     if (allTripsError) {
@@ -567,7 +567,7 @@ export async function getTripForParticipant(groupParticipantId: string, userId: 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("trips")
-    .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+    .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
     .eq("group_participant_id", groupParticipantId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -649,7 +649,7 @@ export async function getPublicGroupHuntByShareId(shareId: string): Promise<Grou
   if (participantIds.length > 0) {
     const { data: trips, error: tripError } = await admin
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
       .in("group_participant_id", participantIds);
 
     if (tripError) {
