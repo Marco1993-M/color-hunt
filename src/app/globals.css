@@ -541,6 +541,100 @@ img {
   text-transform: uppercase;
 }
 
+.landing-template-lane {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(88, 58, 134, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 248, 241, 0.92));
+  box-shadow: 0 18px 50px rgba(72, 48, 110, 0.1);
+}
+
+.landing-template-copy {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.landing-template-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.1rem;
+}
+
+.landing-template-note {
+  color: rgba(67, 58, 97, 0.68);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.landing-template-showcase {
+  display: flex;
+  justify-content: center;
+}
+
+.landing-july-mockup {
+  position: relative;
+  width: min(100%, 18rem);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 1.8rem;
+  box-shadow: 0 24px 60px rgba(72, 48, 110, 0.15);
+  background: rgba(255, 251, 247, 0.98);
+}
+
+.landing-july-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.landing-july-tile {
+  display: block;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.landing-july-tile-one {
+  background-image:
+    radial-gradient(circle at 68% 30%, rgba(255, 246, 210, 0.65), transparent 24%),
+    linear-gradient(140deg, rgba(222, 170, 48, 0.92), rgba(242, 205, 98, 0.86) 46%, rgba(181, 98, 43, 0.94));
+  background-position: 38% 34%;
+}
+
+.landing-july-tile-two {
+  background-image:
+    radial-gradient(circle at 35% 30%, rgba(219, 244, 255, 0.5), transparent 22%),
+    linear-gradient(145deg, rgba(46, 79, 150, 0.96), rgba(88, 156, 201, 0.86) 55%, rgba(212, 225, 236, 0.76));
+  background-position: 62% 30%;
+}
+
+.landing-july-tile-three {
+  background-image:
+    radial-gradient(circle at 32% 58%, rgba(255, 246, 202, 0.44), transparent 20%),
+    linear-gradient(150deg, rgba(35, 109, 73, 0.95), rgba(92, 180, 126, 0.85) 58%, rgba(219, 239, 182, 0.86));
+  background-position: 36% 72%;
+}
+
+.landing-july-tile-four {
+  background-image:
+    radial-gradient(circle at 65% 20%, rgba(255, 220, 213, 0.42), transparent 22%),
+    linear-gradient(152deg, rgba(111, 33, 66, 0.96), rgba(217, 76, 126, 0.9) 48%, rgba(247, 183, 123, 0.82));
+  background-position: 64% 68%;
+}
+
+.landing-july-overlay {
+  object-fit: cover;
+  object-position: center;
+}
+
 .hero-stage {
   position: relative;
   overflow: hidden;
@@ -840,6 +934,20 @@ img {
     align-items: center;
   }
 
+  .landing-template-lane {
+    grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+    align-items: center;
+    padding: 1.15rem;
+  }
+
+  .landing-template-showcase {
+    justify-content: end;
+  }
+
+  .landing-july-mockup {
+    width: 19.5rem;
+  }
+
   .mascot-face {
     width: 5.8rem;
     height: 5.2rem;
@@ -902,6 +1010,14 @@ img {
 
   .landing-teaser-poster-secondary {
     display: none;
+  }
+
+  .landing-template-lane {
+    padding: 0.95rem;
+  }
+
+  .landing-july-mockup {
+    width: min(100%, 15.5rem);
   }
 }
 
@@ -1365,8 +1481,13 @@ img {
   position: relative;
 }
 
-.download-format-preview-story-july {
-  aspect-ratio: 9 / 16;
+.download-format-preview-post-july {
+  aspect-ratio: 4 / 5;
+  position: relative;
+}
+
+.download-format-preview-post-usa {
+  aspect-ratio: 4 / 5;
   position: relative;
 }
 
@@ -1427,7 +1548,7 @@ img {
   transform: rotate(4deg);
 }
 
-.download-format-preview-story-july .download-format-preview-inner {
+.download-format-preview-post-july .download-format-preview-inner {
   width: 82%;
   height: 82%;
   border-radius: 0.9rem;
@@ -1441,18 +1562,18 @@ img {
   overflow: hidden;
 }
 
-.download-format-preview-story-july .download-format-preview-inner::before,
-.download-format-preview-story-july .download-format-preview-inner::after {
+.download-format-preview-post-july .download-format-preview-inner::before,
+.download-format-preview-post-july .download-format-preview-inner::after {
   content: "";
   position: absolute;
 }
 
-.download-format-preview-story-july .download-format-preview-inner::before {
+.download-format-preview-post-july .download-format-preview-inner::before {
   inset: 50% 0 0 0;
   background: linear-gradient(90deg, rgba(93, 232, 187, 0.96) 0 50%, rgba(92, 220, 246, 0.96) 50% 100%);
 }
 
-.download-format-preview-story-july .download-format-preview-inner::after {
+.download-format-preview-post-july .download-format-preview-inner::after {
   left: 10%;
   right: 10%;
   top: 22%;
@@ -1463,6 +1584,56 @@ img {
     linear-gradient(180deg, transparent 0 42%, rgba(79, 19, 35, 0.82) 42% 100%);
   opacity: 0.95;
   border-radius: 1rem;
+}
+
+.download-format-preview-post-usa .download-format-preview-inner {
+  width: 82%;
+  height: 82%;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.16)),
+    linear-gradient(145deg, rgba(243, 246, 252, 0.98), rgba(235, 238, 244, 0.92));
+  box-shadow:
+    0 12px 28px rgba(53, 37, 30, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+  position: relative;
+  overflow: hidden;
+}
+
+.download-format-preview-post-usa .download-format-preview-inner::before,
+.download-format-preview-post-usa .download-format-preview-inner::after {
+  content: "";
+  position: absolute;
+}
+
+.download-format-preview-post-usa .download-format-preview-inner::before {
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(41, 45, 99, 0.92) 0 18%,
+      rgba(255, 255, 255, 0.96) 18% 30%,
+      rgba(197, 49, 54, 0.94) 30% 40%,
+      rgba(255, 255, 255, 0.96) 40% 52%,
+      rgba(197, 49, 54, 0.94) 52% 62%,
+      rgba(255, 255, 255, 0.96) 62% 74%,
+      rgba(197, 49, 54, 0.94) 74% 84%,
+      rgba(255, 255, 255, 0.96) 84% 100%
+    );
+}
+
+.download-format-preview-post-usa .download-format-preview-inner::after {
+  left: 14%;
+  right: 14%;
+  top: 24%;
+  height: 31%;
+  border-radius: 1.1rem;
+  background:
+    linear-gradient(180deg, rgba(28, 30, 37, 0.9), rgba(42, 42, 42, 0.95)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 12px 24px rgba(26, 22, 30, 0.18);
 }
 
 .download-format-copy {
