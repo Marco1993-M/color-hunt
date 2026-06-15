@@ -14,7 +14,12 @@ export type PosterCaptureData = {
   photoUrls: Array<string | null>;
 };
 
-export type PosterThemeId = "classic" | "story-collage" | "story-scrapbook" | "story-july";
+export type PosterThemeId =
+  | "classic"
+  | "story-collage"
+  | "story-scrapbook"
+  | "post-july"
+  | "post-usa";
 
 type StoryCollageSlot = {
   x: number;
@@ -97,6 +102,7 @@ const STORY_SCRAPBOOK_TEMPLATE_URL = "/poster-template-story-scrapbook.png";
 const STORY_SCRAPBOOK_TEMPLATE_WIDTH = 1974;
 const STORY_SCRAPBOOK_TEMPLATE_HEIGHT = 3508;
 const STORY_JULY_TEMPLATE_URL = "/poster-template-story-july.png";
+const STORY_USA_TEMPLATE_URL = "/poster-template-story-usa.png";
 const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 761, y: 323, width: 269, height: 370, role: "color-card" },
   { x: 991, y: 485, width: 788, height: 1029, zoom: 1.04, focalX: 0.52, focalY: 0.42, role: "hero" },
@@ -365,7 +371,7 @@ let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
 let storyScrapbookTemplatePromise:
   | Promise<{ overlay: HTMLCanvasElement; slots: StoryScrapbookTemplateSlotAsset[] }>
   | null = null;
-let storyJulyOverlayPromise: Promise<HTMLCanvasElement> | null = null;
+const coverOverlayPromiseCache = new Map<string, Promise<HTMLCanvasElement>>();
 const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
 
 function setCanvasLetterSpacing(context: CanvasRenderingContext2D, value: string) {
@@ -915,25 +921,41 @@ async function loadStoryScrapbookTemplateAssets(targetWidth: number, targetHeigh
   return await storyScrapbookTemplatePromise;
 }
 
-async function loadStoryJulyOverlay(targetWidth: number, targetHeight: number) {
-  if (!storyJulyOverlayPromise) {
-    storyJulyOverlayPromise = (async () => {
-      let templateImage: HTMLImageElement;
+async function loadCoverOverlay({
+  sourceUrl,
+  targetWidth,
+  targetHeight,
+  errorMessage,
+}: {
+  sourceUrl: string;
+  targetWidth: number;
+  targetHeight: number;
+  errorMessage: string;
+}) {
+  const cacheKey = `${sourceUrl}:${targetWidth}x${targetHeight}`;
+  const cached = coverOverlayPromiseCache.get(cacheKey);
 
-      try {
-        templateImage = await loadStaticImage(STORY_JULY_TEMPLATE_URL);
-      } catch {
-        storyJulyOverlayPromise = null;
-        throw new Error("Couldn't fetch the July poster template.");
-      }
-
-      const { canvas, context } = createCanvasContext(targetWidth, targetHeight);
-      context.drawImage(templateImage, 0, 0, targetWidth, targetHeight);
-      return canvas;
-    })();
+  if (cached) {
+    return await cached;
   }
 
-  return await storyJulyOverlayPromise;
+  const nextPromise = (async () => {
+    let templateImage: HTMLImageElement;
+
+    try {
+      templateImage = await loadStaticImage(sourceUrl);
+    } catch {
+      coverOverlayPromiseCache.delete(cacheKey);
+      throw new Error(errorMessage);
+    }
+
+    const { canvas, context } = createCanvasContext(targetWidth, targetHeight);
+    context.drawImage(templateImage, 0, 0, targetWidth, targetHeight);
+    return canvas;
+  })();
+
+  coverOverlayPromiseCache.set(cacheKey, nextPromise);
+  return await nextPromise;
 }
 
 async function ensureFontsReady() {
@@ -1131,8 +1153,12 @@ async function renderManualPosterBlob({
     return await renderStoryScrapbookBlob({ data });
   }
 
-  if (formatId === "story" && themeId === "story-july") {
-    return await renderStoryJulyBlob({ data });
+  if (formatId === "post" && themeId === "post-july") {
+    return await renderPostJulyBlob({ data });
+  }
+
+  if (formatId === "post" && themeId === "post-usa") {
+    return await renderPostUsaBlob({ data });
   }
 
   const format = getPosterExportFormat(formatId);
@@ -1937,17 +1963,28 @@ async function renderStoryScrapbookBlob({
   });
 }
 
-async function renderStoryJulyBlob({
+async function renderPostCoverBlob({
   data,
+  sourceUrl,
+  errorMessage,
+  fallbackTone,
 }: {
   data: PosterCaptureData;
+  sourceUrl: string;
+  errorMessage: string;
+  fallbackTone: string;
 }) {
-  const format = getPosterExportFormat("story");
+  const format = getPosterExportFormat("post");
   const { canvas, context } = createCanvasContext(format.width, format.height);
 
   const selectedPhotoIndexes = [0, 2, 4, 8];
   const [overlay, loadedImages] = await Promise.all([
-    loadStoryJulyOverlay(canvas.width, canvas.height),
+    loadCoverOverlay({
+      sourceUrl,
+      targetWidth: canvas.width,
+      targetHeight: canvas.height,
+      errorMessage,
+    }),
     Promise.all(
       selectedPhotoIndexes.map(async (sourceIndex) => {
         const sourceUrl = data.photoUrls[sourceIndex];
@@ -1976,7 +2013,7 @@ async function renderStoryJulyBlob({
     const image = loadedImages[index];
 
     if (!image) {
-      context.fillStyle = index % 2 === 0 ? "rgba(33, 24, 31, 0.12)" : rgba(data.posterTone || "#d88cb2", 0.22);
+      context.fillStyle = index % 2 === 0 ? "rgba(33, 24, 31, 0.12)" : rgba(fallbackTone, 0.22);
       context.fillRect(rect.x, rect.y, rect.width, rect.height);
       return;
     }
@@ -2004,12 +2041,30 @@ async function renderStoryJulyBlob({
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
-        reject(new Error("Couldn't prepare the July poster image."));
+        reject(new Error(errorMessage));
         return;
       }
 
       resolve(blob);
     }, "image/png");
+  });
+}
+
+async function renderPostJulyBlob({ data }: { data: PosterCaptureData }) {
+  return await renderPostCoverBlob({
+    data,
+    sourceUrl: STORY_JULY_TEMPLATE_URL,
+    errorMessage: "Couldn't prepare the July poster image.",
+    fallbackTone: data.posterTone || "#d88cb2",
+  });
+}
+
+async function renderPostUsaBlob({ data }: { data: PosterCaptureData }) {
+  return await renderPostCoverBlob({
+    data,
+    sourceUrl: STORY_USA_TEMPLATE_URL,
+    errorMessage: "Couldn't prepare the USA poster image.",
+    fallbackTone: "#c4333a",
   });
 }
 
