@@ -270,10 +270,10 @@ export async function createCoverAction(formData: FormData) {
   const title = submittedTitle || template.label;
   const location = template.label;
 
-  const supabase = await createClient();
   const user = await requireAuthenticatedUser();
+  const admin = createAdminClient();
 
-  let tripResult = await supabase
+  let tripResult = await admin
     .from("trips")
     .insert({
       user_id: user.id,
@@ -288,7 +288,7 @@ export async function createCoverAction(formData: FormData) {
     .single();
 
   if (isMissingCoverColumns(tripResult.error)) {
-    tripResult = await supabase
+    tripResult = await admin
       .from("trips")
       .insert({
         user_id: user.id,
@@ -308,7 +308,7 @@ export async function createCoverAction(formData: FormData) {
     throw tripError ?? new Error("Unable to create cover.");
   }
 
-  const { error: missionError } = await supabase.from("missions").insert({
+  const { error: missionError } = await admin.from("missions").insert({
     trip_id: trip.id,
     color_name: template.label,
     color_hex: "#2d224a",
