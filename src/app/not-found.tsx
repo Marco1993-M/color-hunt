@@ -5,7 +5,7 @@ export default function NotFound() {
     <main className="app-shell flex min-h-screen items-center justify-center px-6">
       <div className="playful-card max-w-xl rounded-[2.3rem] p-8 text-center">
         <p className="eyebrow">Not Found</p>
-        <h1 className="mt-3 text-3xl font-semibold">That hunt isn&apos;t available here.</h1>
+        <h1 className="mt-3 text-3xl font-semibold">That page isn&apos;t available here.</h1>
         <p className="mt-3 text-base leading-7 text-[var(--muted)]">
           It may not belong to this account, it may not be public, or it hasn&apos;t been created yet.
         </p>
