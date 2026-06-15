@@ -20,8 +20,20 @@ function isMissingSortOrderColumn(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
 }
 
+function isMissingCoverColumns(error: SupabaseErrorLike | null | undefined) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
 function isMissingTripShareColumns(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
+}
+
+function normalizeTrip(trip: Partial<Trip> & Record<string, unknown>) {
+  return {
+    ...trip,
+    creation_mode: trip.creation_mode ?? null,
+    cover_template: trip.cover_template ?? null,
+  } as Trip;
 }
 
 export type TripBundle = {
@@ -77,22 +89,30 @@ export async function ensureProfile(user: { id: string; email?: string | null })
 
 export async function getTripsForUser(userId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let result = await supabase
     .from("trips")
     .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    throw error;
+  if (isMissingCoverColumns(result.error)) {
+    result = (await supabase
+      .from("trips")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })) as typeof result;
   }
 
-  return (data ?? []) as Trip[];
+  if (result.error) {
+    throw result.error;
+  }
+
+  return (result.data ?? []).map((trip) => normalizeTrip(trip as Trip));
 }
 
 export async function getTripBundle(tripId: string, userId: string) {
   const supabase = await createClient();
-  const [{ data: trip }, { data: mission }, photosResult] = await Promise.all([
+  const [tripResult, missionResult, photosResult] = await Promise.all([
     supabase
       .from("trips")
       .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
@@ -114,6 +134,31 @@ export async function getTripBundle(tripId: string, userId: string) {
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
   ]);
+
+  let trip: Trip | null = tripResult.data ? normalizeTrip(tripResult.data as Trip) : null;
+  let tripError = tripResult.error as SupabaseErrorLike | null;
+
+  if (isMissingCoverColumns(tripError)) {
+    const fallbackTripResult = (await supabase
+      .from("trips")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .eq("id", tripId)
+      .eq("user_id", userId)
+      .maybeSingle()) as typeof tripResult;
+
+    trip = fallbackTripResult.data ? normalizeTrip(fallbackTripResult.data as Trip) : null;
+    tripError = fallbackTripResult.error;
+  }
+
+  if (tripError) {
+    throw tripError;
+  }
+
+  const mission = missionResult.data;
+
+  if (missionResult.error) {
+    throw missionResult.error;
+  }
 
   let photos = photosResult.data;
   let photosError = photosResult.error as SupabaseErrorLike | null;
@@ -142,7 +187,7 @@ export async function getTripBundle(tripId: string, userId: string) {
   }
 
   return {
-    trip: trip as Trip,
+    trip: normalizeTrip(trip as Trip),
     mission,
     photos: sortPhotosByDisplayOrder((photos ?? []) as Photo[]),
   };
@@ -178,22 +223,32 @@ export async function getTripShareState(tripId: string, userId: string) {
 
 export async function getPublicTripBundleByShareId(shareId: string): Promise<TripBundle | null> {
   const supabase = await createClient();
-  const tripResult = await supabase
+  let tripResult = await supabase
     .from("trips")
     .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
     .eq("share_id", shareId)
     .eq("is_public", true)
     .maybeSingle();
-
-  const trip = tripResult.data;
   const tripError = tripResult.error as SupabaseErrorLike | null;
 
   if (isMissingTripShareColumns(tripError)) {
     return null;
   }
 
-  if (tripError) {
-    throw tripError;
+  if (isMissingCoverColumns(tripError)) {
+    tripResult = (await supabase
+      .from("trips")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+      .eq("share_id", shareId)
+      .eq("is_public", true)
+      .maybeSingle()) as typeof tripResult;
+  }
+
+  const trip = tripResult.data ? normalizeTrip(tripResult.data as Trip) : null;
+  const normalizedTripError = tripResult.error as SupabaseErrorLike | null;
+
+  if (normalizedTripError) {
+    throw normalizedTripError;
   }
 
   if (!trip) {
@@ -248,7 +303,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   }
 
   return {
-    trip: trip as Trip,
+    trip,
     mission: mission as Mission,
     photos: sortPhotosByDisplayOrder((photos ?? []) as Photo[]),
   };
@@ -450,16 +505,23 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
   let results: GroupHuntParticipantResult[] = seats;
 
   if (participantIds.length > 0) {
-    const { data: allTrips, error: allTripsError } = await admin
+    let allTripsResult = await admin
       .from("trips")
       .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
       .eq("group_hunt_id", groupHuntId);
 
-    if (allTripsError) {
-      throw allTripsError;
+    if (isMissingCoverColumns(allTripsResult.error)) {
+      allTripsResult = (await admin
+        .from("trips")
+        .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+        .eq("group_hunt_id", groupHuntId)) as typeof allTripsResult;
     }
 
-    const tripRows = (allTrips ?? []) as Trip[];
+    if (allTripsResult.error) {
+      throw allTripsResult.error;
+    }
+
+    const tripRows = (allTripsResult.data ?? []).map((trip) => normalizeTrip(trip as Trip));
     const tripIds = tripRows.map((trip) => trip.id);
     const tripsByParticipantId = new Map(
       tripRows
@@ -565,18 +627,27 @@ export async function getGroupParticipantForUser(groupHuntId: string, userId: st
 
 export async function getTripForParticipant(groupParticipantId: string, userId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let result = await supabase
     .from("trips")
     .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
     .eq("group_participant_id", groupParticipantId)
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) {
-    throw error;
+  if (isMissingCoverColumns(result.error)) {
+    result = (await supabase
+      .from("trips")
+      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .eq("group_participant_id", groupParticipantId)
+      .eq("user_id", userId)
+      .maybeSingle()) as typeof result;
   }
 
-  return (data as Trip | null) ?? null;
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result.data ? normalizeTrip(result.data as Trip) : null;
 }
 
 export async function getGroupParticipantByInviteToken(inviteToken: string): Promise<GroupHuntInviteSeat | null> {
@@ -647,16 +718,23 @@ export async function getPublicGroupHuntByShareId(shareId: string): Promise<Grou
   let seats: GroupHuntParticipantSeat[] = participantRows;
 
   if (participantIds.length > 0) {
-    const { data: trips, error: tripError } = await admin
+    let tripsResult = await admin
       .from("trips")
       .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
       .in("group_participant_id", participantIds);
 
-    if (tripError) {
-      throw tripError;
+    if (isMissingCoverColumns(tripsResult.error)) {
+      tripsResult = (await admin
+        .from("trips")
+        .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+        .in("group_participant_id", participantIds)) as typeof tripsResult;
     }
 
-    const tripRows = (trips ?? []) as Trip[];
+    if (tripsResult.error) {
+      throw tripsResult.error;
+    }
+
+    const tripRows = (tripsResult.data ?? []).map((trip) => normalizeTrip(trip as Trip));
     const tripIds = tripRows.map((trip) => trip.id);
     const tripsByParticipantId = new Map(
       tripRows
