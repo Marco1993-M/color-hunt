@@ -3,6 +3,8 @@ export type Trip = {
   user_id: string;
   title: string;
   location: string;
+  creation_mode?: "hunt" | "cover" | null;
+  cover_template?: "july" | "usa" | null;
   start_date: string | null;
   end_date: string | null;
   group_hunt_id?: string | null;
