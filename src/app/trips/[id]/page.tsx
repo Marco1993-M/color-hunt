@@ -5,7 +5,7 @@ import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { UploadPanel } from "@/components/trips/upload-panel";
 import { requireUser } from "@/lib/auth";
-import { getCoverTemplate } from "@/lib/covers";
+import { getCoverTemplate, inferCoverTemplateId, isCoverTripLike } from "@/lib/covers";
 import { getPhotoUrl, getTripBundle } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { isAnonymousUser } from "@/lib/user-state";
@@ -28,8 +28,8 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const filledSlots = photos.length;
   const progress = `${filledSlots}/${mission.max_photos}`;
   const isGroupTrip = Boolean(trip.group_hunt_id);
-  const isCoverTrip = trip.creation_mode === "cover";
-  const coverTemplate = getCoverTemplate(trip.cover_template);
+  const isCoverTrip = isCoverTripLike({ trip, mission });
+  const coverTemplate = getCoverTemplate(inferCoverTemplateId({ trip, mission }));
 
   return (
     <main className="app-shell page-frame">

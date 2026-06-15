@@ -10,7 +10,7 @@ import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
 import { SaveImageButton } from "@/components/trips/save-image-button";
 import { requireUser } from "@/lib/auth";
-import { getCoverTemplate, getCoverThemeId } from "@/lib/covers";
+import { getCoverTemplate, getCoverThemeId, inferCoverTemplateId, isCoverTripLike } from "@/lib/covers";
 import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
 import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 import { isAnonymousUser } from "@/lib/user-state";
@@ -30,9 +30,10 @@ export default async function PosterPage({ params }: PosterPageProps) {
   }
 
   const { trip, mission, photos } = bundle;
-  const isCoverTrip = trip.creation_mode === "cover";
-  const coverTemplate = getCoverTemplate(trip.cover_template);
-  const coverThemeId = getCoverThemeId(trip.cover_template);
+  const isCoverTrip = isCoverTripLike({ trip, mission });
+  const coverTemplateId = inferCoverTemplateId({ trip, mission });
+  const coverTemplate = getCoverTemplate(coverTemplateId);
+  const coverThemeId = getCoverThemeId(coverTemplateId);
   const isComplete = isPosterComplete(photos, mission.max_photos);
   const [postExport, storyExport, squareExport] = isComplete
     ? await Promise.all([
@@ -67,8 +68,8 @@ export default async function PosterPage({ params }: PosterPageProps) {
           filledSlots: photos.length,
           isComplete,
           maxPhotos: mission.max_photos,
-          creationMode: trip.creation_mode ?? "hunt",
-          coverTemplate: trip.cover_template ?? null,
+          creationMode: isCoverTrip ? "cover" : trip.creation_mode ?? "hunt",
+          coverTemplate: isCoverTrip ? coverTemplate.id : trip.cover_template ?? null,
         }}
       />
       <div className="mx-auto max-w-5xl">
@@ -108,7 +109,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
 
         {isCoverTrip ? (
           <CoverPosterPreview
-            templateId={trip.cover_template}
+            templateId={coverTemplate.id}
             photoUrls={buildPosterFrameSlots(photos, 4).map((photo) => photo?.image_url ?? null)}
           />
         ) : (

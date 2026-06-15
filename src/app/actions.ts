@@ -23,6 +23,10 @@ type AnalyticsContext = {
   sessionId: string | null;
 };
 
+type SupabaseErrorLike = {
+  code?: string;
+};
+
 function parseGroupAssignments(rawValue: FormDataEntryValue | null) {
   const raw = String(rawValue || "").trim();
 
@@ -71,6 +75,10 @@ function getAnalyticsContext(formData: FormData): AnalyticsContext {
     journeyId: parseAnalyticsId(formData.get("analytics_journey_id")),
     sessionId: parseAnalyticsId(formData.get("analytics_session_id")),
   };
+}
+
+function isMissingCoverColumns(error: SupabaseErrorLike | null | undefined) {
+  return error?.code === "42703" || error?.code === "PGRST204";
 }
 
 async function requireAuthenticatedUser() {
@@ -265,7 +273,7 @@ export async function createCoverAction(formData: FormData) {
   const supabase = await createClient();
   const user = await requireAuthenticatedUser();
 
-  const { data: trip, error: tripError } = await supabase
+  let tripResult = await supabase
     .from("trips")
     .insert({
       user_id: user.id,
@@ -279,13 +287,30 @@ export async function createCoverAction(formData: FormData) {
     .select("id")
     .single();
 
+  if (isMissingCoverColumns(tripResult.error)) {
+    tripResult = await supabase
+      .from("trips")
+      .insert({
+        user_id: user.id,
+        title,
+        location,
+        start_date: null,
+        end_date: null,
+      })
+      .select("id")
+      .single();
+  }
+
+  const trip = tripResult.data;
+  const tripError = tripResult.error;
+
   if (tripError || !trip) {
     throw tripError ?? new Error("Unable to create cover.");
   }
 
   const { error: missionError } = await supabase.from("missions").insert({
     trip_id: trip.id,
-    color_name: "Cover",
+    color_name: template.label,
     color_hex: "#2d224a",
     prompt: `Add four photos for the ${template.label.toLowerCase()}.`,
     max_photos: 4,
