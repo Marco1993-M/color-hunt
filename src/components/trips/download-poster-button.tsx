@@ -31,7 +31,7 @@ type PosterDownloadOption = {
 };
 
 function requiresPreparedDownload(themeId: PosterThemeId) {
-  return themeId === "story-scrapbook";
+  return themeId === "story-scrapbook" || themeId === "story-july";
 }
 
 export function DownloadPosterButton({
@@ -70,6 +70,15 @@ export function DownloadPosterButton({
               description: "Scrapbook-pop 9:16",
               fileSuffix: "story-scrapbook-9x16",
               previewClassName: "download-format-preview-story-scrapbook",
+            },
+            {
+              key: "story-july",
+              formatId: "story" as const,
+              themeId: "story-july" as const,
+              label: "July cover",
+              description: "Editorial 2x2 9:16",
+              fileSuffix: "story-july-9x16",
+              previewClassName: "download-format-preview-story-july",
             },
           ]
         : []),
