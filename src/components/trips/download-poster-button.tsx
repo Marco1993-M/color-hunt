@@ -31,7 +31,7 @@ type PosterDownloadOption = {
 };
 
 function requiresPreparedDownload(themeId: PosterThemeId) {
-  return themeId === "story-scrapbook" || themeId === "story-july";
+  return themeId === "story-scrapbook" || themeId === "post-july" || themeId === "post-usa";
 }
 
 export function DownloadPosterButton({
@@ -72,13 +72,22 @@ export function DownloadPosterButton({
               previewClassName: "download-format-preview-story-scrapbook",
             },
             {
-              key: "story-july",
-              formatId: "story" as const,
-              themeId: "story-july" as const,
+              key: "post-july",
+              formatId: "post" as const,
+              themeId: "post-july" as const,
               label: "July cover",
-              description: "Editorial 2x2 9:16",
-              fileSuffix: "story-july-9x16",
-              previewClassName: "download-format-preview-story-july",
+              description: "Editorial 2x2 4:5",
+              fileSuffix: "july-cover-4x5",
+              previewClassName: "download-format-preview-post-july",
+            },
+            {
+              key: "post-usa",
+              formatId: "post" as const,
+              themeId: "post-usa" as const,
+              label: "USA cover",
+              description: "Stars-and-stripes 4:5",
+              fileSuffix: "usa-cover-4x5",
+              previewClassName: "download-format-preview-post-usa",
             },
           ]
         : []),
