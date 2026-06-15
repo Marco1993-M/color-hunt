@@ -1365,6 +1365,11 @@ img {
   position: relative;
 }
 
+.download-format-preview-story-july {
+  aspect-ratio: 9 / 16;
+  position: relative;
+}
+
 .download-format-preview-square {
   aspect-ratio: 1 / 1;
 }
@@ -1420,6 +1425,44 @@ img {
 .download-format-preview-story-scrapbook .download-format-preview-inner::after {
   inset: 45% 14% 14% 40%;
   transform: rotate(4deg);
+}
+
+.download-format-preview-story-july .download-format-preview-inner {
+  width: 82%;
+  height: 82%;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(90deg, rgba(255, 214, 87, 0.92) 0 50%, rgba(255, 157, 47, 0.92) 50% 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.14));
+  box-shadow:
+    0 12px 28px rgba(53, 37, 30, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+  position: relative;
+  overflow: hidden;
+}
+
+.download-format-preview-story-july .download-format-preview-inner::before,
+.download-format-preview-story-july .download-format-preview-inner::after {
+  content: "";
+  position: absolute;
+}
+
+.download-format-preview-story-july .download-format-preview-inner::before {
+  inset: 50% 0 0 0;
+  background: linear-gradient(90deg, rgba(93, 232, 187, 0.96) 0 50%, rgba(92, 220, 246, 0.96) 50% 100%);
+}
+
+.download-format-preview-story-july .download-format-preview-inner::after {
+  left: 10%;
+  right: 10%;
+  top: 22%;
+  bottom: 8%;
+  background:
+    radial-gradient(circle at 16% 28%, rgba(255, 191, 218, 0.96) 0 8%, transparent 9%),
+    linear-gradient(180deg, transparent 0 18%, rgba(0, 0, 0, 0.88) 18% 44%, transparent 45%),
+    linear-gradient(180deg, transparent 0 42%, rgba(79, 19, 35, 0.82) 42% 100%);
+  opacity: 0.95;
+  border-radius: 1rem;
 }
 
 .download-format-copy {
