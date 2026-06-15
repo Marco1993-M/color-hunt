@@ -76,6 +76,16 @@ type StoryScrapbookTemplateSlotAsset = {
   maskCanvas: HTMLCanvasElement;
 };
 
+type CoverBackgroundRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  focalX: number;
+  focalY: number;
+  zoom: number;
+};
+
 type ManualLayout = {
   canvasPaddingX: number;
   canvasPaddingY: number;
@@ -103,6 +113,18 @@ const STORY_SCRAPBOOK_TEMPLATE_WIDTH = 1974;
 const STORY_SCRAPBOOK_TEMPLATE_HEIGHT = 3508;
 const STORY_JULY_TEMPLATE_URL = "/poster-template-story-july.png";
 const STORY_USA_TEMPLATE_URL = "/poster-template-story-usa.png";
+const POSTER_COVER_BACKGROUND_RECTS = (width: number, height: number): CoverBackgroundRect[] => [
+  { x: 0, y: 0, width: width / 2, height: height / 2, focalX: 0.34, focalY: 0.34, zoom: 1.04 },
+  { x: width / 2, y: 0, width: width / 2, height: height / 2, focalX: 0.66, focalY: 0.36, zoom: 1.04 },
+  { x: 0, y: height / 2, width: width / 2, height: height / 2, focalX: 0.38, focalY: 0.66, zoom: 1.05 },
+  { x: width / 2, y: height / 2, width: width / 2, height: height / 2, focalX: 0.64, focalY: 0.64, zoom: 1.03 },
+];
+const USA_COVER_BACKGROUND_RECTS = (width: number, height: number): CoverBackgroundRect[] => [
+  { x: 0, y: 0, width: width / 2, height: height / 2, focalX: 0.42, focalY: 0.32, zoom: 1.08 },
+  { x: width / 2, y: 0, width: width / 2, height: height / 2, focalX: 0.58, focalY: 0.3, zoom: 1.08 },
+  { x: 0, y: height / 2, width: width / 2, height: height / 2, focalX: 0.4, focalY: 0.62, zoom: 1.06 },
+  { x: width / 2, y: height / 2, width: width / 2, height: height / 2, focalX: 0.6, focalY: 0.62, zoom: 1.06 },
+];
 const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 761, y: 323, width: 269, height: 370, role: "color-card" },
   { x: 991, y: 485, width: 788, height: 1029, zoom: 1.04, focalX: 0.52, focalY: 0.42, role: "hero" },
@@ -1968,16 +1990,16 @@ async function renderPostCoverBlob({
   sourceUrl,
   errorMessage,
   fallbackTone,
+  backgroundRects,
 }: {
   data: PosterCaptureData;
   sourceUrl: string;
   errorMessage: string;
   fallbackTone: string;
+  backgroundRects: CoverBackgroundRect[];
 }) {
   const format = getPosterExportFormat("post");
   const { canvas, context } = createCanvasContext(format.width, format.height);
-
-  const selectedPhotoIndexes = [0, 2, 4, 8];
   const [overlay, loadedImages] = await Promise.all([
     loadCoverOverlay({
       sourceUrl,
@@ -1986,9 +2008,7 @@ async function renderPostCoverBlob({
       errorMessage,
     }),
     Promise.all(
-      selectedPhotoIndexes.map(async (sourceIndex) => {
-        const sourceUrl = data.photoUrls[sourceIndex];
-
+      data.photoUrls.slice(0, 4).map(async (sourceUrl) => {
         if (!sourceUrl) {
           return null;
         }
@@ -2001,13 +2021,6 @@ async function renderPostCoverBlob({
       }),
     ),
   ]);
-
-  const backgroundRects = [
-    { x: 0, y: 0, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.34, focalY: 0.34, zoom: 1.04 },
-    { x: canvas.width / 2, y: 0, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.66, focalY: 0.36, zoom: 1.04 },
-    { x: 0, y: canvas.height / 2, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.38, focalY: 0.66, zoom: 1.05 },
-    { x: canvas.width / 2, y: canvas.height / 2, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.64, focalY: 0.64, zoom: 1.03 },
-  ];
 
   backgroundRects.forEach((rect, index) => {
     const image = loadedImages[index];
@@ -2051,20 +2064,24 @@ async function renderPostCoverBlob({
 }
 
 async function renderPostJulyBlob({ data }: { data: PosterCaptureData }) {
+  const format = getPosterExportFormat("post");
   return await renderPostCoverBlob({
     data,
     sourceUrl: STORY_JULY_TEMPLATE_URL,
     errorMessage: "Couldn't prepare the July poster image.",
     fallbackTone: data.posterTone || "#d88cb2",
+    backgroundRects: POSTER_COVER_BACKGROUND_RECTS(format.width, format.height),
   });
 }
 
 async function renderPostUsaBlob({ data }: { data: PosterCaptureData }) {
+  const format = getPosterExportFormat("post");
   return await renderPostCoverBlob({
     data,
     sourceUrl: STORY_USA_TEMPLATE_URL,
     errorMessage: "Couldn't prepare the USA poster image.",
     fallbackTone: "#c4333a",
+    backgroundRects: USA_COVER_BACKGROUND_RECTS(format.width, format.height),
   });
 }
 
