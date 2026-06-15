@@ -95,6 +95,14 @@ async function requireAuthenticatedUser() {
   return user;
 }
 
+async function createWritableTripClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return await createClient();
+  }
+}
+
 async function createTripForParticipant({
   admin,
   userId,
@@ -209,11 +217,11 @@ export async function createTripAction(formData: FormData) {
     throw new Error("Trip title and location are required.");
   }
 
-  const supabase = await createClient();
   const user = await requireAuthenticatedUser();
+  const writableClient = await createWritableTripClient();
   const mission = selectedColor === "random" ? getRandomMission() : getMissionByColorName(selectedColor);
 
-  const { data: trip, error: tripError } = await supabase
+  const { data: trip, error: tripError } = await writableClient
     .from("trips")
     .insert({
       user_id: user.id,
@@ -229,7 +237,7 @@ export async function createTripAction(formData: FormData) {
     throw tripError ?? new Error("Unable to create trip.");
   }
 
-  const { error: missionError } = await supabase.from("missions").insert({
+  const { error: missionError } = await writableClient.from("missions").insert({
     trip_id: trip.id,
     color_name: mission.color_name,
     color_hex: mission.color_hex,
@@ -271,9 +279,9 @@ export async function createCoverAction(formData: FormData) {
   const location = template.label;
 
   const user = await requireAuthenticatedUser();
-  const admin = createAdminClient();
+  const writableClient = await createWritableTripClient();
 
-  let tripResult = await admin
+  let tripResult = await writableClient
     .from("trips")
     .insert({
       user_id: user.id,
@@ -288,7 +296,7 @@ export async function createCoverAction(formData: FormData) {
     .single();
 
   if (isMissingCoverColumns(tripResult.error)) {
-    tripResult = await admin
+    tripResult = await writableClient
       .from("trips")
       .insert({
         user_id: user.id,
@@ -308,7 +316,7 @@ export async function createCoverAction(formData: FormData) {
     throw tripError ?? new Error("Unable to create cover.");
   }
 
-  const { error: missionError } = await admin.from("missions").insert({
+  const { error: missionError } = await writableClient.from("missions").insert({
     trip_id: trip.id,
     color_name: template.label,
     color_hex: "#2d224a",
