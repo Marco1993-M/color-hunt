@@ -5,6 +5,7 @@ import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { UploadPanel } from "@/components/trips/upload-panel";
 import { requireUser } from "@/lib/auth";
+import { getCoverTemplate } from "@/lib/covers";
 import { getPhotoUrl, getTripBundle } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { isAnonymousUser } from "@/lib/user-state";
@@ -27,6 +28,8 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const filledSlots = photos.length;
   const progress = `${filledSlots}/${mission.max_photos}`;
   const isGroupTrip = Boolean(trip.group_hunt_id);
+  const isCoverTrip = trip.creation_mode === "cover";
+  const coverTemplate = getCoverTemplate(trip.cover_template);
 
   return (
     <main className="app-shell page-frame">
@@ -54,7 +57,15 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               href={`/trips/${trip.id}/poster`}
               className={`${filledSlots === mission.max_photos ? "button-primary" : "button-secondary"} w-full sm:w-auto`}
             >
-              {filledSlots === mission.max_photos ? (isGuest ? "Save & share" : "Share poster") : "Preview poster"}
+              {filledSlots === mission.max_photos
+                ? isCoverTrip
+                  ? "Save cover"
+                  : isGuest
+                    ? "Save & share"
+                    : "Share poster"
+                : isCoverTrip
+                  ? "Preview cover"
+                  : "Preview poster"}
             </Link>
             {!isGroupTrip ? <DeleteTripButton tripId={trip.id} tripTitle={trip.title} /> : null}
           </div>
@@ -63,9 +74,13 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-6">
             <div className="glass-panel rounded-[2.5rem] p-6 sm:p-8">
-              <p className="eyebrow">{trip.location}</p>
+              <p className="eyebrow">{isCoverTrip ? coverTemplate.label : trip.location}</p>
               <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">{trip.title}</h1>
-              <p className="body-copy mt-4 max-w-xl text-base">{mission.prompt}</p>
+              <p className="body-copy mt-4 max-w-xl text-base">
+                {isCoverTrip
+                  ? `Add four photos for the ${coverTemplate.label.toLowerCase()} and the template will do the rest.`
+                  : mission.prompt}
+              </p>
               <div className="mt-5 max-w-xl">
                 <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} compact />
               </div>
@@ -86,12 +101,16 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
                     style={{ backgroundColor: mission.color_hex }}
                   />
                   <div>
-                    <p className="eyebrow">Active Mission</p>
-                    <h2 className="panel-title mt-1 text-2xl font-semibold">{mission.color_name}</h2>
+                    <p className="eyebrow">{isCoverTrip ? "Selected template" : "Active Mission"}</p>
+                    <h2 className="panel-title mt-1 text-2xl font-semibold">
+                      {isCoverTrip ? coverTemplate.label : mission.color_name}
+                    </h2>
                   </div>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-[rgba(32,26,23,0.72)]">
-                  Look for this color in ordinary details. Stop at nine frames so the final poster keeps its shape.
+                  {isCoverTrip
+                    ? "This cover format uses four photos only. Keep the set tight so the final result feels deliberate."
+                    : "Look for this color in ordinary details. Stop at nine frames so the final poster keeps its shape."}
                 </p>
               </div>
 
@@ -100,7 +119,9 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
                   <p className="eyebrow">Progress</p>
                   <p className="mt-1 text-2xl font-semibold">{progress}</p>
                   <p className="mt-1 text-sm text-[var(--muted)]">
-                    {isGuest
+                    {isCoverTrip
+                      ? `Four frames complete this cover.`
+                      : isGuest
                       ? "Finish the nine first. You can attach Google or Apple once the poster is ready to keep."
                       : "A small, complete visual story beats an endless camera roll."}
                   </p>
@@ -125,6 +146,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               maxPhotos={mission.max_photos}
               bucketName={getSupabaseEnv().storageBucket}
               photos={photos}
+              enablePosterWarmup={!isCoverTrip}
             />
           </div>
 
@@ -132,7 +154,9 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="eyebrow">Photo Grid</p>
-                <h2 className="panel-title mt-2 text-2xl font-semibold">Nine frames make the story.</h2>
+                <h2 className="panel-title mt-2 text-2xl font-semibold">
+                  {isCoverTrip ? "Four frames make the cover." : "Nine frames make the story."}
+                </h2>
               </div>
               <p className="text-sm text-[var(--muted)]">{filledSlots} frames placed</p>
             </div>
@@ -141,21 +165,27 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               <div className="empty-state-card mb-5 rounded-[1.7rem] p-5">
                 <p className="eyebrow">Your grid starts empty</p>
                 <p className="body-copy mt-2 text-sm sm:text-base">
-                  That&apos;s the point. Start with one frame that feels unmistakably {mission.color_name.toLowerCase()}, then let the rest of the hunt build around it.
+                  {isCoverTrip
+                    ? "Start with a strong first image and build the rest of the four-photo set around it."
+                    : `That's the point. Start with one frame that feels unmistakably ${mission.color_name.toLowerCase()}, then let the rest of the hunt build around it.`}
                 </p>
               </div>
             ) : filledSlots < mission.max_photos ? (
               <div className="soft-status-card mb-5 rounded-[1.7rem] p-5">
                 <p className="eyebrow">Still collecting</p>
                 <p className="body-copy mt-2 text-sm sm:text-base">
-                  You&apos;re shaping the story now. The strongest posters usually mix obvious hits with two or three quieter details.
+                  {isCoverTrip
+                    ? "You’re shaping the cover now. The strongest four-photo sets mix one obvious lead image with three supporting moments."
+                    : "You’re shaping the story now. The strongest posters usually mix obvious hits with two or three quieter details."}
                 </p>
               </div>
             ) : (
               <div className="soft-status-card mb-5 rounded-[1.7rem] p-5">
-                <p className="eyebrow">Poster ready</p>
+                <p className="eyebrow">{isCoverTrip ? "Cover ready" : "Poster ready"}</p>
                 <p className="body-copy mt-2 text-sm sm:text-base">
-                  All nine frames are in. Give the sequence one last look, then move into the poster and share flow.
+                  {isCoverTrip
+                    ? "All four frames are in. Give the sequence one last look, then move into the cover save flow."
+                    : "All nine frames are in. Give the sequence one last look, then move into the poster and share flow."}
                 </p>
               </div>
             )}

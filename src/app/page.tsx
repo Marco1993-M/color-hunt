@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { Fredoka } from "next/font/google";
 import { redirect } from "next/navigation";
@@ -135,6 +136,19 @@ const payoffPoster = {
   subtitle: "Exploring Lisbon, Portugal 2026",
   tone: "from-[#f7e8ae] via-[#edc34d] to-[#d89c23]",
 };
+
+const templateLaneTiles = [
+  "landing-july-tile-one",
+  "landing-july-tile-two",
+  "landing-july-tile-three",
+  "landing-july-tile-four",
+];
+const usaTemplateLaneTiles = [
+  "landing-usa-tile-one",
+  "landing-usa-tile-two",
+  "landing-usa-tile-three",
+  "landing-usa-tile-four",
+];
 
 type HomeProps = {
   searchParams: Promise<{
@@ -530,6 +544,62 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <p className="landing-payoff-footer">One place. One color. Nine moments.</p>
                 </article>
+              </div>
+
+              <div className="landing-template-lane">
+                <div className="landing-template-copy">
+                  <div className="landing-template-badges" aria-hidden="true">
+                    <span className={`${fredoka.className} playful-chip bg-[#efe9ff] text-[#7a56d8]`}>Second lane</span>
+                    <span className={`${fredoka.className} playful-chip bg-[#fff4d9] text-[#dd8b2f]`}>4 photo covers</span>
+                  </div>
+                  <p className="eyebrow">Already have the photos?</p>
+                  <h3 className="panel-title text-2xl font-semibold sm:text-[2rem]">
+                    Make a cover instead.
+                  </h3>
+                  <p className="body-copy mt-2 text-sm sm:text-base">
+                    This is the separate four-photo path. Pick a template, upload four images, and turn them into a social-ready cover without going through the nine-frame hunt.
+                  </p>
+                  <p className="landing-template-note">
+                    Good for match-day dumps, birthday weekends, trip selects, and any tight four-shot set you already have.
+                  </p>
+                  <Link className="button-secondary mt-3 w-full sm:w-auto" href="/covers/new">
+                    Make a cover
+                  </Link>
+                </div>
+
+                <div className="landing-template-showcase" aria-hidden="true">
+                  <div className="landing-template-gallery">
+                    <div className="landing-july-mockup">
+                      <div className="landing-july-grid">
+                        {templateLaneTiles.map((tileClass) => (
+                          <span key={tileClass} className={`landing-july-tile ${tileClass}`} />
+                        ))}
+                      </div>
+                      <Image
+                        src="/poster-template-story-july.png"
+                        alt=""
+                        fill
+                        className="landing-july-overlay"
+                        sizes="(min-width: 1024px) 24rem, 100vw"
+                      />
+                    </div>
+
+                    <div className="landing-july-mockup landing-usa-mockup">
+                      <div className="landing-july-grid">
+                        {usaTemplateLaneTiles.map((tileClass) => (
+                          <span key={tileClass} className={`landing-july-tile ${tileClass}`} />
+                        ))}
+                      </div>
+                      <Image
+                        src="/poster-template-story-usa.png"
+                        alt=""
+                        fill
+                        className="landing-july-overlay"
+                        sizes="(min-width: 1024px) 24rem, 100vw"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

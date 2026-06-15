@@ -577,6 +577,11 @@ img {
   justify-content: center;
 }
 
+.landing-template-gallery {
+  display: grid;
+  gap: 0.9rem;
+}
+
 .landing-july-mockup {
   position: relative;
   width: min(100%, 18rem);
@@ -633,6 +638,31 @@ img {
 .landing-july-overlay {
   object-fit: cover;
   object-position: center;
+}
+
+.landing-usa-mockup {
+  transform: rotate(4deg);
+}
+
+.landing-usa-tile-one {
+  background-image:
+    radial-gradient(circle at 26% 22%, rgba(255, 255, 255, 0.72), transparent 16%),
+    linear-gradient(160deg, rgba(34, 45, 103, 0.96), rgba(88, 111, 191, 0.88), rgba(198, 215, 244, 0.84));
+}
+
+.landing-usa-tile-two {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0 22%, rgba(198, 49, 54, 0.94) 22% 42%, rgba(255, 255, 255, 0.95) 42% 62%, rgba(198, 49, 54, 0.94) 62% 82%, rgba(255, 255, 255, 0.95) 82% 100%);
+}
+
+.landing-usa-tile-three {
+  background-image:
+    linear-gradient(145deg, rgba(77, 13, 24, 0.96), rgba(194, 48, 58, 0.92), rgba(255, 226, 209, 0.8));
+}
+
+.landing-usa-tile-four {
+  background-image:
+    linear-gradient(145deg, rgba(233, 238, 246, 0.98), rgba(160, 184, 232, 0.86), rgba(36, 48, 109, 0.96));
 }
 
 .hero-stage {
@@ -948,6 +978,11 @@ img {
     width: 19.5rem;
   }
 
+  .landing-template-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
   .mascot-face {
     width: 5.8rem;
     height: 5.2rem;
@@ -1052,6 +1087,55 @@ img {
 .poster-layout {
   position: relative;
   overflow: hidden;
+}
+
+.cover-preview-shell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 1.6rem;
+  background: rgba(255, 251, 247, 0.98);
+  box-shadow: 0 24px 60px rgba(72, 48, 110, 0.14);
+}
+
+.cover-preview-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.cover-preview-cell {
+  position: relative;
+  overflow: hidden;
+}
+
+.cover-preview-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-preview-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(245,236,226,0.74));
+  color: rgba(67, 58, 97, 0.62);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cover-preview-overlay {
+  object-fit: cover;
+  object-position: center;
 }
 
 .poster-layout::before {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/admin-supabase";
+import { getCoverTemplate } from "@/lib/covers";
 import { ensureProfile, getGroupParticipantByInviteToken } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { getMissionByColorName, getRandomMission } from "@/lib/missions";
@@ -246,6 +247,67 @@ export async function createTripAction(formData: FormData) {
       challengeColorName: challengeColorName || null,
       challengeShareId: challengeShareId || null,
       maxPhotos: 9,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(`/trips/${trip.id}`);
+}
+
+export async function createCoverAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
+  const templateId = String(formData.get("cover_template") || "").trim();
+  const submittedTitle = String(formData.get("title") || "").trim();
+  const template = getCoverTemplate(templateId);
+  const title = submittedTitle || template.label;
+  const location = template.label;
+
+  const supabase = await createClient();
+  const user = await requireAuthenticatedUser();
+
+  const { data: trip, error: tripError } = await supabase
+    .from("trips")
+    .insert({
+      user_id: user.id,
+      title,
+      location,
+      creation_mode: "cover",
+      cover_template: template.id,
+      start_date: null,
+      end_date: null,
+    })
+    .select("id")
+    .single();
+
+  if (tripError || !trip) {
+    throw tripError ?? new Error("Unable to create cover.");
+  }
+
+  const { error: missionError } = await supabase.from("missions").insert({
+    trip_id: trip.id,
+    color_name: "Cover",
+    color_hex: "#2d224a",
+    prompt: `Add four photos for the ${template.label.toLowerCase()}.`,
+    max_photos: 4,
+  });
+
+  if (missionError) {
+    throw missionError;
+  }
+
+  await trackServerEvent({
+    eventName: "trip_created",
+    tripId: trip.id,
+    userId: user.id,
+    path: `/trips/${trip.id}`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
+    metadata: {
+      creationMode: "cover",
+      coverTemplate: template.id,
+      selectedColor: null,
+      assignedColor: null,
+      maxPhotos: 4,
     },
   });
 
