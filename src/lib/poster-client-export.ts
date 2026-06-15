@@ -14,7 +14,7 @@ export type PosterCaptureData = {
   photoUrls: Array<string | null>;
 };
 
-export type PosterThemeId = "classic" | "story-collage" | "story-scrapbook";
+export type PosterThemeId = "classic" | "story-collage" | "story-scrapbook" | "story-july";
 
 type StoryCollageSlot = {
   x: number;
@@ -96,6 +96,7 @@ const STORY_COLLAGE_TEMPLATE_HEIGHT = 3508;
 const STORY_SCRAPBOOK_TEMPLATE_URL = "/poster-template-story-scrapbook.png";
 const STORY_SCRAPBOOK_TEMPLATE_WIDTH = 1974;
 const STORY_SCRAPBOOK_TEMPLATE_HEIGHT = 3508;
+const STORY_JULY_TEMPLATE_URL = "/poster-template-story-july.png";
 const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 761, y: 323, width: 269, height: 370, role: "color-card" },
   { x: 991, y: 485, width: 788, height: 1029, zoom: 1.04, focalX: 0.52, focalY: 0.42, role: "hero" },
@@ -364,6 +365,7 @@ let storyCollageOverlayPromise: Promise<HTMLCanvasElement> | null = null;
 let storyScrapbookTemplatePromise:
   | Promise<{ overlay: HTMLCanvasElement; slots: StoryScrapbookTemplateSlotAsset[] }>
   | null = null;
+let storyJulyOverlayPromise: Promise<HTMLCanvasElement> | null = null;
 const posterBlobPromiseCache = new Map<string, Promise<Blob>>();
 
 function setCanvasLetterSpacing(context: CanvasRenderingContext2D, value: string) {
@@ -532,6 +534,38 @@ function buildRoundedRectPath(
   context.lineTo(x, y + nextRadius);
   context.quadraticCurveTo(x, y, x + nextRadius, y);
   context.closePath();
+}
+
+function drawImageCover({
+  context,
+  image,
+  x,
+  y,
+  width,
+  height,
+  zoom = 1,
+  focalX = 0.5,
+  focalY = 0.5,
+}: {
+  context: CanvasRenderingContext2D;
+  image: HTMLImageElement;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zoom?: number;
+  focalX?: number;
+  focalY?: number;
+}) {
+  const scale = Math.max(width / image.width, height / image.height) * zoom;
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const overflowX = Math.max(0, drawWidth - width);
+  const overflowY = Math.max(0, drawHeight - height);
+  const drawX = x - overflowX * focalX;
+  const drawY = y - overflowY * focalY;
+
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
 }
 
 function degreesToRadians(value: number) {
@@ -881,6 +915,27 @@ async function loadStoryScrapbookTemplateAssets(targetWidth: number, targetHeigh
   return await storyScrapbookTemplatePromise;
 }
 
+async function loadStoryJulyOverlay(targetWidth: number, targetHeight: number) {
+  if (!storyJulyOverlayPromise) {
+    storyJulyOverlayPromise = (async () => {
+      let templateImage: HTMLImageElement;
+
+      try {
+        templateImage = await loadStaticImage(STORY_JULY_TEMPLATE_URL);
+      } catch {
+        storyJulyOverlayPromise = null;
+        throw new Error("Couldn't fetch the July poster template.");
+      }
+
+      const { canvas, context } = createCanvasContext(targetWidth, targetHeight);
+      context.drawImage(templateImage, 0, 0, targetWidth, targetHeight);
+      return canvas;
+    })();
+  }
+
+  return await storyJulyOverlayPromise;
+}
+
 async function ensureFontsReady() {
   if (document.fonts) {
     try {
@@ -1074,6 +1129,10 @@ async function renderManualPosterBlob({
 
   if (formatId === "story" && themeId === "story-scrapbook") {
     return await renderStoryScrapbookBlob({ data });
+  }
+
+  if (formatId === "story" && themeId === "story-july") {
+    return await renderStoryJulyBlob({ data });
   }
 
   const format = getPosterExportFormat(formatId);
@@ -1870,6 +1929,82 @@ async function renderStoryScrapbookBlob({
     canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error("Couldn't prepare the scrapbook poster image."));
+        return;
+      }
+
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+async function renderStoryJulyBlob({
+  data,
+}: {
+  data: PosterCaptureData;
+}) {
+  const format = getPosterExportFormat("story");
+  const { canvas, context } = createCanvasContext(format.width, format.height);
+
+  const selectedPhotoIndexes = [0, 2, 4, 8];
+  const [overlay, loadedImages] = await Promise.all([
+    loadStoryJulyOverlay(canvas.width, canvas.height),
+    Promise.all(
+      selectedPhotoIndexes.map(async (sourceIndex) => {
+        const sourceUrl = data.photoUrls[sourceIndex];
+
+        if (!sourceUrl) {
+          return null;
+        }
+
+        try {
+          return await loadPosterImage(sourceUrl);
+        } catch {
+          return null;
+        }
+      }),
+    ),
+  ]);
+
+  const backgroundRects = [
+    { x: 0, y: 0, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.34, focalY: 0.34, zoom: 1.04 },
+    { x: canvas.width / 2, y: 0, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.66, focalY: 0.36, zoom: 1.04 },
+    { x: 0, y: canvas.height / 2, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.38, focalY: 0.66, zoom: 1.05 },
+    { x: canvas.width / 2, y: canvas.height / 2, width: canvas.width / 2, height: canvas.height / 2, focalX: 0.64, focalY: 0.64, zoom: 1.03 },
+  ];
+
+  backgroundRects.forEach((rect, index) => {
+    const image = loadedImages[index];
+
+    if (!image) {
+      context.fillStyle = index % 2 === 0 ? "rgba(33, 24, 31, 0.12)" : rgba(data.posterTone || "#d88cb2", 0.22);
+      context.fillRect(rect.x, rect.y, rect.width, rect.height);
+      return;
+    }
+
+    context.save();
+    context.beginPath();
+    context.rect(rect.x, rect.y, rect.width, rect.height);
+    context.clip();
+    drawImageCover({
+      context,
+      image,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      focalX: rect.focalX,
+      focalY: rect.focalY,
+      zoom: rect.zoom,
+    });
+    context.restore();
+  });
+
+  context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Couldn't prepare the July poster image."));
         return;
       }
 
