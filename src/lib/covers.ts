@@ -35,6 +35,63 @@ export function getCoverThemeId(templateId: string | null | undefined) {
   return getCoverTemplate(templateId).themeId;
 }
 
+export function getCoverDisplayTitle(title: string | null | undefined) {
+  const normalized = String(title || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+
+  return normalized || "JULY";
+}
+
+export function getCoverDisplayTitleLines(title: string | null | undefined, maxLines = 3) {
+  const normalized = getCoverDisplayTitle(title);
+  const words = normalized.split(" ").filter(Boolean);
+
+  if (words.length <= 1) {
+    return [normalized];
+  }
+
+  const lineLimit = Math.max(1, Math.min(maxLines, words.length));
+  let bestLines = [normalized];
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  function scoreLines(lines: string[]) {
+    const lengths = lines.map((line) => line.length);
+    const longest = Math.max(...lengths);
+    const shortest = Math.min(...lengths);
+    const average = lengths.reduce((sum, value) => sum + value, 0) / lengths.length;
+
+    return longest * 4 + (longest - shortest) * 3 + Math.abs(average - 8) * 1.5;
+  }
+
+  function buildPartitions(startIndex: number, remainingLines: number, currentLines: string[]) {
+    if (startIndex >= words.length) {
+      const nextScore = scoreLines(currentLines);
+      if (nextScore < bestScore) {
+        bestScore = nextScore;
+        bestLines = currentLines;
+      }
+      return;
+    }
+
+    if (remainingLines === 1) {
+      buildPartitions(words.length, 0, [...currentLines, words.slice(startIndex).join(" ")]);
+      return;
+    }
+
+    for (let endIndex = startIndex + 1; endIndex <= words.length - (remainingLines - 1); endIndex += 1) {
+      buildPartitions(endIndex, remainingLines - 1, [...currentLines, words.slice(startIndex, endIndex).join(" ")]);
+    }
+  }
+
+  for (let lineCount = 2; lineCount <= lineLimit; lineCount += 1) {
+    buildPartitions(0, lineCount, []);
+  }
+
+  return bestLines;
+}
+
 export function inferCoverTemplateId({
   trip,
   mission,
