@@ -1,23 +1,39 @@
 import Image from "next/image";
-import { getCoverTemplate } from "@/lib/covers";
+import { getCoverDisplayTitleLines, getCoverTemplate } from "@/lib/covers";
+import { getPhotoUrl } from "@/lib/photo-url";
+import { getPosterPhotoPlacement } from "@/lib/poster";
+import type { Photo } from "@/lib/types";
 
 type CoverPosterPreviewProps = {
   templateId: string | null | undefined;
-  photoUrls: Array<string | null>;
+  photos: Array<Photo | null>;
+  title?: string | null;
 };
 
-export function CoverPosterPreview({ templateId, photoUrls }: CoverPosterPreviewProps) {
+export function CoverPosterPreview({ templateId, photos, title = null }: CoverPosterPreviewProps) {
   const template = getCoverTemplate(templateId);
-  const previewPhotos = photoUrls.slice(0, 4);
+  const previewPhotos = photos.slice(0, 4);
+  const titleLines = getCoverDisplayTitleLines(title, 3);
 
   return (
     <div className="cover-preview-shell">
       <div className="cover-preview-grid">
-        {previewPhotos.map((photoUrl, index) => (
+        {previewPhotos.map((photo, index) => (
           <div key={`cover-photo-${index}`} className="cover-preview-cell">
-            {photoUrl ? (
+            {photo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoUrl} alt={`Cover photo ${index + 1}`} crossOrigin="anonymous" loading="eager" decoding="async" />
+              <img
+                src={getPhotoUrl(photo)}
+                alt={`Cover photo ${index + 1}`}
+                crossOrigin="anonymous"
+                loading="eager"
+                decoding="async"
+                style={{
+                  objectPosition: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%`,
+                  transform: `scale(${getPosterPhotoPlacement(photo).zoom})`,
+                  transformOrigin: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%`,
+                }}
+              />
             ) : (
               <div className="cover-preview-placeholder">
                 <span>Photo {index + 1}</span>
@@ -26,8 +42,17 @@ export function CoverPosterPreview({ templateId, photoUrls }: CoverPosterPreview
           </div>
         ))}
       </div>
-      <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
+      {template.id === "july" ? (
+        <div className="cover-preview-july-title" aria-hidden="true">
+          {titleLines.map((line) => (
+            <span key={line} className="cover-preview-july-line">
+              {line}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
+      )}
     </div>
   );
 }
-

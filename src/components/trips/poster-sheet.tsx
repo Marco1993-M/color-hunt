@@ -1,6 +1,6 @@
 import { Cormorant_Garamond } from "next/font/google";
-import { getPhotoUrl } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterSubtitle, getPosterTitleLabel } from "@/lib/poster";
+import { getPhotoUrl } from "@/lib/photo-url";
+import { buildPosterFrameSlots, getPosterPhotoPlacement, getPosterSubtitle, getPosterTitleLabel } from "@/lib/poster";
 import type { Mission, Photo, Trip } from "@/lib/types";
 
 const posterSerif = Cormorant_Garamond({
@@ -46,6 +46,7 @@ export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetPr
       <div className="poster-grid-shell poster-postcard-grid mt-6">
         <div className="grid-poster poster-grid">
           {posterSlots.map((photo, index) => {
+            const placement = photo ? getPosterPhotoPlacement(photo) : null;
             return (
               <div key={photo?.id ?? `poster-slot-${index}`} className="photo-tile poster-photo-tile rounded-[0.12rem] sm:rounded-[0.15rem]">
                 {photo ? (
@@ -57,6 +58,11 @@ export function PosterSheet({ trip, mission, photos, footer, id }: PosterSheetPr
                       crossOrigin="anonymous"
                       loading="eager"
                       decoding="async"
+                      style={{
+                        objectPosition: `${(placement?.focalX ?? 0.5) * 100}% ${(placement?.focalY ?? 0.5) * 100}%`,
+                        transform: `scale(${placement?.zoom ?? 1})`,
+                        transformOrigin: `${(placement?.focalX ?? 0.5) * 100}% ${(placement?.focalY ?? 0.5) * 100}%`,
+                      }}
                     />
                   </>
                 ) : (
