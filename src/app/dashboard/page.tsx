@@ -183,14 +183,13 @@ export default async function DashboardPage() {
                       style={{ width: `${getProgressPercent(continueDestination.summary)}%` }}
                     />
                   </div>
-                </div>
-
-                <div className="dashboard-continue-meta">
-                  <p className="dashboard-continue-location">{continueDestination.summary.trip.location}</p>
-                  <span className="dashboard-inline-action mt-4">
-                    {getTripActionLabel(continueDestination.summary)}
-                    <span aria-hidden="true">→</span>
-                  </span>
+                  <div className="dashboard-card-footer mt-6">
+                    <span>{continueDestination.summary.trip.location}</span>
+                    <span className="dashboard-inline-action">
+                      {getTripActionLabel(continueDestination.summary)}
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
                 </div>
               </Link>
             ) : continueDestination.kind === "joined-group" ? (
@@ -211,14 +210,13 @@ export default async function DashboardPage() {
                   <p className="body-copy mt-3 text-sm">
                     Stay in the group loop and keep your assigned color moving toward the final poster.
                   </p>
-                </div>
-
-                <div className="dashboard-continue-meta">
-                  <p className="dashboard-continue-location">{continueDestination.hunt.location}</p>
-                  <span className="dashboard-inline-action mt-4">
-                    {continueDestination.tripId ? "Continue your part" : "Open the group"}
-                    <span aria-hidden="true">→</span>
-                  </span>
+                  <div className="dashboard-card-footer mt-6">
+                    <span>{continueDestination.hunt.location}</span>
+                    <span className="dashboard-inline-action">
+                      {continueDestination.tripId ? "Continue your part" : "Open the group"}
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
                 </div>
               </Link>
             ) : (
@@ -235,14 +233,13 @@ export default async function DashboardPage() {
                   <p className="body-copy mt-3 text-sm">
                     Check the seats, see who has joined, and keep the group momentum moving.
                   </p>
-                </div>
-
-                <div className="dashboard-continue-meta">
-                  <p className="dashboard-continue-location">{continueDestination.hunt.location}</p>
-                  <span className="dashboard-inline-action mt-4">
-                    Open group hunt
-                    <span aria-hidden="true">→</span>
-                  </span>
+                  <div className="dashboard-card-footer mt-6">
+                    <span>{continueDestination.hunt.location}</span>
+                    <span className="dashboard-inline-action">
+                      Open group hunt
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
                 </div>
               </Link>
             )}
