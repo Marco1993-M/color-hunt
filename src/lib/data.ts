@@ -1,4 +1,4 @@
-import { getSupabaseEnv } from "@/lib/env";
+import { getPhotoUrl as getPublicPhotoUrl } from "@/lib/photo-url";
 import { createAdminClient } from "@/lib/admin-supabase";
 import type {
   GroupHunt,
@@ -20,6 +20,10 @@ function isMissingSortOrderColumn(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
 }
 
+function isMissingPhotoCropColumns(error: SupabaseErrorLike | null | undefined) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
 function isMissingCoverColumns(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
 }
@@ -34,6 +38,16 @@ function normalizeTrip(trip: Partial<Trip> & Record<string, unknown>) {
     creation_mode: trip.creation_mode ?? null,
     cover_template: trip.cover_template ?? null,
   } as Trip;
+}
+
+function normalizePhoto(photo: Partial<Photo> & Record<string, unknown>) {
+  return {
+    ...photo,
+    sort_order: photo.sort_order ?? null,
+    poster_focal_x: photo.poster_focal_x ?? 0.5,
+    poster_focal_y: photo.poster_focal_y ?? 0.5,
+    poster_zoom: photo.poster_zoom ?? 1,
+  } as Photo;
 }
 
 export type TripBundle = {
@@ -128,7 +142,7 @@ export async function getTripBundle(tripId: string, userId: string) {
       .maybeSingle(),
     supabase
       .from("photos")
-      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, caption, dominant_color, color_match_score, created_at")
       .eq("trip_id", tripId)
       .eq("user_id", userId)
       .order("sort_order", { ascending: true, nullsFirst: false })
@@ -160,8 +174,21 @@ export async function getTripBundle(tripId: string, userId: string) {
     throw missionResult.error;
   }
 
-  let photos = photosResult.data;
+  let photos: Photo[] | null = (photosResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
   let photosError = photosResult.error as SupabaseErrorLike | null;
+
+  if (isMissingPhotoCropColumns(photosError)) {
+    const fallbackResult = await supabase
+      .from("photos")
+      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+      .eq("trip_id", tripId)
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true });
+
+    photos = (fallbackResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
+    photosError = fallbackResult.error as SupabaseErrorLike | null;
+  }
 
   if (isMissingSortOrderColumn(photosError)) {
     const fallbackResult = await supabase
@@ -171,10 +198,7 @@ export async function getTripBundle(tripId: string, userId: string) {
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
 
-    photos = (fallbackResult.data ?? []).map((photo) => ({
-      ...photo,
-      sort_order: null,
-    })) as Photo[];
+    photos = (fallbackResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
     photosError = fallbackResult.error;
   }
 
@@ -200,7 +224,7 @@ export async function getTripBundle(tripId: string, userId: string) {
         .maybeSingle(),
       admin
         .from("photos")
-        .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+        .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, caption, dominant_color, color_match_score, created_at")
         .eq("trip_id", tripId)
         .eq("user_id", userId)
         .order("sort_order", { ascending: true, nullsFirst: false })
@@ -230,8 +254,21 @@ export async function getTripBundle(tripId: string, userId: string) {
       throw adminMissionResult.error;
     }
 
-    let adminPhotos = adminPhotosResult.data;
+    let adminPhotos: Photo[] | null = (adminPhotosResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
     let adminPhotosError = adminPhotosResult.error as SupabaseErrorLike | null;
+
+    if (isMissingPhotoCropColumns(adminPhotosError)) {
+      const fallbackAdminPhotosResult = await admin
+        .from("photos")
+        .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+        .eq("trip_id", tripId)
+        .eq("user_id", userId)
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
+
+      adminPhotos = (fallbackAdminPhotosResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
+      adminPhotosError = fallbackAdminPhotosResult.error as SupabaseErrorLike | null;
+    }
 
     if (isMissingSortOrderColumn(adminPhotosError)) {
       const fallbackAdminPhotosResult = await admin
@@ -241,10 +278,7 @@ export async function getTripBundle(tripId: string, userId: string) {
         .eq("user_id", userId)
         .order("created_at", { ascending: true });
 
-      adminPhotos = (fallbackAdminPhotosResult.data ?? []).map((photo) => ({
-        ...photo,
-        sort_order: null,
-      })) as Photo[];
+      adminPhotos = (fallbackAdminPhotosResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
       adminPhotosError = fallbackAdminPhotosResult.error;
     }
 
@@ -259,14 +293,14 @@ export async function getTripBundle(tripId: string, userId: string) {
     return {
       trip: adminTrip,
       mission: adminMissionResult.data as Mission,
-      photos: sortPhotosByDisplayOrder((adminPhotos ?? []) as Photo[]),
+      photos: sortPhotosByDisplayOrder((adminPhotos ?? []).map((photo) => normalizePhoto(photo as Photo))),
     };
   }
 
   return {
     trip: normalizeTrip(trip as Trip),
     mission,
-    photos: sortPhotosByDisplayOrder((photos ?? []) as Photo[]),
+    photos: sortPhotosByDisplayOrder((photos ?? []).map((photo) => normalizePhoto(photo as Photo))),
   };
 }
 
@@ -342,7 +376,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
       .maybeSingle(),
     supabase
       .from("photos")
-      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, caption, dominant_color, color_match_score, created_at")
       .eq("trip_id", trip.id)
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
@@ -358,8 +392,20 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
     return null;
   }
 
-  let photos = photosResult.data;
+  let photos: Photo[] | null = (photosResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
   let photosError = photosResult.error as SupabaseErrorLike | null;
+
+  if (isMissingPhotoCropColumns(photosError)) {
+    const fallbackResult = await supabase
+      .from("photos")
+      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, caption, dominant_color, color_match_score, created_at")
+      .eq("trip_id", trip.id)
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true });
+
+    photos = (fallbackResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
+    photosError = fallbackResult.error as SupabaseErrorLike | null;
+  }
 
   if (isMissingSortOrderColumn(photosError)) {
     const fallbackResult = await supabase
@@ -368,10 +414,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
       .eq("trip_id", trip.id)
       .order("created_at", { ascending: true });
 
-    photos = (fallbackResult.data ?? []).map((photo) => ({
-      ...photo,
-      sort_order: null,
-    })) as Photo[];
+    photos = (fallbackResult.data ?? []).map((photo) => normalizePhoto(photo as Photo));
     photosError = fallbackResult.error;
   }
 
@@ -382,7 +425,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   return {
     trip,
     mission: mission as Mission,
-    photos: sortPhotosByDisplayOrder((photos ?? []) as Photo[]),
+    photos: sortPhotosByDisplayOrder((photos ?? []).map((photo) => normalizePhoto(photo as Photo))),
   };
 }
 
@@ -422,12 +465,7 @@ export async function getPublicTripsForSitemap() {
 }
 
 export function getPhotoUrl(photo: Photo) {
-  if (photo.image_url) {
-    return photo.image_url;
-  }
-
-  const { url, storageBucket } = getSupabaseEnv();
-  return `${url}/storage/v1/object/public/${storageBucket}/${photo.storage_path}`;
+  return getPublicPhotoUrl(photo);
 }
 
 export async function getGroupHuntsForUser(userId: string) {

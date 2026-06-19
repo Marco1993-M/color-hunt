@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
-import { getPhotoUrl } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterSubtitle, getPosterTitleLabel, getPosterTripYear } from "@/lib/poster";
+import { getPhotoUrl } from "@/lib/photo-url";
+import { buildPosterFrameSlots, getPosterPhotoPlacement, getPosterSubtitle, getPosterTitleLabel, getPosterTripYear } from "@/lib/poster";
 import {
   getPosterExportFormat,
   type PosterExportFormatId,
@@ -376,6 +376,49 @@ function buildRoundedMask(width: number, height: number, radius: number) {
   );
 }
 
+async function renderPosterTileBuffer({
+  sourceBuffer,
+  width,
+  height,
+  radius,
+  focalX,
+  focalY,
+  zoom,
+}: {
+  sourceBuffer: Buffer;
+  width: number;
+  height: number;
+  radius: number;
+  focalX: number;
+  focalY: number;
+  zoom: number;
+}) {
+  const source = sharp(sourceBuffer);
+  const metadata = await source.metadata();
+  const sourceWidth = metadata.width ?? width;
+  const sourceHeight = metadata.height ?? height;
+  const scale = Math.max(width / sourceWidth, height / sourceHeight) * zoom;
+  const resizedWidth = Math.max(width, Math.ceil(sourceWidth * scale));
+  const resizedHeight = Math.max(height, Math.ceil(sourceHeight * scale));
+  const overflowX = Math.max(0, resizedWidth - width);
+  const overflowY = Math.max(0, resizedHeight - height);
+  const extractLeft = Math.max(0, Math.min(overflowX, Math.round(overflowX * focalX)));
+  const extractTop = Math.max(0, Math.min(overflowY, Math.round(overflowY * focalY)));
+  const mask = buildRoundedMask(width, height, radius);
+
+  return await sharp(sourceBuffer)
+    .resize(resizedWidth, resizedHeight)
+    .extract({
+      left: extractLeft,
+      top: extractTop,
+      width,
+      height,
+    })
+    .composite([{ input: mask, blend: "dest-in" }])
+    .png()
+    .toBuffer();
+}
+
 export async function renderPosterPngBuffer({
   trip,
   mission,
@@ -396,7 +439,8 @@ export async function renderPosterPngBuffer({
       : svg
           .replace("__REGULAR__", toBase64(posterFonts.regular))
           .replace("__SEMIBOLD__", toBase64(posterFonts.semibold));
-  const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
+  const photoSlots = buildPosterFrameSlots(photos);
+  const photoUrls = photoSlots.map((photo) => (photo ? getPhotoUrl(photo) : null));
   const titleLines = wrapPosterTitle(getPosterTitleLabel(trip.title, trip.location), formatId);
   const posterWidth = format.width - layout.canvasPaddingX * 2;
   const posterHeight = format.height - layout.canvasPaddingY * 2;
@@ -419,8 +463,6 @@ export async function renderPosterPngBuffer({
   const photoRows = getPhotoRows(photoUrls, columns);
   const gridStartX = layout.canvasPaddingX + layout.posterPadding;
   const gridStartY = layout.canvasPaddingY + layout.posterPadding + titleBlockHeight + metaBlockHeight + layout.gridTopMargin;
-  const tileMaskCache = new Map<string, Buffer>();
-
   const imageComposites = await Promise.all(
     photoRows.flatMap((rowPhotos, rowIndex) =>
       rowPhotos.map(async (source, columnIndex) => {
@@ -444,22 +486,16 @@ export async function renderPosterPngBuffer({
         }
 
         const sourceBuffer = await fetchPosterSourceBuffer(source);
-        const maskKey = `${width}x${tileHeight}x${layout.tileRadius}`;
-        const mask =
-          tileMaskCache.get(maskKey) ?? buildRoundedMask(width, tileHeight, layout.tileRadius);
-
-        if (!tileMaskCache.has(maskKey)) {
-          tileMaskCache.set(maskKey, mask);
-        }
-
-        const imageBuffer = await sharp(sourceBuffer)
-          .resize(width, tileHeight, {
-            fit: "cover",
-            position: "attention",
-          })
-          .composite([{ input: mask, blend: "dest-in" }])
-          .png()
-          .toBuffer();
+        const placement = getPosterPhotoPlacement(photoSlots[rowIndex * columns + columnIndex] ?? null);
+        const imageBuffer = await renderPosterTileBuffer({
+          sourceBuffer,
+          width,
+          height: tileHeight,
+          radius: layout.tileRadius,
+          focalX: placement.focalX,
+          focalY: placement.focalY,
+          zoom: placement.zoom,
+        });
 
         return {
           input: imageBuffer,
@@ -505,7 +541,8 @@ export async function createPosterImageResponse({
   const posterTitle = getPosterTitleLabel(trip.title, trip.location);
   const posterSubtitle = getPosterSubtitle(mission.color_name);
   const posterFonts = await loadPosterFonts();
-  const photoUrls = buildPosterFrameSlots(photos).map((photo) => (photo ? getPhotoUrl(photo) : null));
+  const photoSlots = buildPosterFrameSlots(photos);
+  const photoUrls = photoSlots.map((photo) => (photo ? getPhotoUrl(photo) : null));
   const titleLines = wrapPosterTitle(posterTitle, formatId);
 
   const posterWidth = format.width - layout.canvasPaddingX * 2;
@@ -627,7 +664,10 @@ export async function createPosterImageResponse({
                   justifyContent: rowPhotos.length === 1 ? "center" : "flex-start",
                 }}
               >
-                {rowPhotos.map((source, columnIndex) => (
+                {rowPhotos.map((source, columnIndex) => {
+                  const photoIndex = rowIndex * columns + columnIndex;
+                  const placement = getPosterPhotoPlacement(photoSlots[photoIndex] ?? null);
+                  return (
                   <div
                     key={`${source ?? "empty"}-${rowIndex}-${columnIndex}`}
                     style={{
@@ -650,6 +690,9 @@ export async function createPosterImageResponse({
                           width: "100%",
                           height: "100%",
                           objectFit: "cover",
+                          objectPosition: `${placement.focalX * 100}% ${placement.focalY * 100}%`,
+                          transform: `scale(${placement.zoom})`,
+                          transformOrigin: `${placement.focalX * 100}% ${placement.focalY * 100}%`,
                           borderRadius: layout.tileRadius,
                         }}
                       />
@@ -669,7 +712,8 @@ export async function createPosterImageResponse({
                       </div>
                     )}
                   </div>
-                ))}
+                );
+                })}
               </div>
             ))}
           </div>

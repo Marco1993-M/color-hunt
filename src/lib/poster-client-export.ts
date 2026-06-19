@@ -1,8 +1,9 @@
 "use client";
 
 import { toBlob } from "html-to-image";
+import { getCoverDisplayTitleLines } from "@/lib/covers";
 import { getPosterExportFormat, type PosterExportFormatId } from "@/lib/poster-export";
-import { getPosterSubtitle } from "@/lib/poster";
+import { getPosterPhotoPlacement, getPosterSubtitle, type PosterPhotoPlacement } from "@/lib/poster";
 
 export type PosterCaptureData = {
   posterTitle: string;
@@ -12,6 +13,7 @@ export type PosterCaptureData = {
   tripYear: string;
   posterTone: string;
   photoUrls: Array<string | null>;
+  photoPlacements: Array<PosterPhotoPlacement | null>;
 };
 
 export type PosterThemeId =
@@ -125,6 +127,10 @@ const USA_COVER_BACKGROUND_RECTS = (width: number, height: number): CoverBackgro
   { x: 0, y: height / 2, width: width / 2, height: height / 2, focalX: 0.4, focalY: 0.62, zoom: 1.06 },
   { x: width / 2, y: height / 2, width: width / 2, height: height / 2, focalX: 0.6, focalY: 0.62, zoom: 1.06 },
 ];
+
+function getPlacementForIndex(data: PosterCaptureData, index: number) {
+  return getPosterPhotoPlacement(data.photoPlacements[index] ?? null);
+}
 const STORY_COLLAGE_SLOTS: StoryCollageSlot[] = [
   { x: 761, y: 323, width: 269, height: 370, role: "color-card" },
   { x: 991, y: 485, width: 788, height: 1029, zoom: 1.04, focalX: 0.52, focalY: 0.42, role: "hero" },
@@ -509,19 +515,21 @@ function getStoryCollageDrawRect({
   image,
   scaleX,
   scaleY,
+  placement,
 }: {
   slot: StoryCollageSlot;
   image: CanvasImageSource & { width: number; height: number };
   scaleX: number;
   scaleY: number;
+  placement?: PosterPhotoPlacement | null;
 }) {
   const x = slot.x * scaleX;
   const y = slot.y * scaleY;
   const width = slot.width * scaleX;
   const height = slot.height * scaleY;
-  const zoom = slot.zoom ?? 1;
-  const focalX = slot.focalX ?? 0.5;
-  const focalY = slot.focalY ?? 0.5;
+  const zoom = (slot.zoom ?? 1) * (placement?.zoom ?? 1);
+  const focalX = placement?.focalX ?? slot.focalX ?? 0.5;
+  const focalY = placement?.focalY ?? slot.focalY ?? 0.5;
   const scale = Math.max(width / image.width, height / image.height) * zoom;
   const drawWidth = image.width * scale;
   const drawHeight = image.height * scale;
@@ -1064,6 +1072,173 @@ function drawStrokedFillText({
   context.fillText(text, x, y);
 }
 
+function fitMultilineFontSize({
+  context,
+  lines,
+  maxWidth,
+  maxHeight,
+  initialSize,
+  minSize,
+  fontFamily,
+  fontWeight = 900,
+  lineHeightRatio = 0.84,
+}: {
+  context: CanvasRenderingContext2D;
+  lines: string[];
+  maxWidth: number;
+  maxHeight: number;
+  initialSize: number;
+  minSize: number;
+  fontFamily: string;
+  fontWeight?: number;
+  lineHeightRatio?: number;
+}) {
+  let nextSize = initialSize;
+
+  while (nextSize > minSize) {
+    context.font = `${fontWeight} ${nextSize}px ${fontFamily}`;
+    const widestLine = Math.max(...lines.map((line) => context.measureText(line).width));
+    const totalHeight = nextSize * lineHeightRatio * lines.length;
+
+    if (widestLine <= maxWidth && totalHeight <= maxHeight) {
+      return nextSize;
+    }
+
+    nextSize -= 2;
+  }
+
+  return minSize;
+}
+
+function drawJulyBalloonTitle({
+  context,
+  width,
+  height,
+  title,
+}: {
+  context: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  title: string;
+}) {
+  const lines = getCoverDisplayTitleLines(title, 3);
+  const fontFamily = `"Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", "Trebuchet MS", "Cooper Black", sans-serif`;
+  const maxWidth = width * 0.82;
+  const maxHeight = height * 0.36;
+  const fontSize = fitMultilineFontSize({
+    context,
+    lines,
+    maxWidth,
+    maxHeight,
+    initialSize: Math.round(width * 0.19),
+    minSize: 92,
+    fontFamily,
+    fontWeight: 900,
+    lineHeightRatio: 0.8,
+  });
+  const lineHeight = fontSize * 0.8;
+  const totalHeight = lineHeight * lines.length;
+  const startY = height * 0.33 - totalHeight / 2 + fontSize;
+  const shadowOffsetX = Math.round(fontSize * 0.036);
+  const shadowOffsetY = Math.round(fontSize * 0.05);
+
+  context.save();
+  context.textAlign = "center";
+  context.textBaseline = "alphabetic";
+  context.font = `900 ${fontSize}px ${fontFamily}`;
+  setCanvasLetterSpacing(context, `${Math.max(0, fontSize * 0.012)}px`);
+
+  lines.forEach((line, index) => {
+    const x = width / 2;
+    const y = startY + index * lineHeight;
+    const strokeWidth = Math.max(16, fontSize * 0.15);
+    const innerStrokeWidth = Math.max(6, fontSize * 0.05);
+    const metrics = context.measureText(line);
+    const textWidth = metrics.width;
+    const paddingX = fontSize * 0.32;
+    const paddingTop = fontSize * 0.34;
+    const paddingBottom = fontSize * 0.26;
+    const offscreenWidth = Math.ceil(textWidth + paddingX * 2);
+    const offscreenHeight = Math.ceil(fontSize + paddingTop + paddingBottom);
+    const offscreenX = x - offscreenWidth / 2;
+    const offscreenY = y - fontSize - paddingTop * 0.28;
+    const { canvas: lineCanvas, context: lineContext } = createCanvasContext(offscreenWidth, offscreenHeight);
+    const baselineY = offscreenHeight - paddingBottom;
+
+    context.shadowColor = "rgba(12, 10, 16, 0.2)";
+    context.shadowBlur = fontSize * 0.18;
+    context.shadowOffsetX = shadowOffsetX;
+    context.shadowOffsetY = shadowOffsetY;
+    context.fillStyle = "rgba(12, 10, 16, 0.82)";
+    context.fillText(line, x + shadowOffsetX * 0.12, y + shadowOffsetY * 0.08);
+
+    context.shadowColor = "transparent";
+    lineContext.textAlign = "center";
+    lineContext.textBaseline = "alphabetic";
+    lineContext.font = `900 ${fontSize}px ${fontFamily}`;
+    setCanvasLetterSpacing(lineContext, `${Math.max(0, fontSize * 0.012)}px`);
+    lineContext.lineJoin = "round";
+    lineContext.miterLimit = 2;
+    lineContext.lineWidth = strokeWidth;
+    lineContext.strokeStyle = "#fffdfb";
+    lineContext.fillStyle = "#ffb8d4";
+    lineContext.strokeText(line, offscreenWidth / 2, baselineY);
+    lineContext.fillText(line, offscreenWidth / 2, baselineY);
+
+    lineContext.globalCompositeOperation = "source-atop";
+    const fillGradient = lineContext.createLinearGradient(0, 0, 0, offscreenHeight);
+    fillGradient.addColorStop(0, "#ffe5ef");
+    fillGradient.addColorStop(0.32, "#ffc5db");
+    fillGradient.addColorStop(0.62, "#f8a2c9");
+    fillGradient.addColorStop(1, "#ea7db0");
+    lineContext.fillStyle = fillGradient;
+    lineContext.fillRect(0, 0, offscreenWidth, offscreenHeight);
+
+    const bottomShade = lineContext.createLinearGradient(0, offscreenHeight * 0.38, 0, offscreenHeight);
+    bottomShade.addColorStop(0, "rgba(193, 76, 134, 0)");
+    bottomShade.addColorStop(0.68, "rgba(193, 76, 134, 0.16)");
+    bottomShade.addColorStop(1, "rgba(173, 52, 114, 0.34)");
+    lineContext.fillStyle = bottomShade;
+    lineContext.fillRect(0, 0, offscreenWidth, offscreenHeight);
+
+    const leftShade = lineContext.createLinearGradient(0, 0, offscreenWidth * 0.32, 0);
+    leftShade.addColorStop(0, "rgba(255, 255, 255, 0.38)");
+    leftShade.addColorStop(1, "rgba(255, 255, 255, 0)");
+    lineContext.fillStyle = leftShade;
+    lineContext.fillRect(0, 0, offscreenWidth, offscreenHeight);
+
+    const rightShade = lineContext.createLinearGradient(offscreenWidth * 0.68, 0, offscreenWidth, 0);
+    rightShade.addColorStop(0, "rgba(188, 86, 138, 0)");
+    rightShade.addColorStop(1, "rgba(188, 86, 138, 0.22)");
+    lineContext.fillStyle = rightShade;
+    lineContext.fillRect(0, 0, offscreenWidth, offscreenHeight);
+
+    lineContext.globalCompositeOperation = "lighter";
+    const highlightGradient = lineContext.createLinearGradient(0, 0, 0, offscreenHeight * 0.5);
+    highlightGradient.addColorStop(0, "rgba(255, 255, 255, 0.82)");
+    highlightGradient.addColorStop(0.55, "rgba(255, 255, 255, 0.22)");
+    highlightGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    lineContext.fillStyle = highlightGradient;
+    lineContext.fillRect(offscreenWidth * 0.08, 0, offscreenWidth * 0.84, offscreenHeight * 0.52);
+
+    const glossContext = lineContext as CanvasRenderingContext2D & { filter?: string };
+    const previousFilter = glossContext.filter;
+    glossContext.filter = `blur(${Math.max(4, fontSize * 0.028)}px)`;
+    lineContext.fillStyle = "rgba(255, 255, 255, 0.28)";
+    lineContext.fillRect(offscreenWidth * 0.18, offscreenHeight * 0.12, offscreenWidth * 0.54, offscreenHeight * 0.12);
+    glossContext.filter = previousFilter ?? "none";
+
+    lineContext.globalCompositeOperation = "source-over";
+    lineContext.lineWidth = innerStrokeWidth;
+    lineContext.strokeStyle = "rgba(227, 131, 178, 0.9)";
+    lineContext.strokeText(line, offscreenWidth / 2, baselineY);
+
+    context.drawImage(lineCanvas, offscreenX, offscreenY);
+  });
+
+  context.restore();
+}
+
 async function renderPostFromLiveLayout({
   data,
   layoutSourceId,
@@ -1133,11 +1308,14 @@ async function renderPostFromLiveLayout({
     const height = tileRect.height * scale;
     const computedStyle = window.getComputedStyle(tile);
     const radius = Number.parseFloat(computedStyle.borderTopLeftRadius || "0") * scale;
-    const drawScale = Math.max(width / image.width, height / image.height);
+    const placement = getPlacementForIndex(data, index);
+    const drawScale = Math.max(width / image.width, height / image.height) * placement.zoom;
     const drawWidth = image.width * drawScale;
     const drawHeight = image.height * drawScale;
-    const drawX = x + (width - drawWidth) / 2;
-    const drawY = y + (height - drawHeight) / 2;
+    const overflowX = Math.max(0, drawWidth - width);
+    const overflowY = Math.max(0, drawHeight - height);
+    const drawX = x - overflowX * placement.focalX;
+    const drawY = y - overflowY * placement.focalY;
 
     context.save();
     buildRoundedRectPath(context, x, y, width, height, radius);
@@ -1308,11 +1486,14 @@ async function renderManualPosterBlob({
       return;
     }
 
-    const scale = Math.max(tileWidth / image.width, tileHeight / image.height);
+    const placement = getPlacementForIndex(data, index);
+    const scale = Math.max(tileWidth / image.width, tileHeight / image.height) * placement.zoom;
     const drawWidth = image.width * scale;
     const drawHeight = image.height * scale;
-    const drawX = x + (tileWidth - drawWidth) / 2;
-    const drawY = y + (tileHeight - drawHeight) / 2;
+    const overflowX = Math.max(0, drawWidth - tileWidth);
+    const overflowY = Math.max(0, drawHeight - tileHeight);
+    const drawX = x - overflowX * placement.focalX;
+    const drawY = y - overflowY * placement.focalY;
 
     context.save();
     buildRoundedRectPath(context, x, y, tileWidth, tileHeight, layout.tileRadius);
@@ -1825,18 +2006,20 @@ function drawStoryScrapbookTemplateSlot({
   image,
   slot,
   fallbackColor,
+  placement,
 }: {
   context: CanvasRenderingContext2D;
   image: HTMLImageElement | null;
   slot: StoryScrapbookTemplateSlotAsset;
   fallbackColor: string;
+  placement?: PosterPhotoPlacement | null;
 }) {
   const { canvas: slotCanvas, context: slotContext } = createCanvasContext(slot.width, slot.height);
 
   if (image) {
-    const zoom = slot.zoom ?? 1.04;
-    const focalX = slot.focalX ?? 0.5;
-    const focalY = slot.focalY ?? 0.45;
+    const zoom = (slot.zoom ?? 1.04) * (placement?.zoom ?? 1);
+    const focalX = placement?.focalX ?? slot.focalX ?? 0.5;
+    const focalY = placement?.focalY ?? slot.focalY ?? 0.45;
     const scale = Math.max(slot.width / image.width, slot.height / image.height) * zoom;
     const drawWidth = image.width * scale;
     const drawHeight = image.height * scale;
@@ -1903,6 +2086,7 @@ async function renderStoryScrapbookBlob({
       image: loadedImages[index] ?? null,
       slot,
       fallbackColor: data.posterTone || STORY_SCRAPBOOK_GREEN,
+      placement: data.photoPlacements[index] ?? null,
     });
   });
 
@@ -2035,6 +2219,7 @@ async function renderPostCoverBlob({
     context.beginPath();
     context.rect(rect.x, rect.y, rect.width, rect.height);
     context.clip();
+    const placement = getPlacementForIndex(data, index);
     drawImageCover({
       context,
       image,
@@ -2042,9 +2227,9 @@ async function renderPostCoverBlob({
       y: rect.y,
       width: rect.width,
       height: rect.height,
-      focalX: rect.focalX,
-      focalY: rect.focalY,
-      zoom: rect.zoom,
+      focalX: placement.focalX,
+      focalY: placement.focalY,
+      zoom: rect.zoom * placement.zoom,
     });
     context.restore();
   });
@@ -2065,12 +2250,66 @@ async function renderPostCoverBlob({
 
 async function renderPostJulyBlob({ data }: { data: PosterCaptureData }) {
   const format = getPosterExportFormat("post");
-  return await renderPostCoverBlob({
-    data,
-    sourceUrl: STORY_JULY_TEMPLATE_URL,
-    errorMessage: "Couldn't prepare the July poster image.",
-    fallbackTone: data.posterTone || "#d88cb2",
-    backgroundRects: POSTER_COVER_BACKGROUND_RECTS(format.width, format.height),
+  await ensureFontsReady();
+  const { canvas, context } = createCanvasContext(format.width, format.height);
+  const loadedImages = await Promise.all(
+    data.photoUrls.slice(0, 4).map(async (sourceUrl) => {
+      if (!sourceUrl) {
+        return null;
+      }
+
+      try {
+        return await loadPosterImage(sourceUrl);
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  POSTER_COVER_BACKGROUND_RECTS(canvas.width, canvas.height).forEach((rect, index) => {
+    const image = loadedImages[index];
+
+    if (!image) {
+      context.fillStyle = index % 2 === 0 ? "rgba(33, 24, 31, 0.14)" : rgba(data.posterTone || "#d88cb2", 0.24);
+      context.fillRect(rect.x, rect.y, rect.width, rect.height);
+      return;
+    }
+
+    context.save();
+    context.beginPath();
+    context.rect(rect.x, rect.y, rect.width, rect.height);
+    context.clip();
+    const placement = getPlacementForIndex(data, index);
+    drawImageCover({
+      context,
+      image,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      focalX: placement.focalX,
+      focalY: placement.focalY,
+      zoom: rect.zoom * placement.zoom,
+    });
+    context.restore();
+  });
+
+  drawJulyBalloonTitle({
+    context,
+    width: canvas.width,
+    height: canvas.height,
+    title: data.posterTitle,
+  });
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Couldn't prepare the July poster image."));
+        return;
+      }
+
+      resolve(blob);
+    }, "image/png");
   });
 }
 
@@ -2144,6 +2383,7 @@ async function renderStoryCollageBlob({
       image,
       scaleX,
       scaleY,
+      placement: data.photoPlacements[index] ?? null,
     });
     const shadow = includeShadow
       ? STORY_COLLAGE_ELEVATED_SLOT_SHADOWS.get(index) ?? STORY_COLLAGE_BASE_SLOT_SHADOW
@@ -2215,6 +2455,7 @@ function getPosterBlobCacheKey({
     tripYear: posterData.tripYear,
     posterTone: posterData.posterTone,
     photoUrls: posterData.photoUrls,
+    photoPlacements: posterData.photoPlacements,
   });
 }
 

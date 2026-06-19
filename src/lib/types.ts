@@ -73,6 +73,9 @@ export type Photo = {
   image_url: string | null;
   storage_path: string;
   sort_order: number | null;
+  poster_focal_x?: number | null;
+  poster_focal_y?: number | null;
+  poster_zoom?: number | null;
   caption: string | null;
   dominant_color: string | null;
   color_match_score: number | null;
