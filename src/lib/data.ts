@@ -67,6 +67,14 @@ export type GroupHuntInviteSeat = {
   participant: GroupHuntParticipant;
 };
 
+export type DashboardTripSummary = {
+  trip: Trip;
+  mission: Mission | null;
+  photoCount: number;
+  maxPhotos: number;
+  isComplete: boolean;
+};
+
 function sortPhotosByDisplayOrder(photos: Photo[]) {
   return [...photos].sort((left, right) => {
     if (left.sort_order != null && right.sort_order != null) {
@@ -122,6 +130,62 @@ export async function getTripsForUser(userId: string) {
   }
 
   return (result.data ?? []).map((trip) => normalizeTrip(trip as Trip));
+}
+
+export async function getTripDashboardSummaries(userId: string): Promise<DashboardTripSummary[]> {
+  const supabase = await createClient();
+  const trips = await getTripsForUser(userId);
+
+  if (trips.length === 0) {
+    return [];
+  }
+
+  const tripIds = trips.map((trip) => trip.id);
+  const [{ data: missionRows, error: missionError }, { data: photoRows, error: photoError }] = await Promise.all([
+    supabase
+      .from("missions")
+      .select("id, trip_id, color_name, color_hex, prompt, max_photos, created_at")
+      .in("trip_id", tripIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("photos")
+      .select("trip_id")
+      .in("trip_id", tripIds),
+  ]);
+
+  if (missionError) {
+    throw missionError;
+  }
+
+  if (photoError) {
+    throw photoError;
+  }
+
+  const missionsByTripId = new Map<string, Mission>();
+  for (const mission of (missionRows ?? []) as Mission[]) {
+    if (!missionsByTripId.has(mission.trip_id)) {
+      missionsByTripId.set(mission.trip_id, mission);
+    }
+  }
+
+  const photoCountByTripId = new Map<string, number>();
+  for (const photo of photoRows ?? []) {
+    photoCountByTripId.set(photo.trip_id, (photoCountByTripId.get(photo.trip_id) ?? 0) + 1);
+  }
+
+  return trips.map((trip) => {
+    const mission = missionsByTripId.get(trip.id) ?? null;
+    const maxPhotos = mission?.max_photos ?? (trip.creation_mode === "cover" ? 4 : 9);
+    const photoCount = photoCountByTripId.get(trip.id) ?? 0;
+
+    return {
+      trip,
+      mission,
+      photoCount,
+      maxPhotos,
+      isComplete: photoCount >= maxPhotos,
+    };
+  });
 }
 
 export async function getTripBundle(tripId: string, userId: string) {
