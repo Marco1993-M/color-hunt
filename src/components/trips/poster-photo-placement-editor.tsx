@@ -150,35 +150,6 @@ export function PosterPhotoPlacementEditor({
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {photos.map((photo, index) => (
-                <button
-                  key={photo.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPhotoId(photo.id);
-                    setStatus(null);
-                    setError(null);
-                  }}
-                  className={`overflow-hidden rounded-[1rem] border p-1 transition ${
-                    photo.id === selectedPhotoId
-                      ? "border-[var(--ink)] bg-white shadow-[0_10px_24px_rgba(53,37,30,0.08)]"
-                      : "border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.74)]"
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={getPhotoUrl(photo)}
-                    alt={photo.caption || `Poster frame ${index + 1}`}
-                    className="aspect-square w-full rounded-[0.75rem] object-cover"
-                  />
-                  <span className="mt-2 block text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted-strong)]">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </button>
-              ))}
-            </div>
-
             <div className="rounded-[1.5rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.74)] p-4">
               <label className="block">
                 <span className="field-label">Horizontal focus</span>
@@ -227,6 +198,35 @@ export function PosterPhotoPlacementEditor({
                   {status ?? "Saved adjustments will update the poster preview and exports."}
                 </p>
               </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {photos.map((photo, index) => (
+                <button
+                  key={photo.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPhotoId(photo.id);
+                    setStatus(null);
+                    setError(null);
+                  }}
+                  className={`overflow-hidden rounded-[1rem] border p-1 transition ${
+                    photo.id === selectedPhotoId
+                      ? "border-[var(--ink)] bg-white shadow-[0_10px_24px_rgba(53,37,30,0.08)]"
+                      : "border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.74)]"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getPhotoUrl(photo)}
+                    alt={photo.caption || `Poster frame ${index + 1}`}
+                    className="aspect-square w-full rounded-[0.75rem] object-cover"
+                  />
+                  <span className="mt-2 block text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted-strong)]">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
