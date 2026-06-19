@@ -6,7 +6,7 @@ import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { PublicPosterCtaLink, PublicPosterEvents } from "@/components/trips/public-poster-events";
 import { PosterSheet } from "@/components/trips/poster-sheet";
 import { getPosterExportForTrip, getPublicTripBundleByShareId } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
+import { buildPosterFrameSlots, buildPosterPhotoPlacements, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 
 type PublicPosterPageProps = {
   params: Promise<{ shareId: string }>;
@@ -144,6 +144,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
     tripYear: getPosterTripYear(trip.created_at, trip.start_date, trip.end_date),
     posterTone: mission.color_hex,
     photoUrls: buildPosterFrameSlots(photos).map((photo) => photo?.image_url ?? null),
+    photoPlacements: buildPosterPhotoPlacements(photos, mission.max_photos),
   };
   const posterJsonLd = {
     "@context": "https://schema.org",

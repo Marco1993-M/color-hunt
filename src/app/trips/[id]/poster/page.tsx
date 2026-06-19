@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
+import { PosterPhotoPlacementEditor } from "@/components/trips/poster-photo-placement-editor";
 import { PosterSheet } from "@/components/trips/poster-sheet";
 import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
@@ -12,7 +13,7 @@ import { SaveImageButton } from "@/components/trips/save-image-button";
 import { requireUser } from "@/lib/auth";
 import { getCoverTemplate, getCoverThemeId, inferCoverTemplateId, isCoverTripLike } from "@/lib/covers";
 import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
-import { buildPosterFrameSlots, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
+import { buildPosterFrameSlots, buildPosterPhotoPlacements, getPosterLocationLabel, getPosterTitleLabel, getPosterTripYear, isPosterComplete } from "@/lib/poster";
 import { isAnonymousUser } from "@/lib/user-state";
 
 type PosterPageProps = {
@@ -56,6 +57,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
     tripYear: getPosterTripYear(trip.created_at, trip.start_date, trip.end_date),
     posterTone: mission.color_hex,
     photoUrls: buildPosterFrameSlots(photos).map((photo) => photo?.image_url ?? null),
+    photoPlacements: buildPosterPhotoPlacements(photos, mission.max_photos),
   };
 
   return (
@@ -110,7 +112,8 @@ export default async function PosterPage({ params }: PosterPageProps) {
         {isCoverTrip ? (
           <CoverPosterPreview
             templateId={coverTemplate.id}
-            photoUrls={buildPosterFrameSlots(photos, 4).map((photo) => photo?.image_url ?? null)}
+            photos={buildPosterFrameSlots(photos, 4)}
+            title={posterTitle}
           />
         ) : (
           <>
@@ -119,6 +122,15 @@ export default async function PosterPage({ params }: PosterPageProps) {
             <PosterReadyWatcher tripId={trip.id} enabled={isComplete} hasPostExport={Boolean(exportUrls.post)} />
           </>
         )}
+
+        <div className="mt-6">
+          <PosterPhotoPlacementEditor
+            tripId={trip.id}
+            missionMaxPhotos={mission.max_photos}
+            photos={photos}
+            isCoverTrip={isCoverTrip}
+          />
+        </div>
 
         <div className="mt-6">
           {!isComplete ? (

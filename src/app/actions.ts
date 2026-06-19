@@ -81,6 +81,14 @@ function isMissingCoverColumns(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
 }
 
+function isMissingPhotoCropColumns(error: SupabaseErrorLike | null | undefined) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
+function clampPhotoPlacement(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 async function requireAuthenticatedUser() {
   const supabase = await createClient();
   const {
@@ -604,6 +612,76 @@ export async function updateTripTitleAction(formData: FormData) {
   revalidatePath(`/trips/${trip.id}`);
   revalidatePath(`/trips/${trip.id}/poster`);
   if (trip.share_id) {
+    revalidatePath(`/poster/${trip.share_id}`);
+  }
+}
+
+export async function updatePhotoPosterPlacementAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
+  const photoId = String(formData.get("photo_id") || "").trim();
+  const tripId = String(formData.get("trip_id") || "").trim();
+  const focalX = clampPhotoPlacement(Number(formData.get("poster_focal_x") ?? 0.5), 0, 1);
+  const focalY = clampPhotoPlacement(Number(formData.get("poster_focal_y") ?? 0.5), 0, 1);
+  const zoom = clampPhotoPlacement(Number(formData.get("poster_zoom") ?? 1), 1, 2.5);
+
+  if (!photoId || !tripId) {
+    throw new Error("Photo ID and trip ID are required.");
+  }
+
+  const user = await requireAuthenticatedUser();
+  const writableClient = await createWritableTripClient();
+
+  const { data: photo, error: updateError } = await writableClient
+    .from("photos")
+    .update({
+      poster_focal_x: focalX,
+      poster_focal_y: focalY,
+      poster_zoom: zoom,
+    })
+    .eq("id", photoId)
+    .eq("trip_id", tripId)
+    .eq("user_id", user.id)
+    .select("id, trip_id")
+    .single();
+
+  if (isMissingPhotoCropColumns(updateError)) {
+    throw new Error("Photo crop adjustments need the latest database schema. Run the updated Supabase SQL, then try again.");
+  }
+
+  if (updateError || !photo) {
+    throw updateError ?? new Error("Unable to update this photo placement.");
+  }
+
+  const tripLookupClient = await createClient();
+  const { data: trip, error: tripError } = await tripLookupClient
+    .from("trips")
+    .select("id, share_id, is_public")
+    .eq("id", tripId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (tripError) {
+    throw tripError;
+  }
+
+  await trackServerEvent({
+    eventName: "poster_photo_crop_updated",
+    tripId,
+    userId: user.id,
+    path: `/trips/${tripId}/poster`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
+    metadata: {
+      photoId,
+      focalX,
+      focalY,
+      zoom,
+    },
+  });
+
+  revalidatePath(`/trips/${tripId}`);
+  revalidatePath(`/trips/${tripId}/poster`);
+  if (trip?.is_public && trip.share_id) {
     revalidatePath(`/poster/${trip.share_id}`);
   }
 }
