@@ -19,7 +19,7 @@ export default function CoverTemplateLibraryPage() {
           </Link>
         </div>
 
-        <section className="playful-card rounded-[2.5rem] p-6 sm:p-8">
+        <section className="cover-library-hero playful-card rounded-[2.5rem] p-6 sm:p-8">
           <p className="eyebrow">Choose a template</p>
           <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">
             Start from the layout you actually want.
@@ -29,9 +29,9 @@ export default function CoverTemplateLibraryPage() {
           </p>
         </section>
 
-        <section className="mt-8 grid gap-5 lg:grid-cols-2">
+        <section className="cover-library-grid mt-8 grid gap-5 lg:grid-cols-2">
           {coverTemplates.map((template) => (
-            <article key={template.id} className="playful-card rounded-[2rem] p-5 sm:p-6">
+            <article key={template.id} className="cover-library-card playful-card rounded-[2rem] p-5 sm:p-6">
               <div className="cover-library-preview">
                 <div className="cover-preview-grid">
                   {Array.from({ length: template.photoCount }).map((_, index) => (
@@ -51,8 +51,8 @@ export default function CoverTemplateLibraryPage() {
                 />
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+              <div className="cover-library-card-copy mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="cover-library-card-text">
                   <p className="eyebrow">{template.photoCount} photo template</p>
                   <h2 className="panel-title mt-2 text-2xl font-semibold">{template.label}</h2>
                   <p className="body-copy mt-2 text-sm sm:text-base">{template.description}</p>
