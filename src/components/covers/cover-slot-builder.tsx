@@ -78,6 +78,17 @@ export function CoverSlotBuilder({
     }
   }, [selectedSlot, slotPhotoMap]);
 
+  function openPreferredPicker(slotIndex: number, hasPhoto: boolean) {
+    setSelectedSlot(slotIndex);
+
+    if (hasPhoto) {
+      libraryInputRef.current?.click();
+      return;
+    }
+
+    libraryInputRef.current?.click();
+  }
+
   function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>, source: "camera" | "library") {
     const file = Array.from(event.target.files ?? []).find((candidate) => acceptedFileTypes.includes(candidate.type));
     event.target.value = "";
@@ -328,7 +339,7 @@ export function CoverSlotBuilder({
                           width: `${slot.width * 100}%`,
                           height: `${slot.height * 100}%`,
                         }}
-                        onClick={() => setSelectedSlot(index)}
+                        onClick={() => openPreferredPicker(index, hasPhoto)}
                       >
                         <span className="cover-template-slot-pill">
                           {hasPhoto ? `Slot ${index + 1}` : `+ Slot ${index + 1}`}
