@@ -19,7 +19,9 @@ export type PosterThemeId =
   | "classic"
   | "story-collage"
   | "story-scrapbook"
+  | "post-june"
   | "post-july"
+  | "post-august"
   | "post-usa";
 
 type StoryCollageSlot = {
@@ -112,7 +114,9 @@ const STORY_COLLAGE_TEMPLATE_HEIGHT = 3508;
 const STORY_SCRAPBOOK_TEMPLATE_URL = "/poster-template-story-scrapbook.png";
 const STORY_SCRAPBOOK_TEMPLATE_WIDTH = 1974;
 const STORY_SCRAPBOOK_TEMPLATE_HEIGHT = 3508;
+const STORY_JUNE_TEMPLATE_URL = "/poster-template-story-june.png";
 const STORY_JULY_TEMPLATE_URL = "/poster-template-story-july.png";
+const STORY_AUGUST_TEMPLATE_URL = "/poster-template-story-august.png";
 const STORY_USA_TEMPLATE_URL = "/poster-template-story-usa.png";
 const POSTER_COVER_BACKGROUND_RECTS = (width: number, height: number): CoverBackgroundRect[] => [
   { x: 0, y: 0, width: width / 2, height: height / 2, focalX: 0.34, focalY: 0.34, zoom: 1.04 },
@@ -1223,8 +1227,16 @@ async function renderManualPosterBlob({
     return await renderStoryScrapbookBlob({ data });
   }
 
+  if (formatId === "post" && themeId === "post-june") {
+    return await renderPostJuneBlob({ data });
+  }
+
   if (formatId === "post" && themeId === "post-july") {
     return await renderPostJulyBlob({ data });
+  }
+
+  if (formatId === "post" && themeId === "post-august") {
+    return await renderPostAugustBlob({ data });
   }
 
   if (formatId === "post" && themeId === "post-usa") {
@@ -2125,6 +2137,28 @@ async function renderPostJulyBlob({ data }: { data: PosterCaptureData }) {
     sourceUrl: STORY_JULY_TEMPLATE_URL,
     errorMessage: "Couldn't prepare the July poster image.",
     fallbackTone: "#d88cb2",
+    backgroundRects: POSTER_COVER_BACKGROUND_RECTS(format.width, format.height),
+  });
+}
+
+async function renderPostJuneBlob({ data }: { data: PosterCaptureData }) {
+  const format = getPosterExportFormat("post");
+  return await renderPostCoverBlob({
+    data,
+    sourceUrl: STORY_JUNE_TEMPLATE_URL,
+    errorMessage: "Couldn't prepare the June poster image.",
+    fallbackTone: "#d5b6cc",
+    backgroundRects: POSTER_COVER_BACKGROUND_RECTS(format.width, format.height),
+  });
+}
+
+async function renderPostAugustBlob({ data }: { data: PosterCaptureData }) {
+  const format = getPosterExportFormat("post");
+  return await renderPostCoverBlob({
+    data,
+    sourceUrl: STORY_AUGUST_TEMPLATE_URL,
+    errorMessage: "Couldn't prepare the August poster image.",
+    fallbackTone: "#e0c49a",
     backgroundRects: POSTER_COVER_BACKGROUND_RECTS(format.width, format.height),
   });
 }

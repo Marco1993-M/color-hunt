@@ -4,7 +4,7 @@ export type Trip = {
   title: string;
   location: string;
   creation_mode?: "hunt" | "cover" | null;
-  cover_template?: "july" | "usa" | null;
+  cover_template?: "june" | "july" | "august" | "usa" | null;
   start_date: string | null;
   end_date: string | null;
   group_hunt_id?: string | null;
