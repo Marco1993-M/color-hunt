@@ -3,6 +3,7 @@ import { EventOnView } from "@/components/analytics/event-on-view";
 import { PostAuthUpgradeResume } from "@/components/auth/post-auth-upgrade-resume";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { requireUser } from "@/lib/auth";
+import { getCoverTemplate } from "@/lib/covers";
 import { ensureProfile, getGroupHuntsForUser, getTripDashboardSummaries, type DashboardTripSummary } from "@/lib/data";
 import { isAnonymousUser } from "@/lib/user-state";
 
@@ -25,12 +26,7 @@ function getTripHref(summary: DashboardTripSummary) {
 
 function getTripModeLabel(summary: DashboardTripSummary) {
   if (summary.trip.creation_mode === "cover") {
-    const templateLabel =
-      summary.trip.cover_template === "usa"
-        ? "USA cover"
-        : summary.trip.cover_template === "july"
-          ? "July cover"
-          : "Cover";
+    const templateLabel = getCoverTemplate(summary.trip.cover_template).label;
 
     return `Cover · ${templateLabel}`;
   }
@@ -152,7 +148,7 @@ export default async function DashboardPage() {
               Start a hunt
             </Link>
             <Link className="button-secondary w-full sm:w-auto" href="/covers/new">
-              Make a cover
+              Choose a template
             </Link>
             <SignOutButton isAnonymous={isGuest} />
           </div>
@@ -369,7 +365,7 @@ export default async function DashboardPage() {
           <section className="mt-8">
             <div className="empty-state-card rounded-[2rem] p-10 text-center">
               <p className="eyebrow">Nothing started yet</p>
-              <h2 className="panel-title mt-3 text-2xl font-semibold">Begin with a hunt or jump straight into a cover.</h2>
+              <h2 className="panel-title mt-3 text-2xl font-semibold">Begin with a hunt or jump straight into a template.</h2>
               <p className="body-copy mt-3 text-base">
                 Choose the route that feels most familiar: collect nine moments around one color, or turn four photos into a styled cover.
               </p>
@@ -378,7 +374,7 @@ export default async function DashboardPage() {
                   Start a Color Hunt
                 </Link>
                 <Link className="button-secondary" href="/covers/new">
-                  Make a cover
+                  Choose a template
                 </Link>
               </div>
             </div>
