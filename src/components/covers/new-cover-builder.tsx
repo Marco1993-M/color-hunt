@@ -2,81 +2,82 @@
 
 import { useMemo, useState } from "react";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
+import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { trackEvent } from "@/lib/analytics";
-import { coverTemplates, getCoverTemplate, type CoverTemplateId } from "@/lib/covers";
+import { getCoverTemplate, type CoverTemplateId } from "@/lib/covers";
 
 type NewCoverBuilderProps = {
   createAction: (formData: FormData) => void | Promise<void>;
+  templateId: CoverTemplateId;
 };
 
-export function NewCoverBuilder({ createAction }: NewCoverBuilderProps) {
-  const [templateId, setTemplateId] = useState<CoverTemplateId>("july");
+export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderProps) {
   const [title, setTitle] = useState("");
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
 
   return (
-    <form action={createAction} className="mt-8 grid gap-5">
+    <form action={createAction} className="mt-8 grid gap-6">
       <AnalyticsHiddenFields />
       <input type="hidden" name="cover_template" value={templateId} />
 
-      <div>
-        <label className="field-label" htmlFor="cover-title">
-          Cover title
-        </label>
-        <input
-          id="cover-title"
-          name="title"
-          className="field-input"
-          placeholder={activeTemplate.label}
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-      </div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="cover-start-preview">
+          <CoverPosterPreview
+            templateId={templateId}
+            photos={[null, null, null, null]}
+            title={title || activeTemplate.label}
+          />
+        </div>
 
-      <div className="rounded-[1.6rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.58)] p-4 sm:p-5">
-        <p className="eyebrow">Choose a cover</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {coverTemplates.map((template) => {
-            const isActive = template.id === templateId;
+        <div className="grid gap-5">
+          <div>
+            <p className="eyebrow">Template selected</p>
+            <h2 className="panel-title mt-2 text-2xl font-semibold">{activeTemplate.label}</h2>
+            <p className="body-copy mt-3 text-sm sm:text-base">
+              You’ll open the empty layout first, then tap the <span className="font-semibold text-[var(--ink)]">+</span> sign inside each photo spot to fill it intentionally.
+            </p>
+          </div>
 
-            return (
-              <button
-                key={template.id}
-                type="button"
-                className={`rounded-[1.25rem] border p-4 text-left transition ${
-                  isActive
-                    ? "border-[rgba(47,97,223,0.24)] bg-[rgba(47,97,223,0.08)]"
-                    : "border-[rgba(53,37,30,0.08)] bg-white/70"
-                }`}
-                onClick={() => {
-                  setTemplateId(template.id);
-                  trackEvent({
-                    eventName: "cover_template_selected",
-                    metadata: {
-                      templateId: template.id,
-                    },
-                  });
-                }}
-              >
-                <p className="text-lg font-semibold text-[var(--ink)]">{template.label}</p>
-                <p className="body-copy mt-2 text-sm">{template.description}</p>
-              </button>
-            );
-          })}
+          <div>
+            <label className="field-label" htmlFor="cover-title">
+              Cover title
+            </label>
+            <input
+              id="cover-title"
+              name="title"
+              className="field-input"
+              placeholder={activeTemplate.label}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+
+          <div className="rounded-[1.6rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.58)] p-4 sm:p-5">
+            <p className="eyebrow">How it works</p>
+            <ol className="mt-3 grid gap-2 text-sm text-[var(--muted-strong)]">
+              <li>1. Start this template.</li>
+              <li>2. Tap each empty slot on the layout.</li>
+              <li>3. Add one photo to that exact position.</li>
+              <li>4. Adjust crops if needed, then export.</li>
+            </ol>
+          </div>
+
+          <button
+            className="button-primary w-full sm:w-auto"
+            type="submit"
+            onClick={() =>
+              trackEvent({
+                eventName: "cover_template_started",
+                metadata: {
+                  templateId,
+                },
+              })
+            }
+          >
+            Start this template
+          </button>
         </div>
       </div>
-
-      <div className="rounded-[1.6rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.58)] p-4 sm:p-5">
-        <p className="eyebrow">How it works</p>
-        <p className="body-copy mt-2 text-sm sm:text-base">
-          Pick a template, upload four photos, and export a cover without going through the nine-frame hunt flow.
-        </p>
-      </div>
-
-      <button className="button-primary w-full sm:w-auto" type="submit">
-        Start this cover
-      </button>
     </form>
   );
 }
-

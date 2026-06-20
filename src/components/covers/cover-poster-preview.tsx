@@ -12,7 +12,11 @@ type CoverPosterPreviewProps = {
 
 export function CoverPosterPreview({ templateId, photos, title = null }: CoverPosterPreviewProps) {
   const template = getCoverTemplate(templateId);
-  const previewPhotos = photos.slice(0, 4);
+  const previewPhotos = Array.from({ length: template.photoCount }, (_, index) => {
+    const directPhoto = photos[index] ?? null;
+    const sortedPhoto = photos.find((photo) => photo?.sort_order === index) ?? null;
+    return sortedPhoto ?? directPhoto;
+  });
   const titleLines = getCoverDisplayTitleLines(title, 3);
 
   return (
