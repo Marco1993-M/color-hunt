@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { createCoverAction } from "@/app/actions";
+import { notFound, redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
-import { NewCoverBuilder } from "@/components/covers/new-cover-builder";
 import { coverTemplates, isCoverTemplateId } from "@/lib/covers";
 import { createClient } from "@/lib/supabase/server";
 import { isAnonymousUser } from "@/lib/user-state";
@@ -32,12 +30,16 @@ export default async function NewTemplateCoverPage({ params }: NewTemplateCoverP
   } = await supabase.auth.getUser();
   const isGuest = isAnonymousUser(user);
 
+  if (user) {
+    redirect(`/covers/new#template-${template.id}`);
+  }
+
   return (
     <main className="app-shell page-frame">
       <SessionLandingRedirect enabled={false} />
       <EventOnView
-        eventName="cover_template_builder_viewed"
-        metadata={{ templateId, isAuthenticated: Boolean(user), isAnonymous: isGuest }}
+        eventName="cover_template_auth_gate_viewed"
+        metadata={{ templateId, isAuthenticated: false, isAnonymous: isGuest }}
       />
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -51,16 +53,11 @@ export default async function NewTemplateCoverPage({ params }: NewTemplateCoverP
           <p className="eyebrow">{template.photoCount} photo template</p>
           <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">{template.label}</h1>
           <p className="body-copy mt-3 max-w-2xl text-base">
-            Build this one intentionally. You’ll open the layout with empty frames, then place each photo exactly where it belongs.
+            Start a guest session or sign in first, then you’ll land back on the template library ready to open this layout directly.
           </p>
-
-          {user ? (
-            <NewCoverBuilder createAction={createCoverAction} templateId={template.id} />
-          ) : (
-            <div className="mt-8">
-              <AuthPanel nextPath={`/covers/${template.id}/new`} entryMode="cover" />
-            </div>
-          )}
+          <div className="mt-8">
+            <AuthPanel nextPath={`/covers/new#template-${template.id}`} entryMode="cover" />
+          </div>
         </div>
       </div>
     </main>

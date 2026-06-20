@@ -1,16 +1,28 @@
 import Image from "next/image";
 import Link from "next/link";
+import { createCoverAction } from "@/app/actions";
+import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { EventOnView } from "@/components/analytics/event-on-view";
+import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
+import { createClient } from "@/lib/supabase/server";
 import { coverTemplates } from "@/lib/covers";
+import { isAnonymousUser } from "@/lib/user-state";
 
-export default function CoverTemplateLibraryPage() {
+export default async function CoverTemplateLibraryPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isGuest = isAnonymousUser(user);
+  const canStartTemplateDirectly = Boolean(user);
+
   return (
     <main className="app-shell page-frame">
       <SessionLandingRedirect enabled={false} />
       <EventOnView
         eventName="cover_template_library_viewed"
-        metadata={{ templateCount: coverTemplates.length }}
+        metadata={{ templateCount: coverTemplates.length, isAuthenticated: Boolean(user), isAnonymous: isGuest }}
       />
       <div className="mx-auto max-w-6xl">
         <div className="mb-6">
@@ -25,13 +37,23 @@ export default function CoverTemplateLibraryPage() {
             Start from the layout you actually want.
           </h1>
           <p className="body-copy mt-3 max-w-3xl text-base">
-            This is the separate template lane. Pick the cover first, see what you are making, then fill the exact photo spots one by one.
+            Pick the template first, open the live layout, tap the exact slots you want to fill, and get to the finished cover with as little friction as possible.
           </p>
         </section>
 
+        {!user ? (
+          <section id="template-auth" className="mt-6">
+            <AuthPanel nextPath="/covers/new" entryMode="cover" />
+          </section>
+        ) : null}
+
         <section className="cover-library-grid mt-8 grid gap-5 lg:grid-cols-2">
           {coverTemplates.map((template) => (
-            <article key={template.id} className="cover-library-card playful-card rounded-[2rem] p-5 sm:p-6">
+            <article
+              id={`template-${template.id}`}
+              key={template.id}
+              className="cover-library-card playful-card rounded-[2rem] p-5 sm:p-6"
+            >
               <div className="cover-library-thumb">
                 <Image
                   src={template.overlaySrc}
@@ -48,9 +70,23 @@ export default function CoverTemplateLibraryPage() {
                   <h2 className="panel-title mt-2 text-2xl font-semibold">{template.label}</h2>
                   <p className="body-copy mt-2 text-sm sm:text-base">{template.description}</p>
                 </div>
-                <Link className="button-primary w-full sm:w-auto" href={`/covers/${template.id}/new`}>
-                  Use this template
-                </Link>
+                {canStartTemplateDirectly ? (
+                  <form action={createCoverAction} className="cover-library-card-action w-full sm:w-auto">
+                    <AnalyticsHiddenFields />
+                    <input type="hidden" name="cover_template" value={template.id} />
+                    <input type="hidden" name="title" value={template.label} />
+                    <button className="button-primary w-full sm:w-auto" type="submit">
+                      Use this template
+                    </button>
+                    <p className="micro-copy mt-2 text-center text-[rgba(67,58,97,0.62)] sm:text-left">
+                      You can rename it later.
+                    </p>
+                  </form>
+                ) : (
+                  <Link className="button-primary w-full sm:w-auto" href="#template-auth">
+                    Sign in or start as guest
+                  </Link>
+                )}
               </div>
             </article>
           ))}
