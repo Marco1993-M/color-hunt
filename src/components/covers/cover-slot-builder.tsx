@@ -47,6 +47,7 @@ export function CoverSlotBuilder({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const pendingSlotRef = useRef<number | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
   const slotPhotoMap = useMemo(() => {
@@ -80,6 +81,7 @@ export function CoverSlotBuilder({
 
   function openPreferredPicker(slotIndex: number, hasPhoto: boolean) {
     setSelectedSlot(slotIndex);
+    pendingSlotRef.current = slotIndex;
 
     if (hasPhoto) {
       libraryInputRef.current?.click();
@@ -92,6 +94,8 @@ export function CoverSlotBuilder({
   function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>, source: "camera" | "library") {
     const file = Array.from(event.target.files ?? []).find((candidate) => acceptedFileTypes.includes(candidate.type));
     event.target.value = "";
+    const targetSlot = pendingSlotRef.current ?? selectedSlot;
+    pendingSlotRef.current = null;
 
     if (!file) {
       setError("Choose a JPG, PNG, or WebP image first.");
@@ -112,7 +116,7 @@ export function CoverSlotBuilder({
           initialQuality: 0.82,
         });
 
-        const existingPhoto = slotPhotoMap[selectedSlot];
+        const existingPhoto = slotPhotoMap[targetSlot];
         const photoId = existingPhoto?.id ?? crypto.randomUUID();
         const previousStoragePath = existingPhoto?.storage_path ?? null;
         const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
@@ -142,7 +146,7 @@ export function CoverSlotBuilder({
             .update({
               image_url: publicUrl,
               storage_path: storagePath,
-              sort_order: selectedSlot,
+              sort_order: targetSlot,
             })
             .eq("id", existingPhoto.id)
             .eq("user_id", userId);
@@ -173,7 +177,7 @@ export function CoverSlotBuilder({
             user_id: userId,
             image_url: publicUrl,
             storage_path: storagePath,
-            sort_order: selectedSlot,
+            sort_order: targetSlot,
             caption: null,
             dominant_color: null,
             color_match_score: null,
@@ -211,18 +215,20 @@ export function CoverSlotBuilder({
           tripId,
           metadata: {
             templateId,
-            slotIndex: selectedSlot,
+            slotIndex: targetSlot,
             source,
             filledSlotsAfterUpload: Math.min(filledSlots + (existingPhoto ? 0 : 1), maxPhotos),
           },
         });
 
-        const nextEmpty = slotPhotoMap.findIndex((photo, index) => index !== selectedSlot && !photo);
+        const nextEmpty = slotPhotoMap.findIndex((photo, index) => index !== targetSlot && !photo);
         if (nextEmpty !== -1) {
           setSelectedSlot(nextEmpty);
+        } else {
+          setSelectedSlot(targetSlot);
         }
 
-        setStatus(existingPhoto ? `Photo updated in slot ${selectedSlot + 1}.` : `Photo added to slot ${selectedSlot + 1}.`);
+        setStatus(existingPhoto ? `Photo updated in slot ${targetSlot + 1}.` : `Photo added to slot ${targetSlot + 1}.`);
         router.refresh();
       } catch (uploadFailure) {
         setStatus(null);
