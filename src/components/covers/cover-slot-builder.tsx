@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
-import { getCoverDisplayTitleLines, getCoverTemplate } from "@/lib/covers";
+import { getCoverTemplate } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { createClient } from "@/lib/supabase/client";
 import type { Photo } from "@/lib/types";
@@ -65,7 +65,7 @@ export function CoverSlotBuilder({
   const selectedPhoto = slotPhotoMap[selectedSlot];
   const filledSlots = slotPhotoMap.filter(Boolean).length;
   const template = getCoverTemplate(templateId);
-  const titleLines = getCoverDisplayTitleLines(title || template.label, 3);
+  void title;
 
   useEffect(() => {
     const firstEmpty = slotPhotoMap.findIndex((photo) => !photo);
@@ -320,15 +320,6 @@ export function CoverSlotBuilder({
                   className="cover-preview-overlay"
                   sizes="(min-width: 1024px) 680px, 100vw"
                 />
-                {template.id === "july" ? (
-                  <div className="cover-preview-july-title" aria-hidden="true">
-                    {titleLines.map((line) => (
-                      <span key={line} className="cover-preview-july-line">
-                        {line}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
                 <div className="cover-template-slot-layer">
                   {template.slots.map((slot, index) => {
                     const hasPhoto = Boolean(slotPhotoMap[index]);

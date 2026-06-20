@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getCoverDisplayTitleLines, getCoverTemplate } from "@/lib/covers";
+import { getCoverTemplate } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { getPosterPhotoPlacement } from "@/lib/poster";
 import type { Photo } from "@/lib/types";
@@ -17,7 +17,7 @@ export function CoverPosterPreview({ templateId, photos, title = null }: CoverPo
     const sortedPhoto = photos.find((photo) => photo?.sort_order === index) ?? null;
     return sortedPhoto ?? directPhoto;
   });
-  const titleLines = getCoverDisplayTitleLines(title, 3);
+  void title;
 
   return (
     <div className="cover-preview-shell">
@@ -46,17 +46,7 @@ export function CoverPosterPreview({ templateId, photos, title = null }: CoverPo
           </div>
         ))}
       </div>
-      {template.id === "july" ? (
-        <div className="cover-preview-july-title" aria-hidden="true">
-          {titleLines.map((line) => (
-            <span key={line} className="cover-preview-july-line">
-              {line}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
-      )}
+      <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
     </div>
   );
 }
