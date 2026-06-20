@@ -32,22 +32,13 @@ export default function CoverTemplateLibraryPage() {
         <section className="cover-library-grid mt-8 grid gap-5 lg:grid-cols-2">
           {coverTemplates.map((template) => (
             <article key={template.id} className="cover-library-card playful-card rounded-[2rem] p-5 sm:p-6">
-              <div className="cover-library-preview">
-                <div className="cover-preview-grid">
-                  {Array.from({ length: template.photoCount }).map((_, index) => (
-                    <div key={`${template.id}-slot-${index}`} className="cover-preview-cell">
-                      <div className="cover-preview-placeholder">
-                        <span>+ Photo {index + 1}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="cover-library-thumb">
                 <Image
                   src={template.overlaySrc}
                   alt=""
                   fill
-                  className="cover-preview-overlay"
-                  sizes="(min-width: 1024px) 32rem, 100vw"
+                  className="cover-library-thumb-image"
+                  sizes="(min-width: 1024px) 12rem, 40vw"
                 />
               </div>
 
