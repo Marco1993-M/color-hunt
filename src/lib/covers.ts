@@ -8,7 +8,21 @@ export type CoverTemplate = {
   description: string;
   themeId: "post-july" | "post-usa";
   overlaySrc: string;
+  photoCount: number;
+  slots: Array<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  }>;
 };
+
+const twoByTwoSlots = [
+  { left: 0, top: 0, width: 0.5, height: 0.5 },
+  { left: 0.5, top: 0, width: 0.5, height: 0.5 },
+  { left: 0, top: 0.5, width: 0.5, height: 0.5 },
+  { left: 0.5, top: 0.5, width: 0.5, height: 0.5 },
+] as const;
 
 export const coverTemplates: CoverTemplate[] = [
   {
@@ -17,6 +31,8 @@ export const coverTemplates: CoverTemplate[] = [
     description: "Editorial 2x2 cover",
     themeId: "post-july",
     overlaySrc: "/poster-template-story-july.png",
+    photoCount: 4,
+    slots: [...twoByTwoSlots],
   },
   {
     id: "usa",
@@ -24,8 +40,14 @@ export const coverTemplates: CoverTemplate[] = [
     description: "Stars-and-stripes cover",
     themeId: "post-usa",
     overlaySrc: "/poster-template-story-usa.png",
+    photoCount: 4,
+    slots: [...twoByTwoSlots],
   },
 ];
+
+export function isCoverTemplateId(value: string | null | undefined): value is CoverTemplateId {
+  return value === "july" || value === "usa";
+}
 
 export function getCoverTemplate(templateId: string | null | undefined) {
   return coverTemplates.find((template) => template.id === templateId) ?? coverTemplates[0];
