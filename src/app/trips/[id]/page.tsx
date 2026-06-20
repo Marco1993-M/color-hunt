@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { notFound } from "next/navigation";
+import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
+import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
 import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { UploadPanel } from "@/components/trips/upload-panel";
@@ -138,22 +140,35 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               </div>
             </div>
 
-            <UploadPanel
-              tripId={trip.id}
-              missionId={mission.id}
-              userId={user.id}
-              currentCount={filledSlots}
-              maxPhotos={mission.max_photos}
-              bucketName={getSupabaseEnv().storageBucket}
-              photos={photos}
-              enablePosterWarmup={!isCoverTrip}
-            />
+            {isCoverTrip ? (
+              <CoverSlotBuilder
+                tripId={trip.id}
+                missionId={mission.id}
+                userId={user.id}
+                bucketName={getSupabaseEnv().storageBucket}
+                templateId={coverTemplate.id}
+                title={trip.title}
+                photos={photos}
+                maxPhotos={mission.max_photos}
+              />
+            ) : (
+              <UploadPanel
+                tripId={trip.id}
+                missionId={mission.id}
+                userId={user.id}
+                currentCount={filledSlots}
+                maxPhotos={mission.max_photos}
+                bucketName={getSupabaseEnv().storageBucket}
+                photos={photos}
+                enablePosterWarmup={!isCoverTrip}
+              />
+            )}
           </div>
 
           <div className="glass-panel rounded-[2.5rem] p-6 sm:p-8">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="eyebrow">Photo Grid</p>
+                <p className="eyebrow">{isCoverTrip ? "Template preview" : "Photo Grid"}</p>
                 <h2 className="panel-title mt-2 text-2xl font-semibold">
                   {isCoverTrip ? "Four frames make the cover." : "Nine frames make the story."}
                 </h2>
@@ -190,27 +205,43 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
               </div>
             )}
 
-            <div className="grid-poster">
-              {Array.from({ length: mission.max_photos }).map((_, index) => {
-                const photo = photos[index];
+            {isCoverTrip ? (
+              <div className="space-y-5">
+                <CoverPosterPreview
+                  templateId={coverTemplate.id}
+                  photos={photos}
+                  title={trip.title}
+                />
+                <div className="rounded-[1.5rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.65)] p-4">
+                  <p className="eyebrow">Build with intention</p>
+                  <p className="body-copy mt-2 text-sm sm:text-base">
+                    Strong four-photo covers usually have one obvious lead image, one supporting detail, and two frames that balance the rhythm.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid-poster">
+                {Array.from({ length: mission.max_photos }).map((_, index) => {
+                  const photo = photos[index];
 
-                return (
-                  <div key={photo?.id ?? `slot-${index}`} className="photo-tile">
-                    {photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={getPhotoUrl(photo)} alt={photo.caption || `Trip photo ${index + 1}`} />
-                    ) : (
-                      <div className="photo-slot h-full w-full">
-                        <div>
-                          <p className="text-sm font-medium uppercase tracking-[0.18em]">Slot {index + 1}</p>
-                          <p className="mt-2">A future moment in {mission.color_name.toLowerCase()}.</p>
+                  return (
+                    <div key={photo?.id ?? `slot-${index}`} className="photo-tile">
+                      {photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={getPhotoUrl(photo)} alt={photo.caption || `Trip photo ${index + 1}`} />
+                      ) : (
+                        <div className="photo-slot h-full w-full">
+                          <div>
+                            <p className="text-sm font-medium uppercase tracking-[0.18em]">Slot {index + 1}</p>
+                            <p className="mt-2">A future moment in {mission.color_name.toLowerCase()}.</p>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       </div>
