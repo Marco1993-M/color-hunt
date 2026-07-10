@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { Fredoka } from "next/font/google";
 import { redirect } from "next/navigation";
@@ -129,12 +130,6 @@ const homepageFaqs = [
       "Yes. The format works for solo walks, travel outings, and group challenges because the rule is simple enough to carry into almost any place.",
   },
 ];
-
-const payoffPoster = {
-  title: "Lisbon, Portugal",
-  subtitle: "Exploring Lisbon, Portugal 2026",
-  tone: "from-[#f7e8ae] via-[#edc34d] to-[#d89c23]",
-};
 
 type HomeProps = {
   searchParams: Promise<{
@@ -394,143 +389,35 @@ export default async function Home({ searchParams }: HomeProps) {
           </TrackedLink>
         </header>
 
-        <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-start lg:gap-10">
-          <div className="space-y-6 pt-1 sm:space-y-8 sm:pt-6">
-            <div className="hero-copy-shell">
-              <div className="landing-poster-teasers" aria-hidden="true">
-                <article className="landing-teaser-poster landing-teaser-poster-main">
-                  <div className="landing-teaser-topline">
-                    <span>Color Hunt</span>
-                  </div>
-                  <div className="landing-teaser-hero">
-                    <p className="landing-teaser-title">{payoffPoster.title}</p>
-                    <p className="landing-teaser-subtitle">{payoffPoster.subtitle}</p>
-                  </div>
-                  <div className="landing-teaser-grid">
-                    {Array.from({ length: 9 }).map((_, index) => (
-                      <span
-                        key={`teaser-main-${index}`}
-                        className={`landing-teaser-cell bg-gradient-to-br ${payoffPoster.tone}`}
-                      />
-                    ))}
-                  </div>
-                </article>
-
-                <article className="landing-teaser-poster landing-teaser-poster-secondary">
-                  <div className="landing-teaser-collage">
-                    <span className="landing-teaser-collage-card landing-teaser-collage-card-one bg-gradient-to-br from-[#ffd632] via-[#ffb45a] to-[#ff7b67]" />
-                    <span className="landing-teaser-collage-card landing-teaser-collage-card-two bg-gradient-to-br from-[#b6e9ff] via-[#77b8ff] to-[#3e73ee]" />
-                    <span className="landing-teaser-collage-card landing-teaser-collage-card-three bg-gradient-to-br from-[#d3f6ab] via-[#7fd96c] to-[#2a9d84]" />
-                    <span className="landing-teaser-collage-card landing-teaser-collage-card-four bg-gradient-to-br from-[#ffd2ea] via-[#f08fd0] to-[#b956b8]" />
-                  </div>
-                </article>
+        <section className="landing-launchpad">
+          <div className="landing-launchpad-intro">
+            <div className="hero-topline inline-flex items-center gap-3 rounded-full border border-[rgba(88,58,134,0.12)] bg-[rgba(255,255,255,0.76)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(45,34,74,0.72)] shadow-[0_14px_40px_rgba(72,48,110,0.1)]">
+              <div className="brand-dotline">
+                <span />
+                <span />
+                <span />
+                <span />
               </div>
-
-              <div className="hero-topline inline-flex items-center gap-3 rounded-full border border-[rgba(88,58,134,0.12)] bg-[rgba(255,255,255,0.76)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(45,34,74,0.72)] shadow-[0_14px_40px_rgba(72,48,110,0.1)]">
-                <div className="brand-dotline">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                One place. One color. Nine moments.
-              </div>
-              <div className="space-y-4 sm:space-y-5">
-                <p className="eyebrow">Color Hunt</p>
-                <h1
-                  className={`${fredoka.className} panel-title balanced-text max-w-4xl text-[3.05rem] font-semibold leading-[0.92] text-[var(--foreground)] sm:text-7xl lg:text-[5.4rem]`}
-                >
-                  Turn travel
-                  <span className="block text-[#2f61df]">into a color game.</span>
-                </h1>
-                <p className="body-copy balanced-text max-w-xl text-base sm:text-xl">
-                  Start a nine-frame Color Hunt when you want the prompt, or jump straight into a four-photo template when you already have the shots.
-                </p>
-                <p className="hero-proof max-w-lg text-sm sm:text-base">
-                  Two clean ways in: playful hunts for new moments, or fast covers for photos you already want to post.
-                </p>
-              </div>
-
-              <div className="hero-chip-row flex flex-wrap gap-2">
-                {heroChips.map((chip) => (
-                  <span key={chip.label} className={`${fredoka.className} playful-chip ${chip.tone}`}>
-                    {chip.label}
-                  </span>
-                ))}
-              </div>
-
-              <div className="game-start-rail">
-                <div className="landing-hero-action-row">
-                  <TrackedLink
-                    className="button-primary w-full sm:w-auto"
-                    href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
-                    eventName="landing_cta_clicked"
-                    metadata={{
-                      challengeColorName,
-                      destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
-                      isAuthenticated: Boolean(user),
-                      isChallengeFlow,
-                      source: "landing_hero_hunt",
-                    }}
-                  >
-                    {user
-                      ? isChallengeFlow
-                        ? `Start the ${challengeColorName} challenge`
-                        : isGuest
-                          ? "Resume your guest hunt"
-                          : "Start your next hunt"
-                      : "Start a Color Hunt"}
-                  </TrackedLink>
-                  <TrackedLink
-                    className="button-secondary w-full sm:w-auto"
-                    href="/covers/new"
-                    eventName="landing_cta_clicked"
-                    metadata={{
-                      challengeColorName,
-                      destination: "/covers/new",
-                      isAuthenticated: Boolean(user),
-                      isChallengeFlow,
-                      source: "landing_hero_template",
-                    }}
-                  >
-                    Choose a template
-                  </TrackedLink>
-                </div>
-                <p className="micro-copy text-[rgba(67,58,97,0.66)]">
-                  {isChallengeFlow
-                    ? `Google gets this ${challengeColorName} challenge attached to your account. Templates stay available as a faster second lane.`
-                    : "Hunts stay guest-friendly. Templates get you from four photos to a finished cover even faster."}
-                </p>
-              </div>
-
-              <div className="landing-stream-grid">
-                <article className="landing-stream-card">
-                  <p className="eyebrow">Color Hunts</p>
-                  <h3 className="panel-title mt-2 text-2xl font-semibold">9 photos. 1 color. 1 poster.</h3>
-                  <p className="body-copy mt-2 text-sm sm:text-base">
-                    Best when you want the prompt itself: pick a place, follow one color, and collect the day as you go.
-                  </p>
-                  <p className="landing-stream-meta">City walks · travel days · friend groups</p>
-                </article>
-
-                <article className="landing-stream-card">
-                  <p className="eyebrow">Templates</p>
-                  <h3 className="panel-title mt-2 text-2xl font-semibold">4 photos. Fixed layout. Fast result.</h3>
-                  <p className="body-copy mt-2 text-sm sm:text-base">
-                    Best when you already have the set: choose the cover first, tap exact slots, and export without the hunt step.
-                  </p>
-                  <p className="landing-stream-meta">Month covers · match days · tight selects</p>
-                </article>
-              </div>
+              Your camera roll, with a point of view.
             </div>
+            <h1 className={`${fredoka.className} panel-title balanced-text mt-5 max-w-4xl text-[3.2rem] font-semibold leading-[0.92] text-[var(--foreground)] sm:text-7xl lg:text-[5.6rem]`}>
+              Make the photos
+              <span className="block text-[#2f61df]">mean something.</span>
+            </h1>
+            <p className="body-copy balanced-text mx-auto mt-5 max-w-2xl text-base sm:text-xl">
+              Start a Color Hunt when you want the day to lead somewhere. Choose a template when you already have the photos and want the result now.
+            </p>
           </div>
 
-          <div className="relative space-y-5 lg:order-last">
-            <div className="landing-glow absolute -left-8 top-8 hidden h-40 w-40 rounded-full lg:block" />
-            <div className="hero-stage relative p-4 sm:p-5">
-              <div className="landing-color-board">
+          <div className="landing-route-grid">
+            <article className="landing-route-card landing-route-card-hunt">
+              <div className="landing-route-heading">
+                <p className="eyebrow">Color Hunt</p>
+                <span className="landing-route-count">9 frames</span>
+              </div>
+              <div className="landing-hunt-art" aria-hidden="true">
                 {heroBoardTiles.map((tile, index) => (
-                  <div key={`${tile.face}-${index}`} className={`landing-color-tile ${tile.tone}`}>
+                  <div key={`${tile.face}-${index}`} className={`landing-hunt-art-tile ${tile.tone}`}>
                     <div className={`mascot-face mascot-face-${tile.face}`}>
                       <span className="mascot-eye mascot-eye-left" />
                       <span className="mascot-eye mascot-eye-right" />
@@ -539,94 +426,119 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                 ))}
               </div>
-              <div className="landing-payoff-card">
-                <div className="landing-payoff-copy">
-                  <p className="eyebrow">The payoff</p>
-                  <h3 className="panel-title text-2xl font-semibold sm:text-[2rem]">A poster worth posting.</h3>
-                  <p className="body-copy mt-2 text-sm sm:text-base">
-                    The hunt ends with a clean little artifact you can save, share, and actually want to keep.
-                  </p>
-                </div>
-                <article className="landing-payoff-poster">
-                  <div className="landing-payoff-topline">
-                    <span>Color Hunt</span>
-                    <span>Poster</span>
-                  </div>
-                  <div className="landing-payoff-hero">
-                    <p className="landing-payoff-title">{payoffPoster.title}</p>
-                    <p className="landing-payoff-subtitle">{payoffPoster.subtitle}</p>
-                  </div>
-                  <div className="landing-payoff-grid">
-                    {Array.from({ length: 9 }).map((_, index) => (
-                      <span
-                        key={`payoff-${index}`}
-                        className={`landing-payoff-cell bg-gradient-to-br ${payoffPoster.tone}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="landing-payoff-footer">One place. One color. Nine moments.</p>
-                </article>
+              <h2 className="panel-title mt-6 text-3xl font-semibold sm:text-4xl">Make the day the story.</h2>
+              <p className="body-copy mt-3 text-sm sm:text-base">
+                Pick a place, follow one color, and collect nine little moments that turn into a poster worth keeping.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {heroChips.map((chip) => (
+                  <span key={chip.label} className={`${fredoka.className} playful-chip ${chip.tone}`}>
+                    {chip.label}
+                  </span>
+                ))}
               </div>
-            </div>
+              <TrackedLink
+                className="button-primary mt-6 w-full sm:w-auto"
+                href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+                eventName="landing_cta_clicked"
+                metadata={{
+                  challengeColorName,
+                  destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
+                  isAuthenticated: Boolean(user),
+                  isChallengeFlow,
+                  source: "landing_route_hunt",
+                }}
+              >
+                {user
+                  ? isChallengeFlow
+                    ? `Start the ${challengeColorName} challenge`
+                    : isGuest
+                      ? "Resume your guest hunt"
+                      : "Start a new hunt"
+                  : "Start a Color Hunt"}
+              </TrackedLink>
+              <p className="landing-route-footnote">For city walks, travel days, and friend groups.</p>
+            </article>
 
-            <div id="start" className="space-y-4">
-              {user ? (
-                <div className="playful-card rounded-[2rem] p-6 sm:p-8">
-                  <p className="eyebrow mb-3">{isGuest ? "You already started" : "Back for another round?"}</p>
-                  <h2 className="panel-title text-3xl font-semibold">
-                    {isGuest ? "Your guest hunt is still waiting." : "Your next poster is waiting."}
-                  </h2>
-                  <p className="body-copy mt-3 text-base">
-                    {isGuest
-                      ? "Jump back in, finish the poster, and then attach Google when you want to save it properly."
-                      : "Head to your dashboard, choose a place, and start building a nine-frame story that feels worth keeping."}
-                  </p>
-                  <Link className="button-primary mt-6 w-full sm:w-auto" href="/dashboard">
-                    {isGuest ? "Resume guest hunt" : "Open dashboard"}
-                  </Link>
+            <article className="landing-route-card landing-route-card-template">
+              <div className="landing-route-heading">
+                <p className="eyebrow">Templates</p>
+                <span className="landing-route-count">4 photos</span>
+              </div>
+              <div className="landing-template-art" aria-hidden="true">
+                <div className="landing-template-art-card landing-template-art-card-one">
+                  <Image src="/poster-template-story-july.png" alt="" fill sizes="(min-width: 1024px) 18rem, 44vw" />
                 </div>
-              ) : (
-                <AuthPanel
-                  nextPath={challengeNextPath}
-                  challengeColorName={challengeColorName}
-                  requireSignIn={isChallengeFlow}
-                />
-              )}
-              <div className="playful-card rounded-[2rem] p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="eyebrow">Why it clicks</p>
-                  <span className={`${fredoka.className} text-sm font-semibold text-[rgba(47,97,223,0.8)]`}>Fast to get. Fun to share.</span>
+                <div className="landing-template-art-card landing-template-art-card-two">
+                  <Image src="/poster-template-story-usa.png" alt="" fill sizes="(min-width: 1024px) 12rem, 30vw" />
                 </div>
-                <ul className="mt-4 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-3">
-                  {reasons.map((reason, index) => (
-                    <li key={reason} className="reason-pill">
-                      <span className="reason-pill-index">{index + 1}</span>
-                      <span>{reason}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-              <div className="playful-card rounded-[1.75rem] p-5">
-                <p className="micro-copy">Format</p>
-                <p className={`${fredoka.className} panel-title mt-3 text-2xl font-semibold`}>9 frames</p>
-                <p className="body-copy mt-2 text-sm">Just enough constraint to create style.</p>
+              <h2 className="panel-title mt-6 text-3xl font-semibold sm:text-4xl">Make the cover now.</h2>
+              <p className="body-copy mt-3 text-sm sm:text-base">
+                Start with the layout, tap the exact slots you want to fill, and get a social-ready cover from the photos already in your camera roll.
+              </p>
+              <div className="landing-template-tags mt-5" aria-label="Template use cases">
+                <span>Monthly recaps</span>
+                <span>Match days</span>
+                <span>Weekend selects</span>
               </div>
-              <div className="playful-card rounded-[1.75rem] p-5">
-                <p className="micro-copy">Hook</p>
-                <p className={`${fredoka.className} panel-title mt-3 text-2xl font-semibold`}>1 color</p>
-                <p className="body-copy mt-2 text-sm">A simple mission that changes what you notice.</p>
-              </div>
-              <div className="playful-card rounded-[1.75rem] p-5">
-                <p className="micro-copy">Outcome</p>
-                <p className={`${fredoka.className} panel-title mt-3 text-2xl font-semibold`}>1 poster</p>
-                <p className="body-copy mt-2 text-sm">A shareable artifact, not another camera roll dump.</p>
-              </div>
-            </div>
+              <TrackedLink
+                className="button-template mt-6 w-full sm:w-auto"
+                href="/covers/new"
+                eventName="landing_cta_clicked"
+                metadata={{
+                  challengeColorName,
+                  destination: "/covers/new",
+                  isAuthenticated: Boolean(user),
+                  isChallengeFlow,
+                  source: "landing_route_template",
+                }}
+              >
+                Choose a template
+              </TrackedLink>
+              <p className="landing-route-footnote">For the photos you already want to post.</p>
+            </article>
           </div>
-        </div>
+        </section>
+
+        <section id="start" className="landing-start-section">
+          <div>
+            {user ? (
+              <div className="playful-card rounded-[2rem] p-6 sm:p-8">
+                <p className="eyebrow mb-3">{isGuest ? "You already started" : "Back for another round?"}</p>
+                <h2 className="panel-title text-3xl font-semibold">
+                  {isGuest ? "Your guest hunt is still waiting." : "Your next poster is waiting."}
+                </h2>
+                <p className="body-copy mt-3 text-base">
+                  {isGuest
+                    ? "Jump back in, finish the poster, and then attach Google when you want to save it properly."
+                    : "Open your dashboard to pick up an active hunt, make a new cover, or start something fresh."}
+                </p>
+                <Link className="button-primary mt-6 w-full sm:w-auto" href="/dashboard">
+                  {isGuest ? "Resume guest hunt" : "Open dashboard"}
+                </Link>
+              </div>
+            ) : (
+              <AuthPanel
+                nextPath={challengeNextPath}
+                challengeColorName={challengeColorName}
+                requireSignIn={isChallengeFlow}
+              />
+            )}
+          </div>
+          <div className="landing-proof-card">
+            <p className="eyebrow">Why it clicks</p>
+            <h2 className="panel-title mt-3 text-3xl font-semibold">A clear finish line changes everything.</h2>
+            <ul className="mt-5 grid gap-3 text-sm text-[var(--muted)]">
+              {reasons.map((reason, index) => (
+                <li key={reason} className="reason-pill">
+                  <span className="reason-pill-index">{index + 1}</span>
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
         <section id="poster-wall" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div className="playful-card rounded-[2.4rem] p-6 sm:p-8">
