@@ -39,6 +39,33 @@ const heroChips = [
   { label: "Pink Hunt", tone: "bg-[#ffe7f5] text-[#d85dac]" },
 ];
 
+const featuredTemplates = [
+  {
+    id: "june",
+    label: "June",
+    note: "A month in four frames",
+    src: "/poster-template-story-june.png",
+  },
+  {
+    id: "july",
+    label: "July",
+    note: "Summer, in one cover",
+    src: "/poster-template-story-july.png",
+  },
+  {
+    id: "august",
+    label: "August",
+    note: "The good kind of photo dump",
+    src: "/poster-template-story-august.png",
+  },
+  {
+    id: "usa",
+    label: "USA",
+    note: "Big-weekend energy",
+    src: "/poster-template-story-usa.png",
+  },
+] as const;
+
 const heroBoardTiles = [
   { face: "spark", tone: "bg-[#2a9d84] text-[#b8ea77]" },
   { face: "spark", tone: "bg-[#bde4ef] text-[#2f61df]" },
@@ -375,22 +402,22 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
           <TrackedLink
             className="header-utility-link"
-            href={user ? "/dashboard" : "#start"}
+            href={user ? "/dashboard" : "/covers/new"}
             eventName="landing_cta_clicked"
             metadata={{
               challengeColorName,
-              destination: user ? "/dashboard" : "#start",
+              destination: user ? "/dashboard" : "/covers/new",
               isAuthenticated: Boolean(user),
               isChallengeFlow,
               source: "landing_header",
             }}
           >
-            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Jump to the hunt"}
+            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Browse templates"}
           </TrackedLink>
         </header>
 
-        <section className="landing-launchpad">
-          <div className="landing-launchpad-intro">
+        <section className="landing-studio">
+          <div className="landing-studio-intro">
             <div className="hero-topline inline-flex items-center gap-3 rounded-full border border-[rgba(88,58,134,0.12)] bg-[rgba(255,255,255,0.76)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(45,34,74,0.72)] shadow-[0_14px_40px_rgba(72,48,110,0.1)]">
               <div className="brand-dotline">
                 <span />
@@ -398,37 +425,96 @@ export default async function Home({ searchParams }: HomeProps) {
                 <span />
                 <span />
               </div>
-              Your camera roll, with a point of view.
+              Color Hunt Studio
             </div>
-            <h1 className={`${fredoka.className} panel-title balanced-text mt-5 max-w-4xl text-[3.2rem] font-semibold leading-[0.92] text-[var(--foreground)] sm:text-7xl lg:text-[5.6rem]`}>
-              Make the photos
-              <span className="block text-[#2f61df]">mean something.</span>
+            <h1 className={`${fredoka.className} panel-title balanced-text mt-5 max-w-5xl text-[3.35rem] font-semibold leading-[0.9] text-[var(--foreground)] sm:text-7xl lg:text-[6.1rem]`}>
+              Make your camera roll
+              <span className="block text-[#2f61df]">feel like a moment.</span>
             </h1>
             <p className="body-copy balanced-text mx-auto mt-5 max-w-2xl text-base sm:text-xl">
-              Start a Color Hunt when you want the day to lead somewhere. Choose a template when you already have the photos and want the result now.
+              Start with a style when the photos are already there. Start a Color Hunt when you want the day itself to become the story.
             </p>
+            <div className="landing-studio-actions">
+              <TrackedLink
+                className="button-template w-full sm:w-auto"
+                href="/covers/new"
+                eventName="landing_cta_clicked"
+                metadata={{
+                  challengeColorName,
+                  destination: "/covers/new",
+                  isAuthenticated: Boolean(user),
+                  isChallengeFlow,
+                  source: "landing_studio_template",
+                }}
+              >
+                Browse templates
+              </TrackedLink>
+              <TrackedLink
+                className="button-secondary w-full sm:w-auto"
+                href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+                eventName="landing_cta_clicked"
+                metadata={{
+                  challengeColorName,
+                  destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
+                  isAuthenticated: Boolean(user),
+                  isChallengeFlow,
+                  source: "landing_studio_hunt",
+                }}
+              >
+                Start a Color Hunt
+              </TrackedLink>
+            </div>
+            <p className="landing-studio-note">Free to start · Built for posting · No design experience needed</p>
           </div>
 
-          <div className="landing-route-grid">
-            <article className="landing-route-card landing-route-card-hunt">
-              <div className="landing-route-heading">
-                <p className="eyebrow">Color Hunt</p>
-                <span className="landing-route-count">9 frames</span>
+          <div className="landing-style-shelf">
+            <div className="landing-style-shelf-heading">
+              <div>
+                <p className="eyebrow">Start with a style</p>
+                <h2 className="panel-title mt-2 text-2xl font-semibold sm:text-3xl">Four photos. One finished cover.</h2>
               </div>
-              <div className="landing-hunt-art" aria-hidden="true">
-                {heroBoardTiles.map((tile, index) => (
-                  <div key={`${tile.face}-${index}`} className={`landing-hunt-art-tile ${tile.tone}`}>
-                    <div className={`mascot-face mascot-face-${tile.face}`}>
-                      <span className="mascot-eye mascot-eye-left" />
-                      <span className="mascot-eye mascot-eye-right" />
-                      <span className="mascot-mouth" />
+              <span className="landing-style-shelf-count">New templates monthly</span>
+            </div>
+            <div className="landing-style-rail">
+              {featuredTemplates.map((template) => (
+                <TrackedLink
+                  key={template.id}
+                  className={`landing-style-card landing-style-card-${template.id}`}
+                  href="/covers/new"
+                  eventName="landing_cta_clicked"
+                  metadata={{
+                    challengeColorName,
+                    destination: "/covers/new",
+                    templateId: template.id,
+                    isAuthenticated: Boolean(user),
+                    isChallengeFlow,
+                    source: "landing_featured_template",
+                  }}
+                >
+                  <div className="landing-style-card-art" aria-hidden="true">
+                    <div className="landing-style-card-grid">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
                     </div>
+                    <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" />
                   </div>
-                ))}
-              </div>
-              <h2 className="panel-title mt-6 text-3xl font-semibold sm:text-4xl">Make the day the story.</h2>
-              <p className="body-copy mt-3 text-sm sm:text-base">
-                Pick a place, follow one color, and collect nine little moments that turn into a poster worth keeping.
+                  <div className="landing-style-card-copy">
+                    <span>{template.label}</span>
+                    <p>{template.note}</p>
+                  </div>
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+
+          <div className="landing-hunt-spotlight">
+            <div className="landing-hunt-spotlight-copy">
+              <p className="eyebrow">Or make a day out of it</p>
+              <h2 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">Give the day a rule worth following.</h2>
+              <p className="body-copy mt-3 max-w-xl text-sm sm:text-base">
+                A Color Hunt gives you one color to chase, nine moments to collect, and a poster at the end that could not have happened any other way.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {heroChips.map((chip) => (
@@ -446,58 +532,23 @@ export default async function Home({ searchParams }: HomeProps) {
                   destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
                   isAuthenticated: Boolean(user),
                   isChallengeFlow,
-                  source: "landing_route_hunt",
+                  source: "landing_hunt_spotlight",
                 }}
               >
-                {user
-                  ? isChallengeFlow
-                    ? `Start the ${challengeColorName} challenge`
-                    : isGuest
-                      ? "Resume your guest hunt"
-                      : "Start a new hunt"
-                  : "Start a Color Hunt"}
+                {user && isChallengeFlow ? `Start the ${challengeColorName} challenge` : "Start a Color Hunt"}
               </TrackedLink>
-              <p className="landing-route-footnote">For city walks, travel days, and friend groups.</p>
-            </article>
-
-            <article className="landing-route-card landing-route-card-template">
-              <div className="landing-route-heading">
-                <p className="eyebrow">Templates</p>
-                <span className="landing-route-count">4 photos</span>
-              </div>
-              <div className="landing-template-art" aria-hidden="true">
-                <div className="landing-template-art-card landing-template-art-card-one">
-                  <Image src="/poster-template-story-july.png" alt="" fill sizes="(min-width: 1024px) 18rem, 44vw" />
+            </div>
+            <div className="landing-hunt-art landing-hunt-spotlight-art" aria-hidden="true">
+              {heroBoardTiles.map((tile, index) => (
+                <div key={`${tile.face}-${index}`} className={`landing-hunt-art-tile ${tile.tone}`}>
+                  <div className={`mascot-face mascot-face-${tile.face}`}>
+                    <span className="mascot-eye mascot-eye-left" />
+                    <span className="mascot-eye mascot-eye-right" />
+                    <span className="mascot-mouth" />
+                  </div>
                 </div>
-                <div className="landing-template-art-card landing-template-art-card-two">
-                  <Image src="/poster-template-story-usa.png" alt="" fill sizes="(min-width: 1024px) 12rem, 30vw" />
-                </div>
-              </div>
-              <h2 className="panel-title mt-6 text-3xl font-semibold sm:text-4xl">Make the cover now.</h2>
-              <p className="body-copy mt-3 text-sm sm:text-base">
-                Start with the layout, tap the exact slots you want to fill, and get a social-ready cover from the photos already in your camera roll.
-              </p>
-              <div className="landing-template-tags mt-5" aria-label="Template use cases">
-                <span>Monthly recaps</span>
-                <span>Match days</span>
-                <span>Weekend selects</span>
-              </div>
-              <TrackedLink
-                className="button-template mt-6 w-full sm:w-auto"
-                href="/covers/new"
-                eventName="landing_cta_clicked"
-                metadata={{
-                  challengeColorName,
-                  destination: "/covers/new",
-                  isAuthenticated: Boolean(user),
-                  isChallengeFlow,
-                  source: "landing_route_template",
-                }}
-              >
-                Choose a template
-              </TrackedLink>
-              <p className="landing-route-footnote">For the photos you already want to post.</p>
-            </article>
+              ))}
+            </div>
           </div>
         </section>
 
