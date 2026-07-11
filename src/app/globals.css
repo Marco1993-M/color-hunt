@@ -802,8 +802,68 @@ img {
 }
 
 .landing-hunt-spotlight-art {
-  max-width: 30rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(4.9rem, 1fr));
+  width: min(100%, 23rem);
+  max-width: none;
   margin-inline: auto;
+  gap: 0.65rem;
+  justify-self: center;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile {
+  min-width: 0;
+  aspect-ratio: 1;
+  transform: none;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(1) {
+  background: #2a9d84;
+  color: #b8ea77;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(2) {
+  background: #bde4ef;
+  color: #2f61df;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(3) {
+  background: #ffd6eb;
+  color: #7e3af2;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(4) {
+  background: #ffd632;
+  color: #ff5d54;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(5) {
+  background: #f5e9db;
+  color: #ff9556;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(6) {
+  background: #ff5d54;
+  color: #fff4e6;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(7) {
+  background: #e95fca;
+  color: #fff8f0;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(8) {
+  background: #ff9a5d;
+  color: #2a9d84;
+}
+
+.landing-hunt-spotlight-art .landing-hunt-art-tile:nth-child(9) {
+  background: #2f61df;
+  color: #ffd632;
+}
+
+.landing-hunt-spotlight-art .mascot-face {
+  transform: scale(0.62);
 }
 
 .landing-launchpad::before,
