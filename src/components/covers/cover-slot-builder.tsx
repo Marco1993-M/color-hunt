@@ -33,6 +33,7 @@ type CoverSlotBuilderProps = {
   photos: Photo[];
   maxPhotos: number;
   inline?: boolean;
+  previewId?: string;
 };
 
 const acceptedFileTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -48,6 +49,7 @@ export function CoverSlotBuilder({
   photos,
   maxPhotos,
   inline = false,
+  previewId,
 }: CoverSlotBuilderProps) {
   const router = useRouter();
   const [selectedSlot, setSelectedSlot] = useState(0);
@@ -433,7 +435,7 @@ export function CoverSlotBuilder({
           tabIndex={-1}
         />
         <div className="cover-template-interactive">
-          <div className="cover-preview-shell">
+          <div id={previewId} className="cover-preview-shell">
             <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${getCoverGridColumns(maxPhotos)}, minmax(0, 1fr))` }}>
               {slotPhotoMap.map((photo, index) => (
                 <div key={`inline-photo-${index}`} className="cover-preview-cell">
@@ -446,7 +448,7 @@ export function CoverSlotBuilder({
             </div>
             {template.overlaySrc ? <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" /> : null}
             {template.isCustomTitle && (titleStyle === "purple" || titleStyle === "purple-stacked") ? <PurpleGlyphTitle title={title} stacked={titleStyle === "purple-stacked"} /> : null}
-            <div className="cover-template-slot-layer">
+            <div className="cover-template-slot-layer" data-export-hidden="true">
               {templateSlots.map((slot, index) => {
                 const hasPhoto = Boolean(slotPhotoMap[index]);
                 return (

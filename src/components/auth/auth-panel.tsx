@@ -117,11 +117,11 @@ export function AuthPanel({
         {!requireSignIn ? (
           <>
             <button className="button-primary w-full sm:w-auto" type="button" disabled={isPending} onClick={handleGuestStart}>
-              {isPending ? "Opening your hunt..." : "Start as guest"}
+              {isPending ? entryMode === "cover" ? "Opening your cover..." : "Opening your hunt..." : "Start as guest"}
             </button>
 
             <div className="guest-auth-divider">
-              <span>Already saved a hunt?</span>
+              <span>{entryMode === "cover" ? "Already saved a cover?" : "Already saved a hunt?"}</span>
             </div>
           </>
         ) : null}

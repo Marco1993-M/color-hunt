@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
+import { SaveImageButton } from "@/components/trips/save-image-button";
 import { trackEvent } from "@/lib/analytics";
 import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength, type CoverTemplateId } from "@/lib/covers";
+import { getPhotoUrl } from "@/lib/photo-url";
+import { getPosterPhotoPlacement } from "@/lib/poster";
 import type { Photo } from "@/lib/types";
 
 type CoverDraft = {
@@ -37,6 +39,16 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
   const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
   const isDraftComplete = Boolean(draft && draft.photos.length >= draft.maxPhotos);
+  const posterData = draft ? {
+    posterTitle: draft.title,
+    locationLabel: activeTemplate.label,
+    location: activeTemplate.label,
+    missionColorName: activeTemplate.label,
+    tripYear: String(new Date().getFullYear()),
+    posterTone: "#2d224a",
+    photoUrls: draft.photos.map(getPhotoUrl),
+    photoPlacements: draft.photos.map(getPosterPhotoPlacement),
+  } : null;
 
   useEffect(() => {
     setDraft(initialDraft);
@@ -139,7 +151,15 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </div>
           ) : null}
           {draft ? isDraftComplete ? (
-            <Link className="button-primary mt-5 w-full" href={`/trips/${draft.tripId}/poster`}>Save & share cover</Link>
+            <SaveImageButton
+              posterData={posterData}
+              layoutSourceId="cover-builder-export"
+              fileName={`${draft.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "cover"}.png`}
+              tripId={draft.tripId}
+              buttonLabel="Save & share cover"
+              className="button-primary mt-5 w-full"
+              showHint={false}
+            />
           ) : <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p> : (
             <button
               className="button-primary mt-5 w-full"
@@ -167,6 +187,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
               titleStyle={draft.titleStyle}
               photos={draft.photos}
               maxPhotos={draft.maxPhotos}
+              previewId="cover-builder-export"
             />
           ) : <CoverPosterPreview templateId={templateId} photos={Array.from({ length: photoCount }, () => null)} title={isCustomTitle ? titleLayout === "purple-stacked" ? `${title || "YOUR"}\n${secondTitleLine || "TITLE"}` : title || "YOUR TITLE" : activeTemplate.label} titleStyle={isCustomTitle ? titleLayout : "default"} />}
         </div>
