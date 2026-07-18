@@ -4,11 +4,13 @@ import imageCompression from "browser-image-compression";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { updatePhotoPosterPlacementAction } from "@/app/actions";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { PurpleGlyphTitle } from "@/components/covers/purple-glyph-title";
 import { trackEvent } from "@/lib/analytics";
 import { getCoverGridColumns, getCoverTemplate, getCoverTemplateSlots } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
+import { getPosterPhotoPlacement } from "@/lib/poster";
 import { createClient } from "@/lib/supabase/client";
 import type { Photo } from "@/lib/types";
 
@@ -52,6 +54,10 @@ export function CoverSlotBuilder({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [cropSlot, setCropSlot] = useState<number | null>(null);
+  const [cropX, setCropX] = useState(0.5);
+  const [cropY, setCropY] = useState(0.5);
+  const [cropZoom, setCropZoom] = useState(1);
   const pendingSlotRef = useRef<number | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
@@ -72,6 +78,27 @@ export function CoverSlotBuilder({
   const filledSlots = slotPhotoMap.filter(Boolean).length;
   const template = getCoverTemplate(templateId);
   const templateSlots = getCoverTemplateSlots(templateId, maxPhotos);
+  const cropPhoto = cropSlot === null ? null : slotPhotoMap[cropSlot];
+
+  function openCropEditor(index: number) {
+    const photo = slotPhotoMap[index];
+    if (!photo) return;
+    const placement = getPosterPhotoPlacement(photo);
+    setCropSlot(index); setCropX(placement.focalX); setCropY(placement.focalY); setCropZoom(placement.zoom);
+  }
+
+  function saveCrop() {
+    if (!cropPhoto) return;
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("photo_id", cropPhoto.id); formData.set("trip_id", tripId);
+        formData.set("poster_focal_x", String(cropX)); formData.set("poster_focal_y", String(cropY)); formData.set("poster_zoom", String(cropZoom));
+        await updatePhotoPosterPlacementAction(formData);
+        setCropSlot(null); router.refresh();
+      } catch (cropError) { setError(cropError instanceof Error ? cropError.message : "Unable to save that crop."); }
+    });
+  }
 
   useEffect(() => {
     const firstEmpty = slotPhotoMap.findIndex((photo) => !photo);
@@ -412,7 +439,7 @@ export function CoverSlotBuilder({
                 <div key={`inline-photo-${index}`} className="cover-preview-cell">
                   {photo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={getPhotoUrl(photo)} alt={`Template photo ${index + 1}`} />
+                    <img src={getPhotoUrl(photo)} alt={`Template photo ${index + 1}`} style={{ objectPosition: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%`, transform: `scale(${getPosterPhotoPlacement(photo).zoom})`, transformOrigin: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%` }} />
                   ) : <div className="cover-preview-placeholder" />}
                 </div>
               ))}
@@ -428,7 +455,7 @@ export function CoverSlotBuilder({
                     type="button"
                     className={`cover-template-slot-button cover-template-inline-slot ${hasPhoto ? "is-filled" : "is-empty"}`}
                     style={{ left: `${slot.left * 100}%`, top: `${slot.top * 100}%`, width: `${slot.width * 100}%`, height: `${slot.height * 100}%` }}
-                    onClick={() => openPreferredPicker(index, hasPhoto)}
+                    onClick={() => hasPhoto ? openCropEditor(index) : openPreferredPicker(index, false)}
                     aria-label={hasPhoto ? `Replace photo ${index + 1}` : `Add photo ${index + 1}`}
                   >
                     <span className="cover-template-inline-add">{hasPhoto ? "Edit" : "+"}</span>
@@ -438,6 +465,7 @@ export function CoverSlotBuilder({
             </div>
           </div>
         </div>
+        {cropPhoto ? <div className="cover-crop-modal" role="dialog" aria-modal="true"><div className="cover-crop-panel"><div className="cover-crop-preview">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={getPhotoUrl(cropPhoto)} alt="Crop preview" style={{ objectPosition: `${cropX * 100}% ${cropY * 100}%`, transform: `scale(${cropZoom})`, transformOrigin: `${cropX * 100}% ${cropY * 100}%` }} /></div><div className="cover-crop-controls"><p className="eyebrow">Adjust photo {(cropSlot ?? 0) + 1}</p><label>Left / right<input type="range" min="0" max="1" step="0.01" value={cropX} onChange={(event) => setCropX(Number(event.target.value))} /></label><label>Up / down<input type="range" min="0" max="1" step="0.01" value={cropY} onChange={(event) => setCropY(Number(event.target.value))} /></label><label>Zoom<input type="range" min="1" max="2.5" step="0.01" value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} /></label><div className="flex gap-3"><button type="button" className="button-secondary flex-1" onClick={() => setCropSlot(null)}>Cancel</button><button type="button" className="button-primary flex-1" disabled={isPending} onClick={saveCrop}>Save crop</button></div></div></div></div> : null}
         {status || error ? <FeedbackToast kind={error ? "error" : "success"} message={error ?? status ?? ""} onDismiss={() => { setStatus(null); setError(null); }} /> : null}
       </>
     );
