@@ -14,9 +14,10 @@ type Glyph = {
 };
 
 const glyphCache = new Map<string, Promise<Glyph | null>>();
+const glyphFileNames: Partial<Record<string, string>> = { A: "a", B: "b" };
 
 function getGlyphPath(character: string) {
-  return `/Font%20Family/Purple/${encodeURIComponent(character)}.png`;
+  return `/Font%20Family/Purple/${encodeURIComponent(glyphFileNames[character] ?? character)}.png`;
 }
 
 async function loadGlyph(character: string): Promise<Glyph | null> {
