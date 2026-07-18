@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
+import { PurpleGlyphTitle } from "@/components/covers/purple-glyph-title";
 import { trackEvent } from "@/lib/analytics";
 import { getCoverGridColumns, getCoverTemplate, getCoverTemplateSlots } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
@@ -26,6 +27,7 @@ type CoverSlotBuilderProps = {
   bucketName: string;
   templateId: string;
   title: string;
+  titleStyle?: "default" | "purple" | "purple-stacked" | null;
   photos: Photo[];
   maxPhotos: number;
 };
@@ -39,6 +41,7 @@ export function CoverSlotBuilder({
   bucketName,
   templateId,
   title,
+  titleStyle = "default",
   photos,
   maxPhotos,
 }: CoverSlotBuilderProps) {
@@ -67,7 +70,6 @@ export function CoverSlotBuilder({
   const filledSlots = slotPhotoMap.filter(Boolean).length;
   const template = getCoverTemplate(templateId);
   const templateSlots = getCoverTemplateSlots(templateId, maxPhotos);
-  void title;
 
   useEffect(() => {
     const firstEmpty = slotPhotoMap.findIndex((photo) => !photo);
@@ -249,7 +251,7 @@ export function CoverSlotBuilder({
     const queuedFiles = files.slice(0, emptySlots.length);
 
     if (queuedFiles.length === 0) {
-      setError(emptySlots.length === 0 ? "All four photos are already in place." : "Choose JPG, PNG, or WebP images first.");
+      setError(emptySlots.length === 0 ? `All ${maxPhotos} photos are already in place.` : "Choose JPG, PNG, or WebP images first.");
       return;
     }
 
@@ -391,17 +393,17 @@ export function CoverSlotBuilder({
 
   return (
     <>
-      <div className="glass-panel rounded-[2rem] p-6 sm:p-7">
+      <div className="cover-builder-shell glass-panel rounded-[2rem] p-5 sm:p-7">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="eyebrow">Build your cover</p>
-            <h3 className="panel-title mt-2 text-2xl font-semibold">Start with all four photos. Fine-tune only if you want to.</h3>
+            <h3 className="panel-title mt-2 text-2xl font-semibold">Add the photos. We will handle the layout.</h3>
           </div>
           <p className="text-sm text-[var(--muted)]">{filledSlots}/{maxPhotos} photos added</p>
         </div>
 
         <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
-          Pick up to four photos and we will place them in order. Tap any square afterwards to replace, reposition, or refine it.
+          Pick up to {maxPhotos} photos and we will place them in order. Tap a photo afterwards only if you want to replace or refine it.
         </p>
 
         <input
@@ -423,10 +425,10 @@ export function CoverSlotBuilder({
             batchInputRef.current?.click();
           }}
         >
-          {filledSlots === maxPhotos ? "All four photos are in" : `Choose ${maxPhotos - filledSlots} photo${maxPhotos - filledSlots === 1 ? "" : "s"}`}
+          {filledSlots === maxPhotos ? `All ${maxPhotos} photos are in` : `Choose ${maxPhotos - filledSlots} photo${maxPhotos - filledSlots === 1 ? "" : "s"}`}
         </button>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)]">
+        <div className="cover-builder-content mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)]">
           <div className="cover-template-stage">
             <div className="cover-template-interactive">
               <div className="cover-preview-shell">
@@ -453,6 +455,7 @@ export function CoverSlotBuilder({
                     sizes="(min-width: 1024px) 680px, 100vw"
                   />
                 ) : null}
+                {template.isCustomTitle && (titleStyle === "purple" || titleStyle === "purple-stacked") ? <PurpleGlyphTitle title={title} stacked={titleStyle === "purple-stacked"} /> : null}
                 <div className="cover-template-slot-layer">
                   {templateSlots.map((slot, index) => {
                     const hasPhoto = Boolean(slotPhotoMap[index]);
@@ -482,7 +485,7 @@ export function CoverSlotBuilder({
             </div>
           </div>
 
-          <div className="cover-template-actions">
+          <div className="cover-template-actions cover-builder-refine">
             <div className="rounded-[1.6rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.7)] p-5">
               <p className="eyebrow">Fine-tune a photo</p>
               <h4 className="panel-title mt-2 text-2xl font-semibold">Photo {selectedSlot + 1}</h4>
@@ -536,13 +539,6 @@ export function CoverSlotBuilder({
               </div>
             </div>
 
-            <div className="rounded-[1.6rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.58)] p-5">
-              <p className="eyebrow">What happens next</p>
-              <p className="body-copy mt-2 text-sm">
-                Once all {maxPhotos} slots are filled, move into the cover preview to adjust crops and export the finished design.
-              </p>
-              <p className="mt-4 text-sm font-semibold text-[var(--ink)]">{title}</p>
-            </div>
           </div>
         </div>
       </div>

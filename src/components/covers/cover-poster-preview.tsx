@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PurpleGlyphTitle } from "@/components/covers/purple-glyph-title";
 import { getCoverGridColumns, getCoverTemplate } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { getPosterPhotoPlacement } from "@/lib/poster";
@@ -9,9 +10,10 @@ type CoverPosterPreviewProps = {
   templateId: string | null | undefined;
   photos: Array<Photo | null>;
   title?: string | null;
+  titleStyle?: "default" | "purple" | "purple-stacked" | null;
 };
 
-export function CoverPosterPreview({ id, templateId, photos, title = null }: CoverPosterPreviewProps) {
+export function CoverPosterPreview({ id, templateId, photos, title = null, titleStyle = "default" }: CoverPosterPreviewProps) {
   const template = getCoverTemplate(templateId);
   const photoCount = Math.max(template.photoCount, photos.length);
   const previewPhotos = Array.from({ length: photoCount }, (_, index) => {
@@ -19,7 +21,6 @@ export function CoverPosterPreview({ id, templateId, photos, title = null }: Cov
     const sortedPhoto = photos.find((photo) => photo?.sort_order === index) ?? null;
     return sortedPhoto ?? directPhoto;
   });
-  void title;
 
   return (
     <div id={id} className="cover-preview-shell">
@@ -51,6 +52,7 @@ export function CoverPosterPreview({ id, templateId, photos, title = null }: Cov
       {template.overlaySrc ? (
         <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
       ) : null}
+      {template.isCustomTitle && (titleStyle === "purple" || titleStyle === "purple-stacked") ? <PurpleGlyphTitle title={title} stacked={titleStyle === "purple-stacked"} /> : null}
     </div>
   );
 }

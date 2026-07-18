@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { trackEvent } from "@/lib/analytics";
-import { getCoverTemplate, type CoverTemplateId } from "@/lib/covers";
+import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength, type CoverTemplateId } from "@/lib/covers";
 
 type NewCoverBuilderProps = {
   createAction: (formData: FormData) => void | Promise<void>;
@@ -12,33 +12,57 @@ type NewCoverBuilderProps = {
 };
 
 export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderProps) {
-  const [title, setTitle] = useState("");
   const [photoCount, setPhotoCount] = useState<4 | 6>(4);
+  const [title, setTitle] = useState("");
+  const [secondTitleLine, setSecondTitleLine] = useState("");
+  const [titleLayout, setTitleLayout] = useState<"purple" | "purple-stacked">("purple");
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
+  const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
 
   return (
-    <form action={createAction} className="mt-8 grid gap-6">
+    <form action={createAction} className="mx-auto max-w-4xl">
       <AnalyticsHiddenFields />
       <input type="hidden" name="cover_template" value={templateId} />
       <input type="hidden" name="image_count" value={photoCount} />
+      <input type="hidden" name="title_style" value={isCustomTitle ? titleLayout : "default"} />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="cover-start-preview">
-          <CoverPosterPreview
-            templateId={templateId}
-            photos={Array.from({ length: photoCount }, () => null)}
-            title={title || activeTemplate.label}
-          />
-        </div>
-
-        <div className="grid gap-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
+        <div className="order-1 glass-panel rounded-[2rem] p-5 sm:p-7 lg:order-2">
           <div>
-            <p className="eyebrow">Template selected</p>
-            <h2 className="panel-title mt-2 text-2xl font-semibold">{activeTemplate.label}</h2>
+            <p className="eyebrow">{isCustomTitle ? "Create your own" : activeTemplate.label}</p>
+            <h1 className="panel-title mt-2 text-3xl font-semibold">How much of the moment?</h1>
             <p className="body-copy mt-3 text-sm sm:text-base">
-              Choose how much of the moment you want to tell. We will open the matching empty layout, then you can add all of the photos in one go.
+              {isCustomTitle
+                ? "Give it a short title, then choose a tighter edit or a fuller story."
+                : "Pick a tighter edit or a fuller story. The template artwork stays exactly as designed."}
             </p>
           </div>
+
+          {isCustomTitle ? (
+            <div>
+              <label className="field-label">Title layout</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["purple", "purple-stacked"] as const).map((layout) => (
+                  <button key={layout} type="button" className={`rounded-[1rem] border px-3 py-3 text-left text-sm font-semibold ${titleLayout === layout ? "border-[rgba(47,97,223,0.52)] bg-[rgba(225,235,255,0.74)]" : "border-[rgba(53,37,30,0.1)] bg-white/55"}`} onClick={() => setTitleLayout(layout)}>
+                    {layout === "purple" ? "One line" : "Two lines"}
+                  </button>
+                ))}
+              </div>
+              <label className="field-label" htmlFor="custom-cover-title">Your title</label>
+              <input
+                id="custom-cover-title"
+                name="title"
+                className="field-input"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder={titleLayout === "purple-stacked" ? "Cape" : "Summer days"}
+                maxLength={titleLayout === "purple-stacked" ? maxCustomCoverTitleLineLength : maxCustomCoverTitleLength}
+                required
+              />
+              {titleLayout === "purple-stacked" ? <input name="title_line_two" className="field-input mt-3" value={secondTitleLine} onChange={(event) => setSecondTitleLine(event.target.value)} placeholder="Town" maxLength={maxCustomCoverTitleLineLength} required /> : null}
+              <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{titleLayout === "purple-stacked" ? `Up to ${maxCustomCoverTitleLineLength} characters per line.` : `Up to ${maxCustomCoverTitleLength} characters, including spaces.`} The title stays centred in the canvas.</p>
+            </div>
+          ) : null}
 
           <fieldset>
             <legend className="field-label">How many photos?</legend>
@@ -60,32 +84,8 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
             </div>
           </fieldset>
 
-          <div>
-            <label className="field-label" htmlFor="cover-title">
-              Cover title
-            </label>
-            <input
-              id="cover-title"
-              name="title"
-              className="field-input"
-              placeholder={activeTemplate.label}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </div>
-
-          <div className="rounded-[1.6rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.58)] p-4 sm:p-5">
-            <p className="eyebrow">How it works</p>
-            <ol className="mt-3 grid gap-2 text-sm text-[var(--muted-strong)]">
-              <li>1. Pick four or six frames.</li>
-              <li>2. Add the photos in one go.</li>
-              <li>3. Adjust crops only if needed.</li>
-              <li>4. Save and share the finished cover.</li>
-            </ol>
-          </div>
-
           <button
-            className="button-primary w-full sm:w-auto"
+            className="button-primary mt-5 w-full"
             type="submit"
             onClick={() =>
               trackEvent({
@@ -98,6 +98,16 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
           >
             Add {photoCount} photos
           </button>
+          <p className="mt-3 text-center text-xs text-[var(--muted)]">Next: choose the photos from your camera roll.</p>
+        </div>
+
+        <div className="cover-start-preview order-2 mx-auto w-full max-w-[19rem] lg:order-1 lg:max-w-none">
+          <CoverPosterPreview
+            templateId={templateId}
+            photos={Array.from({ length: photoCount }, () => null)}
+            title={isCustomTitle ? titleLayout === "purple-stacked" ? `${title || "YOUR"}\n${secondTitleLine || "TITLE"}` : title || "YOUR TITLE" : activeTemplate.label}
+            titleStyle={isCustomTitle ? titleLayout : "default"}
+          />
         </div>
       </div>
     </form>
