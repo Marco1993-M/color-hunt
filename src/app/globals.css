@@ -719,22 +719,6 @@ img {
   overflow: hidden;
 }
 
-.landing-style-card-custom-title {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  place-content: center;
-  color: #d92c9c;
-  font-family: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
-  font-size: clamp(1.35rem, 5vw, 2.25rem);
-  font-weight: 900;
-  line-height: 0.82;
-  letter-spacing: -0.08em;
-  text-align: center;
-  text-shadow: 0.08em 0.11em 0 rgba(55, 24, 57, 0.2);
-}
-
 .landing-style-card-art > img {
   z-index: 1;
   object-fit: cover;

@@ -70,11 +70,6 @@ const featuredTemplates = [
     note: "Big-weekend energy",
     src: "/poster-template-story-usa.png",
   },
-  {
-    id: "custom-title",
-    label: "Your title",
-    note: "Make the words part of the cover",
-  },
 ] as const;
 
 const heroBoardTiles = [
@@ -458,7 +453,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   source: "landing_studio_template",
                 }}
               >
-                Make a cover
+                Create your title
               </TrackedLink>
               <TrackedLink
                 className="button-secondary w-full sm:w-auto"
@@ -509,7 +504,7 @@ export default async function Home({ searchParams }: HomeProps) {
                       <span />
                       <span />
                     </div>
-                    {"src" in template ? <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" /> : <span className="landing-style-card-custom-title">YOUR<br />TITLE</span>}
+                    <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" />
                   </div>
                   <div className="landing-style-card-copy">
                     <span>{template.label}</span>
