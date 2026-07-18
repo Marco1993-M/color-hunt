@@ -438,7 +438,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <span className="block text-[#2f61df]">with a point of view.</span>
             </h1>
             <p className="body-copy balanced-text mx-auto mt-5 max-w-2xl text-base sm:text-xl">
-              Pick a style, add four photos, and leave with a cover worth posting. No design skills. No blank canvas.
+              Pick a style, add four or six photos, and leave with a cover worth posting. No design skills. No blank canvas.
             </p>
             <div className="landing-studio-actions">
               <TrackedLink
@@ -470,7 +470,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 Start a Color Hunt
               </TrackedLink>
             </div>
-            <p className="landing-studio-note">Four photos · One finished cover · Ready to share</p>
+            <p className="landing-studio-note">Four or six photos · One finished cover · Ready to share</p>
           </div>
 
           <div className="landing-style-shelf">
@@ -486,11 +486,11 @@ export default async function Home({ searchParams }: HomeProps) {
                 <TrackedLink
                   key={template.id}
                   className={`landing-style-card landing-style-card-${template.id}`}
-                  href="/covers/new"
+                  href={`/covers/${template.id}/new`}
                   eventName="landing_cta_clicked"
                   metadata={{
                     challengeColorName,
-                    destination: "/covers/new",
+                    destination: `/covers/${template.id}/new`,
                     templateId: template.id,
                     isAuthenticated: Boolean(user),
                     isChallengeFlow,
@@ -508,7 +508,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <div className="landing-style-card-copy">
                     <span>{template.label}</span>
-                    <p>{template.note} · 4 photos</p>
+                    <p>{template.note} · 4 or 6 photos</p>
                   </div>
                 </TrackedLink>
               ))}

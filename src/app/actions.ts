@@ -81,6 +81,10 @@ function isMissingCoverColumns(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
 }
 
+function isUnsupportedCoverMetadata(error: SupabaseErrorLike | null | undefined) {
+  return isMissingCoverColumns(error) || error?.code === "23514";
+}
+
 function isMissingPhotoCropColumns(error: SupabaseErrorLike | null | undefined) {
   return error?.code === "42703" || error?.code === "PGRST204";
 }
@@ -282,7 +286,9 @@ export async function createCoverAction(formData: FormData) {
   const analytics = getAnalyticsContext(formData);
   const templateId = String(formData.get("cover_template") || "").trim();
   const submittedTitle = String(formData.get("title") || "").trim();
+  const requestedPhotoCount = Number(formData.get("image_count") || 4);
   const template = getCoverTemplate(templateId);
+  const photoCount = requestedPhotoCount === 6 ? 6 : 4;
   const title = submittedTitle || template.label;
   const location = template.label;
 
@@ -303,7 +309,7 @@ export async function createCoverAction(formData: FormData) {
     .select("id")
     .single();
 
-  if (isMissingCoverColumns(tripResult.error)) {
+  if (isUnsupportedCoverMetadata(tripResult.error)) {
     tripResult = await writableClient
       .from("trips")
       .insert({
@@ -328,8 +334,8 @@ export async function createCoverAction(formData: FormData) {
     trip_id: trip.id,
     color_name: template.label,
     color_hex: "#2d224a",
-    prompt: `Add four photos for the ${template.label.toLowerCase()}.`,
-    max_photos: 4,
+    prompt: `Add ${photoCount} photos for the ${template.label.toLowerCase()}.`,
+    max_photos: photoCount,
   });
 
   if (missionError) {
@@ -346,7 +352,7 @@ export async function createCoverAction(formData: FormData) {
     metadata: {
       creationMode: "cover",
       templateId: template.id,
-      photoCount: template.photoCount,
+      photoCount,
     },
   });
 
@@ -362,7 +368,7 @@ export async function createCoverAction(formData: FormData) {
       coverTemplate: template.id,
       selectedColor: null,
       assignedColor: null,
-      maxPhotos: 4,
+      maxPhotos: photoCount,
     },
   });
 

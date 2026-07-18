@@ -230,7 +230,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
           <CoverPosterPreview
             id="public-poster-sheet"
             templateId={coverTemplate.id}
-            photos={buildPosterFrameSlots(photos, 4)}
+            photos={buildPosterFrameSlots(photos, mission.max_photos)}
             title={posterTitle}
           />
         ) : (

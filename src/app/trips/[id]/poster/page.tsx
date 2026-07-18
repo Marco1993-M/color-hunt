@@ -112,7 +112,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
           <CoverPosterPreview
             id="trip-cover-preview"
             templateId={coverTemplate.id}
-            photos={buildPosterFrameSlots(photos, 4)}
+            photos={buildPosterFrameSlots(photos, mission.max_photos)}
             title={posterTitle}
           />
         ) : (

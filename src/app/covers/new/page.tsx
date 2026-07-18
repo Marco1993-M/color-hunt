@@ -34,10 +34,10 @@ export default async function CoverTemplateLibraryPage() {
         <section className="cover-library-hero playful-card rounded-[2.5rem] p-6 sm:p-8">
           <p className="eyebrow">Choose a template</p>
           <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">
-            Pick a cover. Add four photos. Post the moment.
+            Pick a cover. Add your photos. Post the moment.
           </h1>
           <p className="body-copy mt-3 max-w-3xl text-base">
-            Start with the finish line. Choose a style and we will take you straight to a live cover where you can add all four photos in one go, then make any final crop adjustments.
+            Start with the finish line. Choose a style, then decide whether your moment needs four or six photos before adding everything in one go.
           </p>
         </section>
 
@@ -56,7 +56,7 @@ export default async function CoverTemplateLibraryPage() {
             >
               <div className="cover-library-thumb">
                 <Image
-                  src={template.overlaySrc}
+                  src={template.overlaySrc!}
                   alt=""
                   fill
                   className="cover-library-thumb-image"
@@ -66,7 +66,7 @@ export default async function CoverTemplateLibraryPage() {
 
               <div className="cover-library-card-copy mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="cover-library-card-text">
-                  <p className="eyebrow">{template.photoCount} photos · ready to post</p>
+                  <p className="eyebrow">4 or 6 photos · ready to post</p>
                   <h2 className="panel-title mt-2 text-2xl font-semibold">{template.label}</h2>
                   <p className="body-copy mt-2 text-sm sm:text-base">{template.description}</p>
                 </div>
