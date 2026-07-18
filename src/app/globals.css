@@ -768,6 +768,14 @@ img {
   background: rgba(255, 248, 229, 0.82);
 }
 
+.landing-style-card-summer-2026 .landing-style-card-grid {
+  background: linear-gradient(135deg, #f7c961, #f28772);
+}
+
+.landing-style-card-summer-2026 .landing-style-card-grid span:nth-child(2n) {
+  background: rgba(91, 184, 192, 0.42);
+}
+
 .landing-style-card-copy {
   padding: 0.8rem 0.9rem 0.9rem;
 }

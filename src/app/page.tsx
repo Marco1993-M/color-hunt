@@ -59,6 +59,12 @@ const featuredTemplates = [
     src: "/poster-template-story-august.png",
   },
   {
+    id: "summer-2026",
+    label: "Summer 2026",
+    note: "The season in four frames",
+    src: "/poster-template-story-summer_2026.png",
+  },
+  {
     id: "usa",
     label: "USA",
     note: "Big-weekend energy",
