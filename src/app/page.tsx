@@ -412,7 +412,7 @@ export default async function Home({ searchParams }: HomeProps) {
               source: "landing_header",
             }}
           >
-            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Browse templates"}
+            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Make a cover"}
           </TrackedLink>
         </header>
 
@@ -428,11 +428,11 @@ export default async function Home({ searchParams }: HomeProps) {
               Color Hunt Studio
             </div>
             <h1 className={`${fredoka.className} panel-title balanced-text mt-5 max-w-5xl text-[3.35rem] font-semibold leading-[0.9] text-[var(--foreground)] sm:text-7xl lg:text-[6.1rem]`}>
-              Make your camera roll
-              <span className="block text-[#2f61df]">feel like a moment.</span>
+              Your camera roll,
+              <span className="block text-[#2f61df]">with a point of view.</span>
             </h1>
             <p className="body-copy balanced-text mx-auto mt-5 max-w-2xl text-base sm:text-xl">
-              Start with a style when the photos are already there. Start a Color Hunt when you want the day itself to become the story.
+              Pick a style, add four photos, and leave with a cover worth posting. No design skills. No blank canvas.
             </p>
             <div className="landing-studio-actions">
               <TrackedLink
@@ -447,7 +447,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   source: "landing_studio_template",
                 }}
               >
-                Browse templates
+                Make a cover
               </TrackedLink>
               <TrackedLink
                 className="button-secondary w-full sm:w-auto"
@@ -464,14 +464,14 @@ export default async function Home({ searchParams }: HomeProps) {
                 Start a Color Hunt
               </TrackedLink>
             </div>
-            <p className="landing-studio-note">Free to start · Built for posting · No design experience needed</p>
+            <p className="landing-studio-note">Four photos · One finished cover · Ready to share</p>
           </div>
 
           <div className="landing-style-shelf">
             <div className="landing-style-shelf-heading">
               <div>
-                <p className="eyebrow">Start with a style</p>
-                <h2 className="panel-title mt-2 text-2xl font-semibold sm:text-3xl">Four photos. One finished cover.</h2>
+                <p className="eyebrow">Choose your cover</p>
+                <h2 className="panel-title mt-2 text-2xl font-semibold sm:text-3xl">Your photos already have a better ending.</h2>
               </div>
               <span className="landing-style-shelf-count">New templates monthly</span>
             </div>
@@ -502,7 +502,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <div className="landing-style-card-copy">
                     <span>{template.label}</span>
-                    <p>{template.note}</p>
+                    <p>{template.note} · 4 photos</p>
                   </div>
                 </TrackedLink>
               ))}
@@ -511,10 +511,10 @@ export default async function Home({ searchParams }: HomeProps) {
 
           <div className="landing-hunt-spotlight">
             <div className="landing-hunt-spotlight-copy">
-              <p className="eyebrow">Or make a day out of it</p>
-              <h2 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">Give the day a rule worth following.</h2>
+              <p className="eyebrow">The Color Hunt original</p>
+              <h2 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">Make the day the story.</h2>
               <p className="body-copy mt-3 max-w-xl text-sm sm:text-base">
-                A Color Hunt gives you one color to chase, nine moments to collect, and a poster at the end that could not have happened any other way.
+                Pick one color. Chase nine moments. Finish with a poster that could only belong to that day.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {heroChips.map((chip) => (

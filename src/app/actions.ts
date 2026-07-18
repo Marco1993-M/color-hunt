@@ -337,6 +337,20 @@ export async function createCoverAction(formData: FormData) {
   }
 
   await trackServerEvent({
+    eventName: "cover_template_started",
+    tripId: trip.id,
+    userId: user.id,
+    path: `/trips/${trip.id}`,
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
+    metadata: {
+      creationMode: "cover",
+      templateId: template.id,
+      photoCount: template.photoCount,
+    },
+  });
+
+  await trackServerEvent({
     eventName: "trip_created",
     tripId: trip.id,
     userId: user.id,

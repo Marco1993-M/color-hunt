@@ -34,10 +34,10 @@ export default async function CoverTemplateLibraryPage() {
         <section className="cover-library-hero playful-card rounded-[2.5rem] p-6 sm:p-8">
           <p className="eyebrow">Choose a template</p>
           <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">
-            Start from the layout you actually want.
+            Pick a cover. Add four photos. Post the moment.
           </h1>
           <p className="body-copy mt-3 max-w-3xl text-base">
-            Pick the template first, open the live layout, tap the exact slots you want to fill, and get to the finished cover with as little friction as possible.
+            Start with the finish line. Choose a style and we will take you straight to a live cover where you can add all four photos in one go, then make any final crop adjustments.
           </p>
         </section>
 
@@ -66,7 +66,7 @@ export default async function CoverTemplateLibraryPage() {
 
               <div className="cover-library-card-copy mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="cover-library-card-text">
-                  <p className="eyebrow">{template.photoCount} photo template</p>
+                  <p className="eyebrow">{template.photoCount} photos · ready to post</p>
                   <h2 className="panel-title mt-2 text-2xl font-semibold">{template.label}</h2>
                   <p className="body-copy mt-2 text-sm sm:text-base">{template.description}</p>
                 </div>
@@ -76,15 +76,15 @@ export default async function CoverTemplateLibraryPage() {
                     <input type="hidden" name="cover_template" value={template.id} />
                     <input type="hidden" name="title" value={template.label} />
                     <button className="button-primary w-full sm:w-auto" type="submit">
-                      Use this template
+                      Make this cover
                     </button>
                     <p className="micro-copy mt-2 text-center text-[rgba(67,58,97,0.62)] sm:text-left">
-                      You can rename it later.
+                      Add your photos next.
                     </p>
                   </form>
                 ) : (
                   <Link className="button-primary w-full sm:w-auto" href="#template-auth">
-                    Sign in or start as guest
+                    Start making
                   </Link>
                 )}
               </div>
