@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { updateTripTitleAction } from "@/app/actions";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
@@ -52,7 +53,43 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
 
   useEffect(() => {
     setDraft(initialDraft);
+    if (initialDraft?.title) {
+      const [firstLine, secondLine = ""] = initialDraft.title.split("\n", 2);
+      setTitle(firstLine);
+      setSecondTitleLine(secondLine);
+      setTitleLayout(initialDraft.titleStyle === "purple-stacked" ? "purple-stacked" : "purple");
+    }
   }, [initialDraft]);
+
+  function saveCustomTitle() {
+    if (!draft || !title.trim()) {
+      setCreateError("Add a title before saving it.");
+      return;
+    }
+
+    if (titleLayout === "purple-stacked" && !secondTitleLine.trim()) {
+      setCreateError("Add both title lines before saving.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("trip_id", draft.tripId);
+    formData.set("cover_template", templateId);
+    formData.set("title", title);
+    formData.set("title_style", titleLayout);
+    formData.set("title_line_two", secondTitleLine);
+    setCreateError(null);
+
+    startTransition(async () => {
+      try {
+        await updateTripTitleAction(formData);
+        const nextTitle = titleLayout === "purple-stacked" ? `${title.trim()}\n${secondTitleLine.trim()}` : title.trim();
+        setDraft((current) => current ? { ...current, title: nextTitle, titleStyle: titleLayout } : current);
+      } catch (error) {
+        setCreateError(error instanceof Error ? error.message : "We could not save that title. Please try again.");
+      }
+    });
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,6 +185,23 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             <div className="cover-creator-progress mt-1">
               <span>{draft.photos.length}/{draft.maxPhotos} ready</span>
               <i style={{ width: `${Math.min((draft.photos.length / draft.maxPhotos) * 100, 100)}%` }} />
+            </div>
+          ) : null}
+          {draft && isCustomTitle ? (
+            <div className="cover-creator-title-edit mt-4">
+              <p className="field-label">Edit title</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["purple", "purple-stacked"] as const).map((layout) => (
+                  <button key={`edit-${layout}`} type="button" className={`rounded-[0.9rem] border px-3 py-2 text-sm font-semibold ${titleLayout === layout ? "border-[rgba(47,97,223,0.52)] bg-[rgba(225,235,255,0.74)]" : "border-[rgba(53,37,30,0.1)] bg-white/55"}`} onClick={() => setTitleLayout(layout)}>
+                    {layout === "purple" ? "One line" : "Two lines"}
+                  </button>
+                ))}
+              </div>
+              <input className="field-input mt-2" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={titleLayout === "purple-stacked" ? maxCustomCoverTitleLineLength : maxCustomCoverTitleLength} aria-label="Cover title" />
+              {titleLayout === "purple-stacked" ? <input className="field-input mt-2" value={secondTitleLine} onChange={(event) => setSecondTitleLine(event.target.value)} maxLength={maxCustomCoverTitleLineLength} aria-label="Cover title second line" /> : null}
+              <button type="button" className="button-secondary mt-2 w-full" disabled={isCreating} onClick={saveCustomTitle}>
+                {isCreating ? "Saving title..." : "Save title"}
+              </button>
             </div>
           ) : null}
           {draft ? isDraftComplete ? (
