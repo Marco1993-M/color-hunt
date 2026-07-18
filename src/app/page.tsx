@@ -70,6 +70,11 @@ const featuredTemplates = [
     note: "Big-weekend energy",
     src: "/poster-template-story-usa.png",
   },
+  {
+    id: "custom-title",
+    label: "Your title",
+    note: "Make the words part of the cover",
+  },
 ] as const;
 
 const heroBoardTiles = [
@@ -443,11 +448,11 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="landing-studio-actions">
               <TrackedLink
                 className="button-template w-full sm:w-auto"
-                href="/covers/new"
+                href="/covers/custom-title/new"
                 eventName="landing_cta_clicked"
                 metadata={{
                   challengeColorName,
-                  destination: "/covers/new",
+                  destination: "/covers/custom-title/new",
                   isAuthenticated: Boolean(user),
                   isChallengeFlow,
                   source: "landing_studio_template",
@@ -504,7 +509,7 @@ export default async function Home({ searchParams }: HomeProps) {
                       <span />
                       <span />
                     </div>
-                    <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" />
+                    {"src" in template ? <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" /> : <span className="landing-style-card-custom-title">YOUR<br />TITLE</span>}
                   </div>
                   <div className="landing-style-card-copy">
                     <span>{template.label}</span>

@@ -147,7 +147,7 @@ export default async function DashboardPage() {
             <Link className="button-primary w-full sm:w-auto" href="/trips/new">
               Start a hunt
             </Link>
-            <Link className="button-secondary w-full sm:w-auto" href="/covers/new">
+            <Link className="button-secondary w-full sm:w-auto" href="/covers/custom-title/new">
               Choose a template
             </Link>
             <SignOutButton isAnonymous={isGuest} />
@@ -373,7 +373,7 @@ export default async function DashboardPage() {
                 <Link className="button-primary" href="/trips/new">
                   Start a Color Hunt
                 </Link>
-                <Link className="button-secondary" href="/covers/new">
+                <Link className="button-secondary" href="/covers/custom-title/new">
                   Choose a template
                 </Link>
               </div>
