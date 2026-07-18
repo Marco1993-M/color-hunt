@@ -442,6 +442,20 @@ export default async function Home({ searchParams }: HomeProps) {
             </p>
             <div className="landing-studio-actions">
               <TrackedLink
+                className="button-secondary w-full sm:w-auto"
+                href="/covers/new"
+                eventName="landing_cta_clicked"
+                metadata={{
+                  challengeColorName,
+                  destination: "/covers/new",
+                  isAuthenticated: Boolean(user),
+                  isChallengeFlow,
+                  source: "landing_studio_template_library",
+                }}
+              >
+                Choose a template
+              </TrackedLink>
+              <TrackedLink
                 className="button-template w-full sm:w-auto"
                 href="/covers/custom-title/new"
                 eventName="landing_cta_clicked"
@@ -450,27 +464,27 @@ export default async function Home({ searchParams }: HomeProps) {
                   destination: "/covers/custom-title/new",
                   isAuthenticated: Boolean(user),
                   isChallengeFlow,
-                  source: "landing_studio_template",
+                  source: "landing_studio_custom_title",
                 }}
               >
-                Create your title
-              </TrackedLink>
-              <TrackedLink
-                className="button-secondary w-full sm:w-auto"
-                href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
-                eventName="landing_cta_clicked"
-                metadata={{
-                  challengeColorName,
-                  destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
-                  isAuthenticated: Boolean(user),
-                  isChallengeFlow,
-                  source: "landing_studio_hunt",
-                }}
-              >
-                Start a Color Hunt
+                Make it yours
               </TrackedLink>
             </div>
             <p className="landing-studio-note">Four or six photos · One finished cover · Ready to share</p>
+            <TrackedLink
+              className="landing-studio-hunt-link"
+              href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+              eventName="landing_cta_clicked"
+              metadata={{
+                challengeColorName,
+                destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
+                isAuthenticated: Boolean(user),
+                isChallengeFlow,
+                source: "landing_studio_hunt",
+              }}
+            >
+              Or start a Color Hunt →
+            </TrackedLink>
           </div>
 
           <div className="landing-style-shelf">

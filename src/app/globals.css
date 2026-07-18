@@ -653,6 +653,17 @@ img {
   text-transform: uppercase;
 }
 
+.landing-studio-hunt-link {
+  display: inline-flex;
+  margin-top: 0.75rem;
+  color: rgba(67, 58, 97, 0.72);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(67, 58, 97, 0.24);
+  text-underline-offset: 0.22rem;
+}
+
 .landing-style-shelf {
   position: relative;
   z-index: 1;
