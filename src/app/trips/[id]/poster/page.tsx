@@ -9,7 +9,6 @@ import { PosterExportWarmup } from "@/components/trips/poster-export-warmup";
 import { PosterReadyWatcher } from "@/components/trips/poster-ready-watcher";
 import { EditTripTitleForm } from "@/components/trips/edit-trip-title-form";
 import { SharePosterPanel } from "@/components/trips/share-poster-panel";
-import { SaveImageButton } from "@/components/trips/save-image-button";
 import { requireUser } from "@/lib/auth";
 import { getCoverTemplate, getCoverThemeId, inferCoverTemplateId, isCoverTripLike } from "@/lib/covers";
 import { getPosterExportForTrip, getTripBundle, getTripShareState } from "@/lib/data";
@@ -111,6 +110,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
 
         {isCoverTrip ? (
           <CoverPosterPreview
+            id="trip-cover-preview"
             templateId={coverTemplate.id}
             photos={buildPosterFrameSlots(photos, 4)}
             title={posterTitle}
@@ -174,26 +174,24 @@ export default async function PosterPage({ params }: PosterPageProps) {
           ) : isGuest ? (
             <SocialUpgradePanel tripId={trip.id} nextPath={`/trips/${trip.id}/poster`} />
           ) : isCoverTrip ? (
-            <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
-              <p className="eyebrow">Cover actions</p>
-              <h3 className="panel-title mt-2 text-2xl font-semibold">Save the cover.</h3>
-              <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
-                This cover template is a four-photo format. Save it straight to your phone and share it however you want.
-              </p>
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <SaveImageButton
-                  tripId={trip.id}
-                  posterData={posterData}
-                  fileName={`${trip.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-${coverTemplate.id}-cover-4x5.png`}
-                  buttonLabel="Save cover"
-                  formatId="post"
-                  themeId={coverThemeId}
-                />
-              </div>
-              <p className="body-copy mt-4 text-xs sm:text-sm">
-                Public cover links will come later. Right now this path is focused on fast save-and-share output.
-              </p>
-            </div>
+            <SharePosterPanel
+              tripId={trip.id}
+              initialShareId={shareState.shareId}
+              initialIsPublic={shareState.isPublic}
+              schemaReady={shareState.schemaReady}
+              currentPhotoCount={photos.length}
+              maxPhotos={mission.max_photos}
+              tripTitle={trip.title}
+              location={trip.location}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+              missionColorName={mission.color_name}
+              exportUrls={exportUrls}
+              posterData={posterData}
+              posterTheme={coverThemeId}
+              layoutSourceId="trip-cover-preview"
+              isCover
+            />
           ) : (
             <SharePosterPanel
               tripId={trip.id}
