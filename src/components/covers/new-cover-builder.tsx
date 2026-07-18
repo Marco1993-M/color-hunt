@@ -75,8 +75,8 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
       <input type="hidden" name="title_style" value={isCustomTitle ? titleLayout : "default"} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
-        <div className="order-1 glass-panel rounded-[2rem] p-5 sm:p-7 lg:order-2">
-          <div>
+        <div className={`${draft ? "order-2 is-locked" : "order-1"} cover-creator-setup glass-panel rounded-[2rem] p-5 sm:p-7 lg:order-2`}>
+          <div className="cover-creator-intro">
             <p className="eyebrow">{isCustomTitle ? "Create your own" : activeTemplate.label}</p>
             <h1 className="panel-title mt-2 text-3xl font-semibold">How much of the moment?</h1>
             <p className="body-copy mt-3 text-sm sm:text-base">
@@ -87,7 +87,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
           </div>
 
           {isCustomTitle ? (
-            <div>
+            <div className="cover-creator-title-controls">
               <label className="field-label">Title layout</label>
               <div className="grid grid-cols-2 gap-3">
                 {(["purple", "purple-stacked"] as const).map((layout) => (
@@ -112,7 +112,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </div>
           ) : null}
 
-          <fieldset>
+          <fieldset className="cover-creator-photo-controls">
             <legend className="field-label">How many photos?</legend>
             <div className="mt-2 grid grid-cols-2 gap-3">
               {[4, 6].map((count) => (
@@ -132,11 +132,15 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </div>
           </fieldset>
 
+          {draft ? (
+            <div className="cover-creator-progress mt-1">
+              <span>{draft.photos.length}/{draft.maxPhotos} ready</span>
+              <i style={{ width: `${Math.min((draft.photos.length / draft.maxPhotos) * 100, 100)}%` }} />
+            </div>
+          ) : null}
           {draft ? isDraftComplete ? (
             <Link className="button-primary mt-5 w-full" href={`/trips/${draft.tripId}/poster`}>Save & share cover</Link>
-          ) : (
-            <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p>
-          ) : (
+          ) : <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p> : (
             <button
               className="button-primary mt-5 w-full"
               type="submit"
@@ -147,10 +151,10 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </button>
           )}
           {createError ? <p className="mt-3 text-sm text-[var(--brand-coral)]">{createError}</p> : null}
-          <p className="mt-3 text-center text-xs text-[var(--muted)]">Next: choose the photos from your camera roll.</p>
+          <p className="cover-creator-next-copy mt-3 text-center text-xs text-[var(--muted)]">Next: choose the photos from your camera roll.</p>
         </div>
 
-        <div className="cover-start-preview order-2 mx-auto w-full max-w-[19rem] lg:order-1 lg:max-w-none">
+        <div className={`${draft ? "order-1 is-active" : "order-2"} cover-start-preview mx-auto w-full max-w-[19rem] lg:order-1 lg:max-w-none`}>
           {draft ? (
             <CoverSlotBuilder
               inline
