@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
-import { getCoverTemplate } from "@/lib/covers";
+import { getCoverGridColumns, getCoverTemplate, getCoverTemplateSlots } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { createClient } from "@/lib/supabase/client";
 import type { Photo } from "@/lib/types";
@@ -66,6 +66,7 @@ export function CoverSlotBuilder({
   const selectedPhoto = slotPhotoMap[selectedSlot];
   const filledSlots = slotPhotoMap.filter(Boolean).length;
   const template = getCoverTemplate(templateId);
+  const templateSlots = getCoverTemplateSlots(templateId, maxPhotos);
   void title;
 
   useEffect(() => {
@@ -429,7 +430,7 @@ export function CoverSlotBuilder({
           <div className="cover-template-stage">
             <div className="cover-template-interactive">
               <div className="cover-preview-shell">
-                <div className="cover-preview-grid">
+                <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${getCoverGridColumns(maxPhotos)}, minmax(0, 1fr))` }}>
                   {slotPhotoMap.map((photo, index) => (
                     <div key={`builder-photo-${index}`} className="cover-preview-cell">
                       {photo ? (
@@ -443,15 +444,17 @@ export function CoverSlotBuilder({
                     </div>
                   ))}
                 </div>
-                <Image
-                  src={template.overlaySrc}
-                  alt=""
-                  fill
-                  className="cover-preview-overlay"
-                  sizes="(min-width: 1024px) 680px, 100vw"
-                />
+                {template.overlaySrc ? (
+                  <Image
+                    src={template.overlaySrc}
+                    alt=""
+                    fill
+                    className="cover-preview-overlay"
+                    sizes="(min-width: 1024px) 680px, 100vw"
+                  />
+                ) : null}
                 <div className="cover-template-slot-layer">
-                  {template.slots.map((slot, index) => {
+                  {templateSlots.map((slot, index) => {
                     const hasPhoto = Boolean(slotPhotoMap[index]);
                     const isSelected = selectedSlot === index;
 

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getCoverTemplate } from "@/lib/covers";
+import { getCoverGridColumns, getCoverTemplate } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { getPosterPhotoPlacement } from "@/lib/poster";
 import type { Photo } from "@/lib/types";
@@ -13,7 +13,8 @@ type CoverPosterPreviewProps = {
 
 export function CoverPosterPreview({ id, templateId, photos, title = null }: CoverPosterPreviewProps) {
   const template = getCoverTemplate(templateId);
-  const previewPhotos = Array.from({ length: template.photoCount }, (_, index) => {
+  const photoCount = Math.max(template.photoCount, photos.length);
+  const previewPhotos = Array.from({ length: photoCount }, (_, index) => {
     const directPhoto = photos[index] ?? null;
     const sortedPhoto = photos.find((photo) => photo?.sort_order === index) ?? null;
     return sortedPhoto ?? directPhoto;
@@ -22,7 +23,7 @@ export function CoverPosterPreview({ id, templateId, photos, title = null }: Cov
 
   return (
     <div id={id} className="cover-preview-shell">
-      <div className="cover-preview-grid">
+      <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${getCoverGridColumns(photoCount)}, minmax(0, 1fr))` }}>
         {previewPhotos.map((photo, index) => (
           <div key={`cover-photo-${index}`} className="cover-preview-cell">
             {photo ? (
@@ -47,7 +48,9 @@ export function CoverPosterPreview({ id, templateId, photos, title = null }: Cov
           </div>
         ))}
       </div>
-      <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
+      {template.overlaySrc ? (
+        <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" />
+      ) : null}
     </div>
   );
 }
