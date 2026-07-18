@@ -30,6 +30,7 @@ type CoverSlotBuilderProps = {
   titleStyle?: "default" | "purple" | "purple-stacked" | null;
   photos: Photo[];
   maxPhotos: number;
+  inline?: boolean;
 };
 
 const acceptedFileTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -44,6 +45,7 @@ export function CoverSlotBuilder({
   titleStyle = "default",
   photos,
   maxPhotos,
+  inline = false,
 }: CoverSlotBuilderProps) {
   const router = useRouter();
   const [selectedSlot, setSelectedSlot] = useState(0);
@@ -389,6 +391,56 @@ export function CoverSlotBuilder({
         setError(deleteFailure instanceof Error ? deleteFailure.message : "Unable to remove this photo right now.");
       }
     });
+  }
+
+  if (inline) {
+    return (
+      <>
+        <input
+          ref={libraryInputRef}
+          className="sr-only"
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          onChange={(event) => handleFileSelection(event, "library")}
+          disabled={isPending}
+          tabIndex={-1}
+        />
+        <div className="cover-template-interactive">
+          <div className="cover-preview-shell">
+            <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${getCoverGridColumns(maxPhotos)}, minmax(0, 1fr))` }}>
+              {slotPhotoMap.map((photo, index) => (
+                <div key={`inline-photo-${index}`} className="cover-preview-cell">
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={getPhotoUrl(photo)} alt={`Template photo ${index + 1}`} />
+                  ) : <div className="cover-preview-placeholder" />}
+                </div>
+              ))}
+            </div>
+            {template.overlaySrc ? <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" /> : null}
+            {template.isCustomTitle && (titleStyle === "purple" || titleStyle === "purple-stacked") ? <PurpleGlyphTitle title={title} stacked={titleStyle === "purple-stacked"} /> : null}
+            <div className="cover-template-slot-layer">
+              {templateSlots.map((slot, index) => {
+                const hasPhoto = Boolean(slotPhotoMap[index]);
+                return (
+                  <button
+                    key={`${template.id}-inline-slot-${index}`}
+                    type="button"
+                    className={`cover-template-slot-button cover-template-inline-slot ${hasPhoto ? "is-filled" : "is-empty"}`}
+                    style={{ left: `${slot.left * 100}%`, top: `${slot.top * 100}%`, width: `${slot.width * 100}%`, height: `${slot.height * 100}%` }}
+                    onClick={() => openPreferredPicker(index, hasPhoto)}
+                    aria-label={hasPhoto ? `Replace photo ${index + 1}` : `Add photo ${index + 1}`}
+                  >
+                    <span className="cover-template-inline-add">{hasPhoto ? "Edit" : "+"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        {status || error ? <FeedbackToast kind={error ? "error" : "success"} message={error ?? status ?? ""} onDismiss={() => { setStatus(null); setError(null); }} /> : null}
+      </>
+    );
   }
 
   return (

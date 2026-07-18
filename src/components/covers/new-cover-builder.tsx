@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
@@ -35,6 +36,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
   const [draft, setDraft] = useState<CoverDraft | null>(initialDraft);
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
   const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
+  const isDraftComplete = Boolean(draft && draft.photos.length >= draft.maxPhotos);
 
   useEffect(() => {
     setDraft(initialDraft);
@@ -130,50 +132,42 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </div>
           </fieldset>
 
-          <button
-            className="button-primary mt-5 w-full"
-            type="submit"
-            disabled={isCreating || Boolean(draft)}
-            onClick={() =>
-              trackEvent({
-                eventName: "cover_template_started",
-                metadata: {
-                  templateId,
-                },
-              })
-            }
-          >
-            {isCreating ? "Opening your photo slots..." : draft ? "Photo slots ready below" : `Add ${photoCount} photos`}
-          </button>
+          {draft ? isDraftComplete ? (
+            <Link className="button-primary mt-5 w-full" href={`/trips/${draft.tripId}/poster`}>Save & share cover</Link>
+          ) : (
+            <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p>
+          ) : (
+            <button
+              className="button-primary mt-5 w-full"
+              type="submit"
+              disabled={isCreating}
+              onClick={() => trackEvent({ eventName: "cover_template_started", metadata: { templateId } })}
+            >
+              {isCreating ? "Opening your photo slots..." : `Add ${photoCount} photos`}
+            </button>
+          )}
           {createError ? <p className="mt-3 text-sm text-[var(--brand-coral)]">{createError}</p> : null}
           <p className="mt-3 text-center text-xs text-[var(--muted)]">Next: choose the photos from your camera roll.</p>
         </div>
 
         <div className="cover-start-preview order-2 mx-auto w-full max-w-[19rem] lg:order-1 lg:max-w-none">
-          <CoverPosterPreview
-            templateId={templateId}
-            photos={Array.from({ length: photoCount }, () => null)}
-            title={isCustomTitle ? titleLayout === "purple-stacked" ? `${title || "YOUR"}\n${secondTitleLine || "TITLE"}` : title || "YOUR TITLE" : activeTemplate.label}
-            titleStyle={isCustomTitle ? titleLayout : "default"}
-          />
+          {draft ? (
+            <CoverSlotBuilder
+              inline
+              tripId={draft.tripId}
+              missionId={draft.missionId}
+              userId={userId}
+              bucketName={bucketName}
+              templateId={templateId}
+              title={draft.title}
+              titleStyle={draft.titleStyle}
+              photos={draft.photos}
+              maxPhotos={draft.maxPhotos}
+            />
+          ) : <CoverPosterPreview templateId={templateId} photos={Array.from({ length: photoCount }, () => null)} title={isCustomTitle ? titleLayout === "purple-stacked" ? `${title || "YOUR"}\n${secondTitleLine || "TITLE"}` : title || "YOUR TITLE" : activeTemplate.label} titleStyle={isCustomTitle ? titleLayout : "default"} />}
         </div>
       </div>
     </form>
-    {draft ? (
-      <section className="mt-8 border-t border-[rgba(53,37,30,0.1)] pt-8">
-        <CoverSlotBuilder
-          tripId={draft.tripId}
-          missionId={draft.missionId}
-          userId={userId}
-          bucketName={bucketName}
-          templateId={templateId}
-          title={draft.title}
-          titleStyle={draft.titleStyle}
-          photos={draft.photos}
-          maxPhotos={draft.maxPhotos}
-        />
-      </section>
-    ) : null}
     </div>
   );
 }
