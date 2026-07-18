@@ -1,26 +1,45 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { trackEvent } from "@/lib/analytics";
 import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength, type CoverTemplateId } from "@/lib/covers";
 
 type NewCoverBuilderProps = {
-  createAction: (formData: FormData) => void | Promise<void>;
+  createAction: (formData: FormData) => Promise<{ tripId: string; missionId: string }>;
   templateId: CoverTemplateId;
 };
 
 export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderProps) {
+  const router = useRouter();
   const [photoCount, setPhotoCount] = useState<4 | 6>(4);
   const [title, setTitle] = useState("");
   const [secondTitleLine, setSecondTitleLine] = useState("");
   const [titleLayout, setTitleLayout] = useState<"purple" | "purple-stacked">("purple");
+  const [isCreating, startTransition] = useTransition();
+  const [createError, setCreateError] = useState<string | null>(null);
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
   const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setCreateError(null);
+
+    startTransition(async () => {
+      try {
+        const draft = await createAction(formData);
+        router.replace(`/covers/${templateId}/new?draft=${draft.tripId}`);
+      } catch (error) {
+        setCreateError(error instanceof Error ? error.message : "We could not start this cover. Please try again.");
+      }
+    });
+  }
+
   return (
-    <form action={createAction} className="mx-auto max-w-4xl">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
       <AnalyticsHiddenFields />
       <input type="hidden" name="cover_template" value={templateId} />
       <input type="hidden" name="image_count" value={photoCount} />
@@ -87,6 +106,7 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
           <button
             className="button-primary mt-5 w-full"
             type="submit"
+            disabled={isCreating}
             onClick={() =>
               trackEvent({
                 eventName: "cover_template_started",
@@ -96,8 +116,9 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
               })
             }
           >
-            Add {photoCount} photos
+            {isCreating ? "Opening your photo slots..." : `Add ${photoCount} photos`}
           </button>
+          {createError ? <p className="mt-3 text-sm text-[var(--brand-coral)]">{createError}</p> : null}
           <p className="mt-3 text-center text-xs text-[var(--muted)]">Next: choose the photos from your camera roll.</p>
         </div>
 
