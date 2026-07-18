@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/admin-supabase";
-import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength } from "@/lib/covers";
+import { getCoverTemplate, isCoverTemplateId, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength } from "@/lib/covers";
 import { ensureProfile, getGroupParticipantByInviteToken } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { getMissionByColorName, getRandomMission } from "@/lib/missions";
@@ -351,6 +351,8 @@ export async function createCoverAction(formData: FormData) {
     .single();
 
   if (missionError || !mission) {
+    // A cover needs both records for photo ownership; don't leave a blank draft behind on a partial failure.
+    await writableClient.from("trips").delete().eq("id", trip.id).eq("user_id", user.id);
     throw missionError ?? new Error("Unable to prepare the cover photos.");
   }
 
@@ -603,6 +605,8 @@ export async function updateTripTitleAction(formData: FormData) {
   const requestedTitleStyle = String(formData.get("title_style") || "default");
   const titleStyle = requestedTitleStyle === "purple-stacked" ? "purple-stacked" : requestedTitleStyle === "purple" ? "purple" : "default";
   const submittedSecondLine = String(formData.get("title_line_two") || "").trim();
+  const requestedCoverTemplate = String(formData.get("cover_template") || "").trim();
+  const isCoverTitle = isCoverTemplateId(requestedCoverTemplate);
 
   if (titleStyle === "purple") {
     nextTitle = nextTitle.slice(0, maxCustomCoverTitleLength);
@@ -650,10 +654,10 @@ export async function updateTripTitleAction(formData: FormData) {
   }
 
   await trackServerEvent({
-    eventName: "trip_title_updated",
+    eventName: isCoverTitle ? "cover_title_updated" : "trip_title_updated",
     tripId: trip.id,
     userId: user.id,
-    path: `/trips/${trip.id}/poster`,
+    path: isCoverTitle ? `/covers/${requestedCoverTemplate}/new` : `/trips/${trip.id}/poster`,
     sessionId: analytics.sessionId,
     journeyId: analytics.journeyId,
     metadata: {
@@ -667,9 +671,13 @@ export async function updateTripTitleAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath(`/trips/${trip.id}`);
   revalidatePath(`/trips/${trip.id}/poster`);
+  if (isCoverTitle) {
+    revalidatePath(`/covers/${requestedCoverTemplate}/new`);
+  }
   if (trip.share_id) {
     revalidatePath(`/poster/${trip.share_id}`);
   }
+
 }
 
 export async function updatePhotoPosterPlacementAction(formData: FormData) {
