@@ -1,27 +1,44 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
+import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
 import { trackEvent } from "@/lib/analytics";
 import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength, type CoverTemplateId } from "@/lib/covers";
+import type { Photo } from "@/lib/types";
+
+type CoverDraft = {
+  tripId: string;
+  missionId: string;
+  title: string;
+  titleStyle: "default" | "purple" | "purple-stacked" | null | undefined;
+  photos: Photo[];
+  maxPhotos: number;
+};
 
 type NewCoverBuilderProps = {
   createAction: (formData: FormData) => Promise<{ tripId: string; missionId: string }>;
   templateId: CoverTemplateId;
+  userId: string;
+  bucketName: string;
+  initialDraft?: CoverDraft | null;
 };
 
-export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderProps) {
-  const router = useRouter();
+export function NewCoverBuilder({ createAction, templateId, userId, bucketName, initialDraft = null }: NewCoverBuilderProps) {
   const [photoCount, setPhotoCount] = useState<4 | 6>(4);
   const [title, setTitle] = useState("");
   const [secondTitleLine, setSecondTitleLine] = useState("");
   const [titleLayout, setTitleLayout] = useState<"purple" | "purple-stacked">("purple");
   const [isCreating, startTransition] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CoverDraft | null>(initialDraft);
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
   const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
+
+  useEffect(() => {
+    setDraft(initialDraft);
+  }, [initialDraft]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,8 +47,17 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
 
     startTransition(async () => {
       try {
-        const draft = await createAction(formData);
-        router.replace(`/covers/${templateId}/new?draft=${draft.tripId}`);
+        const createdDraft = await createAction(formData);
+        const draftTitle = titleLayout === "purple-stacked" ? `${title}\n${secondTitleLine}` : title;
+        setDraft({
+          tripId: createdDraft.tripId,
+          missionId: createdDraft.missionId,
+          title: draftTitle,
+          titleStyle: isCustomTitle ? titleLayout : "default",
+          photos: [],
+          maxPhotos: photoCount,
+        });
+        window.history.replaceState(null, "", `/covers/${templateId}/new?draft=${createdDraft.tripId}`);
       } catch (error) {
         setCreateError(error instanceof Error ? error.message : "We could not start this cover. Please try again.");
       }
@@ -39,7 +65,8 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl">
+    <form onSubmit={handleSubmit}>
       <AnalyticsHiddenFields />
       <input type="hidden" name="cover_template" value={templateId} />
       <input type="hidden" name="image_count" value={photoCount} />
@@ -106,7 +133,7 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
           <button
             className="button-primary mt-5 w-full"
             type="submit"
-            disabled={isCreating}
+            disabled={isCreating || Boolean(draft)}
             onClick={() =>
               trackEvent({
                 eventName: "cover_template_started",
@@ -116,7 +143,7 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
               })
             }
           >
-            {isCreating ? "Opening your photo slots..." : `Add ${photoCount} photos`}
+            {isCreating ? "Opening your photo slots..." : draft ? "Photo slots ready below" : `Add ${photoCount} photos`}
           </button>
           {createError ? <p className="mt-3 text-sm text-[var(--brand-coral)]">{createError}</p> : null}
           <p className="mt-3 text-center text-xs text-[var(--muted)]">Next: choose the photos from your camera roll.</p>
@@ -132,5 +159,21 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
         </div>
       </div>
     </form>
+    {draft ? (
+      <section className="mt-8 border-t border-[rgba(53,37,30,0.1)] pt-8">
+        <CoverSlotBuilder
+          tripId={draft.tripId}
+          missionId={draft.missionId}
+          userId={userId}
+          bucketName={bucketName}
+          templateId={templateId}
+          title={draft.title}
+          titleStyle={draft.titleStyle}
+          photos={draft.photos}
+          maxPhotos={draft.maxPhotos}
+        />
+      </section>
+    ) : null}
+    </div>
   );
 }
