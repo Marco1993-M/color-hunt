@@ -20,7 +20,7 @@ export type CoverTemplate = {
 };
 
 export const maxCustomCoverTitleLength = 10;
-export const maxCustomCoverTitleLineLength = 5;
+export const maxCustomCoverTitleLineLength = 10;
 
 const twoByTwoSlots = [
   { left: 0, top: 0, width: 0.5, height: 0.5 },
