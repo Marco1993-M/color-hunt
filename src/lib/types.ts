@@ -4,7 +4,8 @@ export type Trip = {
   title: string;
   location: string;
   creation_mode?: "hunt" | "cover" | null;
-  cover_template?: "june" | "july" | "august" | "summer-2026" | "usa" | null;
+  cover_template?: "june" | "july" | "august" | "summer-2026" | "usa" | "custom-title" | null;
+  title_style?: "default" | "purple" | "purple-stacked" | null;
   start_date: string | null;
   end_date: string | null;
   group_hunt_id?: string | null;

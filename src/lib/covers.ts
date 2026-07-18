@@ -1,14 +1,16 @@
 import type { Mission, Trip } from "@/lib/types";
 
-export type CoverTemplateId = "june" | "july" | "august" | "summer-2026" | "usa";
+export type CoverTemplateId = "june" | "july" | "august" | "summer-2026" | "usa" | "custom-title";
 
 export type CoverTemplate = {
   id: CoverTemplateId;
   label: string;
   description: string;
-  themeId: "post-june" | "post-july" | "post-august" | "post-summer-2026" | "post-usa";
-  overlaySrc: string;
+  themeId: "classic" | "post-june" | "post-july" | "post-august" | "post-summer-2026" | "post-usa";
+  overlaySrc?: string;
+  isCustomTitle?: boolean;
   photoCount: number;
+  gridColumns: number;
   slots: Array<{
     left: number;
     top: number;
@@ -16,6 +18,9 @@ export type CoverTemplate = {
     height: number;
   }>;
 };
+
+export const maxCustomCoverTitleLength = 10;
+export const maxCustomCoverTitleLineLength = 5;
 
 const twoByTwoSlots = [
   { left: 0, top: 0, width: 0.5, height: 0.5 },
@@ -32,6 +37,7 @@ export const coverTemplates: CoverTemplate[] = [
     themeId: "post-june",
     overlaySrc: "/poster-template-story-june.png",
     photoCount: 4,
+    gridColumns: 2,
     slots: [...twoByTwoSlots],
   },
   {
@@ -41,6 +47,7 @@ export const coverTemplates: CoverTemplate[] = [
     themeId: "post-july",
     overlaySrc: "/poster-template-story-july.png",
     photoCount: 4,
+    gridColumns: 2,
     slots: [...twoByTwoSlots],
   },
   {
@@ -50,6 +57,7 @@ export const coverTemplates: CoverTemplate[] = [
     themeId: "post-august",
     overlaySrc: "/poster-template-story-august.png",
     photoCount: 4,
+    gridColumns: 2,
     slots: [...twoByTwoSlots],
   },
   {
@@ -59,6 +67,7 @@ export const coverTemplates: CoverTemplate[] = [
     themeId: "post-summer-2026",
     overlaySrc: "/poster-template-story-summer_2026.png",
     photoCount: 4,
+    gridColumns: 2,
     slots: [...twoByTwoSlots],
   },
   {
@@ -68,12 +77,23 @@ export const coverTemplates: CoverTemplate[] = [
     themeId: "post-usa",
     overlaySrc: "/poster-template-story-usa.png",
     photoCount: 4,
+    gridColumns: 2,
+    slots: [...twoByTwoSlots],
+  },
+  {
+    id: "custom-title",
+    label: "Custom title cover",
+    description: "Build a cover around your own title",
+    themeId: "classic",
+    isCustomTitle: true,
+    photoCount: 4,
+    gridColumns: 2,
     slots: [...twoByTwoSlots],
   },
 ];
 
 export function isCoverTemplateId(value: string | null | undefined): value is CoverTemplateId {
-  return value === "june" || value === "july" || value === "august" || value === "summer-2026" || value === "usa";
+  return value === "custom-title" || value === "june" || value === "july" || value === "august" || value === "summer-2026" || value === "usa";
 }
 
 export function getCoverTemplate(templateId: string | null | undefined) {
@@ -82,6 +102,27 @@ export function getCoverTemplate(templateId: string | null | undefined) {
 
 export function getCoverThemeId(templateId: string | null | undefined) {
   return getCoverTemplate(templateId).themeId;
+}
+
+export function getCoverGridColumns(photoCount: number) {
+  return photoCount === 6 ? 3 : 2;
+}
+
+export function getCoverTemplateSlots(templateId: string | null | undefined, photoCount: number) {
+  const template = getCoverTemplate(templateId);
+
+  if (photoCount !== 6) {
+    return template.slots;
+  }
+
+  return [
+    { left: 0, top: 0, width: 1 / 3, height: 0.5 },
+    { left: 1 / 3, top: 0, width: 1 / 3, height: 0.5 },
+    { left: 2 / 3, top: 0, width: 1 / 3, height: 0.5 },
+    { left: 0, top: 0.5, width: 1 / 3, height: 0.5 },
+    { left: 1 / 3, top: 0.5, width: 1 / 3, height: 0.5 },
+    { left: 2 / 3, top: 0.5, width: 1 / 3, height: 0.5 },
+  ];
 }
 
 export function getCoverDisplayTitle(title: string | null | undefined) {
@@ -149,6 +190,7 @@ export function inferCoverTemplateId({
   mission?: Pick<Mission, "max_photos" | "prompt" | "color_name"> | null;
 }) {
   if (
+    trip.cover_template === "custom-title" ||
     trip.cover_template === "june" ||
     trip.cover_template === "july" ||
     trip.cover_template === "august" ||

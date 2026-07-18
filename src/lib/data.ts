@@ -37,6 +37,7 @@ function normalizeTrip(trip: Partial<Trip> & Record<string, unknown>) {
     ...trip,
     creation_mode: trip.creation_mode ?? null,
     cover_template: trip.cover_template ?? null,
+    title_style: trip.title_style === "purple" || trip.title_style === "purple-stacked" ? trip.title_style : "default",
   } as Trip;
 }
 
@@ -113,14 +114,14 @@ export async function getTripsForUser(userId: string) {
   const supabase = await createClient();
   let result = await supabase
     .from("trips")
-    .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+    .select("id, user_id, title, location, creation_mode, cover_template, title_style, start_date, end_date, group_hunt_id, group_participant_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (isMissingCoverColumns(result.error)) {
     result = (await supabase
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })) as typeof result;
   }
@@ -193,7 +194,7 @@ export async function getTripBundle(tripId: string, userId: string) {
   const [tripResult, missionResult, photosResult] = await Promise.all([
     supabase
       .from("trips")
-      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, title_style, start_date, end_date, group_hunt_id, group_participant_id, created_at")
       .eq("id", tripId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -219,7 +220,7 @@ export async function getTripBundle(tripId: string, userId: string) {
   if (isMissingCoverColumns(tripError)) {
     const fallbackTripResult = (await supabase
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
       .eq("id", tripId)
       .eq("user_id", userId)
       .maybeSingle()) as typeof tripResult;
@@ -301,7 +302,7 @@ export async function getTripBundle(tripId: string, userId: string) {
     if (isMissingCoverColumns(adminTripError)) {
       const fallbackAdminTripResult = (await admin
         .from("trips")
-        .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, created_at")
+        .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, created_at")
         .eq("id", tripId)
         .eq("user_id", userId)
         .maybeSingle()) as typeof adminTripResult;
@@ -400,7 +401,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   const supabase = await createClient();
   let tripResult = await supabase
     .from("trips")
-    .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+    .select("id, user_id, title, location, creation_mode, cover_template, title_style, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
     .eq("share_id", shareId)
     .eq("is_public", true)
     .maybeSingle();
@@ -413,7 +414,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   if (isMissingCoverColumns(tripError)) {
     tripResult = (await supabase
       .from("trips")
-      .select("id, user_id, title, location, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
+      .select("id, user_id, title, location, creation_mode, cover_template, start_date, end_date, group_hunt_id, group_participant_id, share_id, is_public, created_at")
       .eq("share_id", shareId)
       .eq("is_public", true)
       .maybeSingle()) as typeof tripResult;
