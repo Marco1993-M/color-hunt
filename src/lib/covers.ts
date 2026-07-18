@@ -1,12 +1,12 @@
 import type { Mission, Trip } from "@/lib/types";
 
-export type CoverTemplateId = "june" | "july" | "august" | "usa";
+export type CoverTemplateId = "june" | "july" | "august" | "summer-2026" | "usa";
 
 export type CoverTemplate = {
   id: CoverTemplateId;
   label: string;
   description: string;
-  themeId: "post-june" | "post-july" | "post-august" | "post-usa";
+  themeId: "post-june" | "post-july" | "post-august" | "post-summer-2026" | "post-usa";
   overlaySrc: string;
   photoCount: number;
   slots: Array<{
@@ -53,6 +53,15 @@ export const coverTemplates: CoverTemplate[] = [
     slots: [...twoByTwoSlots],
   },
   {
+    id: "summer-2026",
+    label: "Summer 2026 cover",
+    description: "Four-frame summer cover",
+    themeId: "post-summer-2026",
+    overlaySrc: "/poster-template-story-summer_2026.png",
+    photoCount: 4,
+    slots: [...twoByTwoSlots],
+  },
+  {
     id: "usa",
     label: "USA cover",
     description: "Stars-and-stripes cover",
@@ -64,7 +73,7 @@ export const coverTemplates: CoverTemplate[] = [
 ];
 
 export function isCoverTemplateId(value: string | null | undefined): value is CoverTemplateId {
-  return value === "june" || value === "july" || value === "august" || value === "usa";
+  return value === "june" || value === "july" || value === "august" || value === "summer-2026" || value === "usa";
 }
 
 export function getCoverTemplate(templateId: string | null | undefined) {
@@ -143,6 +152,7 @@ export function inferCoverTemplateId({
     trip.cover_template === "june" ||
     trip.cover_template === "july" ||
     trip.cover_template === "august" ||
+    trip.cover_template === "summer-2026" ||
     trip.cover_template === "usa"
   ) {
     return trip.cover_template;
@@ -158,6 +168,10 @@ export function inferCoverTemplateId({
 
   if (location.includes("august") || prompt.includes("august") || colorName.includes("august")) {
     return "august" as const;
+  }
+
+  if (location.includes("summer 2026") || prompt.includes("summer 2026") || colorName.includes("summer 2026")) {
+    return "summer-2026" as const;
   }
 
   if (location.includes("june") || prompt.includes("june") || colorName.includes("june")) {
