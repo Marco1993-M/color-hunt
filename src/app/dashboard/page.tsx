@@ -3,7 +3,7 @@ import { EventOnView } from "@/components/analytics/event-on-view";
 import { PostAuthUpgradeResume } from "@/components/auth/post-auth-upgrade-resume";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { requireUser } from "@/lib/auth";
-import { getCoverTemplate } from "@/lib/covers";
+import { getCoverTemplate, inferCoverTemplateId, isCoverTripLike } from "@/lib/covers";
 import { ensureProfile, getGroupHuntsForUser, getTripDashboardSummaries, type DashboardTripSummary } from "@/lib/data";
 import { isAnonymousUser } from "@/lib/user-state";
 
@@ -21,12 +21,21 @@ type ContinueDestination =
     };
 
 function getTripHref(summary: DashboardTripSummary) {
+  if (isCoverSummary(summary)) {
+    const templateId = inferCoverTemplateId({ trip: summary.trip, mission: summary.mission });
+    return `/covers/${templateId}/new?draft=${summary.trip.id}`;
+  }
+
   return summary.isComplete ? `/trips/${summary.trip.id}/poster` : `/trips/${summary.trip.id}`;
 }
 
+function isCoverSummary(summary: DashboardTripSummary) {
+  return isCoverTripLike({ trip: summary.trip, mission: summary.mission });
+}
+
 function getTripModeLabel(summary: DashboardTripSummary) {
-  if (summary.trip.creation_mode === "cover") {
-    const templateLabel = getCoverTemplate(summary.trip.cover_template).label;
+  if (isCoverSummary(summary)) {
+    const templateLabel = getCoverTemplate(inferCoverTemplateId({ trip: summary.trip, mission: summary.mission })).label;
 
     return `Cover · ${templateLabel}`;
   }
@@ -39,11 +48,11 @@ function getTripStatusChip(summary: DashboardTripSummary) {
     return "Ready";
   }
 
-  return summary.trip.creation_mode === "cover" ? "In progress" : "Continue";
+  return isCoverSummary(summary) ? "In progress" : "Continue";
 }
 
 function getTripProgressCopy(summary: DashboardTripSummary) {
-  if (summary.trip.creation_mode === "cover") {
+  if (isCoverSummary(summary)) {
     return summary.isComplete
       ? `${summary.photoCount}/${summary.maxPhotos} photos ready for your cover`
       : `${summary.photoCount}/${summary.maxPhotos} photos placed`;
@@ -56,10 +65,10 @@ function getTripProgressCopy(summary: DashboardTripSummary) {
 
 function getTripActionLabel(summary: DashboardTripSummary) {
   if (summary.isComplete) {
-    return summary.trip.creation_mode === "cover" ? "Open cover" : "Open poster";
+    return isCoverSummary(summary) ? "Open cover" : "Open poster";
   }
 
-  return summary.trip.creation_mode === "cover" ? "Continue cover" : "Continue hunt";
+  return isCoverSummary(summary) ? "Continue cover" : "Continue hunt";
 }
 
 function getProgressPercent(summary: DashboardTripSummary) {
@@ -147,7 +156,7 @@ export default async function DashboardPage() {
             <Link className="button-primary w-full sm:w-auto" href="/trips/new">
               Start a hunt
             </Link>
-            <Link className="button-secondary w-full sm:w-auto" href="/covers/custom-title/new">
+            <Link className="button-secondary w-full sm:w-auto" href="/covers/new">
               Choose a template
             </Link>
             <SignOutButton isAnonymous={isGuest} />

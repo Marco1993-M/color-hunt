@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
 import { DeleteTripButton } from "@/components/trips/delete-trip-button";
@@ -32,6 +32,10 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const isGroupTrip = Boolean(trip.group_hunt_id);
   const isCoverTrip = isCoverTripLike({ trip, mission });
   const coverTemplate = getCoverTemplate(inferCoverTemplateId({ trip, mission }));
+
+  if (isCoverTrip) {
+    redirect(`/covers/${coverTemplate.id}/new?draft=${trip.id}`);
+  }
 
   return (
     <main className="app-shell page-frame">
@@ -84,7 +88,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
                   : mission.prompt}
               </p>
               <div className="mt-5 max-w-xl">
-                <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} compact />
+              <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} titleStyle={trip.title_style} compact />
               </div>
 
               {isGroupTrip ? (
@@ -148,6 +152,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
                 bucketName={getSupabaseEnv().storageBucket}
                 templateId={coverTemplate.id}
                 title={trip.title}
+                titleStyle={trip.title_style}
                 photos={photos}
                 maxPhotos={mission.max_photos}
               />
@@ -211,6 +216,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
                   templateId={coverTemplate.id}
                   photos={photos}
                   title={trip.title}
+                  titleStyle={trip.title_style}
                 />
                 <div className="rounded-[1.5rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.65)] p-4">
                   <p className="eyebrow">Build with intention</p>

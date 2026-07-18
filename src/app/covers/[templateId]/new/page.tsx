@@ -5,7 +5,7 @@ import { NewCoverBuilder } from "@/components/covers/new-cover-builder";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
-import { coverTemplates, isCoverTemplateId } from "@/lib/covers";
+import { coverTemplates, inferCoverTemplateId, isCoverTemplateId, isCoverTripLike } from "@/lib/covers";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseEnv } from "@/lib/env";
 import { getTripBundle } from "@/lib/data";
@@ -36,7 +36,11 @@ export default async function NewTemplateCoverPage({ params, searchParams }: New
   } = await supabase.auth.getUser();
   const isGuest = isAnonymousUser(user);
   const draftBundle = user && draft ? await getTripBundle(draft, user.id) : null;
-  const isMatchingDraft = draftBundle?.trip.creation_mode === "cover" && draftBundle.trip.cover_template === template.id;
+  const isMatchingDraft = Boolean(
+    draftBundle &&
+      isCoverTripLike({ trip: draftBundle.trip, mission: draftBundle.mission }) &&
+      inferCoverTemplateId({ trip: draftBundle.trip, mission: draftBundle.mission }) === template.id,
+  );
 
   return (
     <main className="app-shell page-frame">
@@ -49,7 +53,7 @@ export default async function NewTemplateCoverPage({ params, searchParams }: New
             templateId={template.id}
             userId={user.id}
             bucketName={getSupabaseEnv().storageBucket}
-            initialDraft={isMatchingDraft ? {
+            initialDraft={isMatchingDraft && draftBundle ? {
               tripId: draftBundle.trip.id,
               missionId: draftBundle.mission.id,
               title: draftBundle.trip.title,

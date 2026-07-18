@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { PosterPhotoPlacementEditor } from "@/components/trips/poster-photo-placement-editor";
 import { PosterSheet } from "@/components/trips/poster-sheet";
@@ -22,7 +22,7 @@ type PosterPageProps = {
 export default async function PosterPage({ params }: PosterPageProps) {
   const { id } = await params;
   const { user } = await requireUser();
-  const [bundle, shareState] = await Promise.all([getTripBundle(id, user.id), getTripShareState(id, user.id)]);
+  const bundle = await getTripBundle(id, user.id);
   const isGuest = isAnonymousUser(user);
 
   if (!bundle) {
@@ -33,6 +33,12 @@ export default async function PosterPage({ params }: PosterPageProps) {
   const isCoverTrip = isCoverTripLike({ trip, mission });
   const coverTemplateId = inferCoverTemplateId({ trip, mission });
   const coverTemplate = getCoverTemplate(coverTemplateId);
+
+  if (isCoverTrip) {
+    redirect(`/covers/${coverTemplate.id}/new?draft=${trip.id}`);
+  }
+
+  const shareState = await getTripShareState(id, user.id);
   const coverThemeId = getCoverThemeId(coverTemplateId);
   const isComplete = isPosterComplete(photos, mission.max_photos);
   const [postExport, storyExport, squareExport] = isComplete
@@ -102,9 +108,9 @@ export default async function PosterPage({ params }: PosterPageProps) {
           </div>
         ) : null}
 
-        {!isCoverTrip ? (
+        {!isCoverTrip || coverTemplate.isCustomTitle ? (
           <div className="mb-6 max-w-2xl">
-            <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} compact />
+            <EditTripTitleForm tripId={trip.id} currentTitle={trip.title} location={trip.location} titleStyle={trip.title_style} showCustomFont={coverTemplate.isCustomTitle} compact />
           </div>
         ) : null}
 
@@ -114,6 +120,7 @@ export default async function PosterPage({ params }: PosterPageProps) {
             templateId={coverTemplate.id}
             photos={buildPosterFrameSlots(photos, mission.max_photos)}
             title={posterTitle}
+            titleStyle={trip.title_style}
           />
         ) : (
           <>

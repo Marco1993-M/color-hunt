@@ -358,7 +358,7 @@ export async function createCoverAction(formData: FormData) {
     eventName: "cover_template_started",
     tripId: trip.id,
     userId: user.id,
-    path: `/trips/${trip.id}`,
+    path: `/covers/${template.id}/new`,
     sessionId: analytics.sessionId,
     journeyId: analytics.journeyId,
     metadata: {
@@ -369,10 +369,10 @@ export async function createCoverAction(formData: FormData) {
   });
 
   await trackServerEvent({
-    eventName: "trip_created",
+    eventName: "cover_created",
     tripId: trip.id,
     userId: user.id,
-    path: `/trips/${trip.id}`,
+    path: `/covers/${template.id}/new`,
     sessionId: analytics.sessionId,
     journeyId: analytics.journeyId,
     metadata: {

@@ -408,17 +408,17 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
           <TrackedLink
             className="header-utility-link"
-            href={user ? "/dashboard" : "/covers/new"}
+            href="/covers/new"
             eventName="landing_cta_clicked"
             metadata={{
               challengeColorName,
-              destination: user ? "/dashboard" : "/covers/new",
+              destination: "/covers/new",
               isAuthenticated: Boolean(user),
               isChallengeFlow,
               source: "landing_header",
             }}
           >
-            {user ? (isGuest ? "Resume your guest hunt" : "Go to dashboard") : "Make a cover"}
+            Make a cover
           </TrackedLink>
         </header>
 
