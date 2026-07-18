@@ -50,6 +50,7 @@ export function CoverSlotBuilder({
   const pendingSlotRef = useRef<number | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
+  const batchInputRef = useRef<HTMLInputElement | null>(null);
   const slotPhotoMap = useMemo(() => {
     const slots = Array.from({ length: maxPhotos }, () => null as Photo | null);
 
@@ -237,6 +238,113 @@ export function CoverSlotBuilder({
     });
   }
 
+  function handleBatchFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []).filter((candidate) => acceptedFileTypes.includes(candidate.type));
+    event.target.value = "";
+
+    const emptySlots = slotPhotoMap
+      .map((photo, index) => (photo ? null : index))
+      .filter((index): index is number => index !== null);
+    const queuedFiles = files.slice(0, emptySlots.length);
+
+    if (queuedFiles.length === 0) {
+      setError(emptySlots.length === 0 ? "All four photos are already in place." : "Choose JPG, PNG, or WebP images first.");
+      return;
+    }
+
+    setError(null);
+    setStatus(`Adding ${queuedFiles.length} photo${queuedFiles.length === 1 ? "" : "s"}...`);
+
+    startTransition(async () => {
+      try {
+        const supabase = createClient();
+
+        for (const [queueIndex, file] of queuedFiles.entries()) {
+          const targetSlot = emptySlots[queueIndex];
+          const photoId = crypto.randomUUID();
+          const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
+          const compressed = await imageCompression(file, {
+            maxSizeMB: 0.55,
+            maxWidthOrHeight: 1600,
+            useWebWorker: true,
+            fileType: "image/webp",
+            initialQuality: 0.82,
+          });
+          const uploadFile = new File([compressed], `${photoId}.webp`, { type: "image/webp" });
+          const { error: uploadError } = await supabase.storage.from(bucketName).upload(storagePath, uploadFile, {
+            cacheControl: "3600",
+            contentType: "image/webp",
+          });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
+          const { error: insertError } = await supabase.from("photos").insert({
+            id: photoId,
+            trip_id: tripId,
+            mission_id: missionId,
+            user_id: userId,
+            image_url: publicUrl,
+            storage_path: storagePath,
+            sort_order: targetSlot,
+            caption: null,
+            dominant_color: null,
+            color_match_score: null,
+          });
+
+          let finalInsertError = insertError as SupabaseErrorLike | null;
+
+          if (isMissingSortOrderColumn(finalInsertError)) {
+            const fallbackInsert = await supabase.from("photos").insert({
+              id: photoId,
+              trip_id: tripId,
+              mission_id: missionId,
+              user_id: userId,
+              image_url: publicUrl,
+              storage_path: storagePath,
+              caption: null,
+              dominant_color: null,
+              color_match_score: null,
+            });
+
+            finalInsertError = fallbackInsert.error as SupabaseErrorLike | null;
+          }
+
+          if (finalInsertError) {
+            throw finalInsertError;
+          }
+
+          trackEvent({
+            eventName: "cover_slot_filled",
+            tripId,
+            metadata: {
+              templateId,
+              slotIndex: targetSlot,
+              source: "library_batch",
+              filledSlotsAfterUpload: filledSlots + queueIndex + 1,
+            },
+          });
+        }
+
+        trackEvent({
+          eventName: "cover_batch_uploaded",
+          tripId,
+          metadata: { templateId, photoCount: queuedFiles.length },
+        });
+        setSelectedSlot(Math.min(emptySlots[queuedFiles.length] ?? 0, maxPhotos - 1));
+        setStatus(`${queuedFiles.length} photo${queuedFiles.length === 1 ? "" : "s"} added. Adjust any crop that needs it.`);
+        router.refresh();
+      } catch (uploadFailure) {
+        setStatus(null);
+        setError(uploadFailure instanceof Error ? uploadFailure.message : "Unable to add those photos right now.");
+      }
+    });
+  }
+
   function handleDelete() {
     if (!selectedPhoto) {
       return;
@@ -285,15 +393,37 @@ export function CoverSlotBuilder({
       <div className="glass-panel rounded-[2rem] p-6 sm:p-7">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="eyebrow">Fill the template</p>
-            <h3 className="panel-title mt-2 text-2xl font-semibold">Tap the exact spot you want to fill.</h3>
+            <p className="eyebrow">Build your cover</p>
+            <h3 className="panel-title mt-2 text-2xl font-semibold">Start with all four photos. Fine-tune only if you want to.</h3>
           </div>
           <p className="text-sm text-[var(--muted)]">{filledSlots}/{maxPhotos} photos added</p>
         </div>
 
         <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
-          This cover works differently from the hunt flow. Choose the slot first, then add the photo that belongs there.
+          Pick up to four photos and we will place them in order. Tap any square afterwards to replace, reposition, or refine it.
         </p>
+
+        <input
+          ref={batchInputRef}
+          className="sr-only"
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          multiple
+          onChange={handleBatchFileSelection}
+          disabled={isPending || filledSlots === maxPhotos}
+          tabIndex={-1}
+        />
+        <button
+          className="button-primary mt-5 w-full sm:w-auto"
+          type="button"
+          disabled={isPending || filledSlots === maxPhotos}
+          onClick={() => {
+            trackEvent({ eventName: "cover_batch_picker_opened", tripId, metadata: { templateId, filledSlots } });
+            batchInputRef.current?.click();
+          }}
+        >
+          {filledSlots === maxPhotos ? "All four photos are in" : `Choose ${maxPhotos - filledSlots} photo${maxPhotos - filledSlots === 1 ? "" : "s"}`}
+        </button>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)]">
           <div className="cover-template-stage">
@@ -339,7 +469,7 @@ export function CoverSlotBuilder({
                         onClick={() => openPreferredPicker(index, hasPhoto)}
                       >
                         <span className="cover-template-slot-pill">
-                          {hasPhoto ? `Slot ${index + 1}` : `+ Slot ${index + 1}`}
+                          {hasPhoto ? `Edit ${index + 1}` : `+ Add ${index + 1}`}
                         </span>
                       </button>
                     );
@@ -351,12 +481,12 @@ export function CoverSlotBuilder({
 
           <div className="cover-template-actions">
             <div className="rounded-[1.6rem] border border-[rgba(53,37,30,0.08)] bg-[rgba(255,255,255,0.7)] p-5">
-              <p className="eyebrow">Selected slot</p>
+              <p className="eyebrow">Fine-tune a photo</p>
               <h4 className="panel-title mt-2 text-2xl font-semibold">Photo {selectedSlot + 1}</h4>
               <p className="body-copy mt-2 text-sm">
                 {selectedPhoto
-                  ? "This position is filled. Replace it or remove it if you want to change the sequence."
-                  : "This spot is still empty. Add the photo that belongs here next."}
+                  ? "This position is filled. Replace or remove it if this one does not tell the story correctly."
+                  : "This spot is still empty. Add the photo that belongs here."}
               </p>
 
               <div className="mt-5 flex flex-col gap-3">
