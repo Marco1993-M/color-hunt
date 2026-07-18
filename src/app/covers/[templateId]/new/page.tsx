@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createCoverAction } from "@/app/actions";
 import { NewCoverBuilder } from "@/components/covers/new-cover-builder";
-import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
@@ -45,25 +44,20 @@ export default async function NewTemplateCoverPage({ params, searchParams }: New
       <EventOnView eventName={user ? "cover_template_selected" : "cover_template_auth_gate_viewed"} metadata={{ templateId, isAuthenticated: Boolean(user), isAnonymous: isGuest }} />
       <div className="mx-auto max-w-5xl">
         {user ? (
-          isMatchingDraft ? (
-            <div className="mx-auto max-w-4xl">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <Link href="/covers/new" className="text-sm text-[var(--muted)]">← Change template</Link>
-                <p className="eyebrow">{template.label}</p>
-              </div>
-              <CoverSlotBuilder
-                tripId={draftBundle.trip.id}
-                missionId={draftBundle.mission.id}
-                userId={user.id}
-                bucketName={getSupabaseEnv().storageBucket}
-                templateId={template.id}
-                title={draftBundle.trip.title}
-                titleStyle={draftBundle.trip.title_style}
-                photos={draftBundle.photos}
-                maxPhotos={draftBundle.mission.max_photos}
-              />
-            </div>
-          ) : <NewCoverBuilder createAction={createCoverAction} templateId={template.id} />
+          <NewCoverBuilder
+            createAction={createCoverAction}
+            templateId={template.id}
+            userId={user.id}
+            bucketName={getSupabaseEnv().storageBucket}
+            initialDraft={isMatchingDraft ? {
+              tripId: draftBundle.trip.id,
+              missionId: draftBundle.mission.id,
+              title: draftBundle.trip.title,
+              titleStyle: draftBundle.trip.title_style,
+              photos: draftBundle.photos,
+              maxPhotos: draftBundle.mission.max_photos,
+            } : null}
+          />
         ) : (
           <>
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
