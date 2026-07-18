@@ -55,11 +55,11 @@ export function NewCoverBuilder({ createAction, templateId }: NewCoverBuilderPro
                 className="field-input"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder={titleLayout === "purple-stacked" ? "Cape" : "Summer days"}
+                placeholder={titleLayout === "purple-stacked" ? "Cape Town" : "Summer sun"}
                 maxLength={titleLayout === "purple-stacked" ? maxCustomCoverTitleLineLength : maxCustomCoverTitleLength}
                 required
               />
-              {titleLayout === "purple-stacked" ? <input name="title_line_two" className="field-input mt-3" value={secondTitleLine} onChange={(event) => setSecondTitleLine(event.target.value)} placeholder="Town" maxLength={maxCustomCoverTitleLineLength} required /> : null}
+              {titleLayout === "purple-stacked" ? <input name="title_line_two" className="field-input mt-3" value={secondTitleLine} onChange={(event) => setSecondTitleLine(event.target.value)} placeholder="Weekend" maxLength={maxCustomCoverTitleLineLength} required /> : null}
               <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{titleLayout === "purple-stacked" ? `Up to ${maxCustomCoverTitleLineLength} characters per line.` : `Up to ${maxCustomCoverTitleLength} characters, including spaces.`} The title stays centred in the canvas.</p>
             </div>
           ) : null}
