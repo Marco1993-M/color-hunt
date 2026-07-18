@@ -5,12 +5,13 @@ import { getPosterPhotoPlacement } from "@/lib/poster";
 import type { Photo } from "@/lib/types";
 
 type CoverPosterPreviewProps = {
+  id?: string;
   templateId: string | null | undefined;
   photos: Array<Photo | null>;
   title?: string | null;
 };
 
-export function CoverPosterPreview({ templateId, photos, title = null }: CoverPosterPreviewProps) {
+export function CoverPosterPreview({ id, templateId, photos, title = null }: CoverPosterPreviewProps) {
   const template = getCoverTemplate(templateId);
   const previewPhotos = Array.from({ length: template.photoCount }, (_, index) => {
     const directPhoto = photos[index] ?? null;
@@ -20,7 +21,7 @@ export function CoverPosterPreview({ templateId, photos, title = null }: CoverPo
   void title;
 
   return (
-    <div className="cover-preview-shell">
+    <div id={id} className="cover-preview-shell">
       <div className="cover-preview-grid">
         {previewPhotos.map((photo, index) => (
           <div key={`cover-photo-${index}`} className="cover-preview-cell">

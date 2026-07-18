@@ -9,6 +9,7 @@ import { getRetentionSummaryLabel } from "@/lib/retention";
 import { ShareLinkButton } from "@/components/trips/share-link-button";
 import { SaveImageButton, type PosterCaptureData } from "@/components/trips/save-image-button";
 import { createClient } from "@/lib/supabase/client";
+import type { PosterThemeId } from "@/lib/poster-client-export";
 import type { PosterExport } from "@/lib/types";
 
 type SharePosterPanelProps = {
@@ -25,6 +26,9 @@ type SharePosterPanelProps = {
   missionColorName: string;
   exportUrls?: Partial<Record<PosterExport["format"], string>>;
   posterData?: PosterCaptureData | null;
+  posterTheme?: PosterThemeId;
+  layoutSourceId?: string;
+  isCover?: boolean;
 };
 
 type SupabaseErrorLike = {
@@ -50,6 +54,9 @@ export function SharePosterPanel({
   missionColorName,
   exportUrls,
   posterData,
+  posterTheme = "classic",
+  layoutSourceId = "trip-poster-sheet",
+  isCover = false,
 }: SharePosterPanelProps) {
   const [shareId, setShareId] = useState(initialShareId);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -64,8 +71,14 @@ export function SharePosterPanel({
     photoCount: currentPhotoCount,
     maxPhotos,
   });
+  const socialCaption = isCover
+    ? `${tripTitle}. Four photos, one cover. Made with Color Hunt.`
+    : `One place. One color. Nine moments. ${location}. Made with Color Hunt.`;
 
   async function warmPosterExports() {
+    if (isCover) {
+      return;
+    }
     async function generateFormats(formats: ("post" | "story" | "square")[]) {
       const response = await fetch("/api/poster-exports/generate", {
         method: "POST",
@@ -242,14 +255,34 @@ export function SharePosterPanel({
     }
   }
 
+  async function handleCopyCaption() {
+    try {
+      await navigator.clipboard.writeText(socialCaption);
+      trackEvent({
+        eventName: "social_caption_copied",
+        tripId,
+        shareId,
+        metadata: { creationMode: isCover ? "cover" : "hunt" },
+      });
+      setError(null);
+      setMessage("Caption copied. Paste it wherever you post.");
+    } catch {
+      setError("Could not copy the caption automatically.");
+    }
+  }
+
   return (
     <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="eyebrow">Poster actions</p>
-          <h3 className="panel-title mt-2 text-2xl font-semibold">Take the poster with you first.</h3>
+          <h3 className="panel-title mt-2 text-2xl font-semibold">
+            {isCover ? "Take the cover with you first." : "Take the poster with you first."}
+          </h3>
           <p className="body-copy mt-3 max-w-2xl text-sm sm:text-base">
-            Save it fast, share it naturally, and only think about the public link if you actually want to send people back into Color Hunt.
+            {isCover
+              ? "Save it fast, share it naturally, and publish a clean public page when you want someone else to make their own."
+              : "Save it fast, share it naturally, and only think about the public link if you actually want to send people back into Color Hunt."}
           </p>
         </div>
       </div>
@@ -262,18 +295,24 @@ export function SharePosterPanel({
         <div className="mt-5 rounded-[1.4rem] border border-[rgba(53,37,30,0.1)] bg-[rgba(255,255,255,0.55)] p-4">
           <p className="eyebrow">Save and share</p>
           <p className="body-copy mt-2 text-sm">
-            The poster is ready. Save it, send it through your phone's share sheet, or export a different format while the moment still feels fresh.
+            {isCover
+              ? "Your cover is ready. Save it or send it directly through your phone's share sheet while the moment still feels fresh."
+              : "The poster is ready. Save it, send it through your phone's share sheet, or export a different format while the moment still feels fresh."}
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <SaveImageButton
               tripId={tripId}
               shareId={shareId}
               posterData={posterData}
-              layoutSourceId="trip-poster-sheet"
+              layoutSourceId={layoutSourceId}
               fileUrl={exportUrls?.post}
               fileName={`${location.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "color-hunt"}-post-4x5.png`}
-              buttonLabel="Save poster"
+              buttonLabel={isCover ? "Save & share cover" : "Save poster"}
+              themeId={posterTheme}
             />
+            <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyCaption}>
+              Copy caption
+            </button>
             {isPublic && shareUrl ? (
               <>
                 <ShareLinkButton
@@ -281,10 +320,10 @@ export function SharePosterPanel({
                   shareId={shareId}
                   url={shareUrl}
                   title={`Color Hunt · ${location}`}
-                  text={`One place. One color. Nine moments. ${location}`}
+                  text={isCover ? `Made a cover for ${tripTitle} with Color Hunt.` : `One place. One color. Nine moments. ${location}`}
                   fileUrl={exportUrls?.post ?? null}
-                  buttonLabel="Share poster"
-                  buttonDescription="Send the finished poster from your phone's native share sheet"
+                  buttonLabel={isCover ? "Share cover page" : "Share poster"}
+                  buttonDescription={isCover ? "Send the finished cover page from your phone's native share sheet" : "Send the finished poster from your phone's native share sheet"}
                 />
                 <button className="button-secondary w-full sm:w-auto" type="button" onClick={handleCopyLink}>
                   Copy poster link
@@ -293,18 +332,20 @@ export function SharePosterPanel({
             ) : null}
           </div>
 
-          <div className="mt-5">
-            <DownloadPosterButton
-              shareId={shareId!}
-              exportUrls={exportUrls}
-              posterData={posterData}
-              buttonLabel="More formats"
-            />
-          </div>
+          {!isCover ? (
+            <div className="mt-5">
+              <DownloadPosterButton
+                shareId={shareId!}
+                exportUrls={exportUrls}
+                posterData={posterData}
+                buttonLabel="More formats"
+              />
+            </div>
+          ) : null}
 
           {!isPublic ? (
             <p className="body-copy mt-4 text-xs sm:text-sm">
-              Want a shareable link too? Publish the poster below and Color Hunt will give it a clean public page.
+              Want a shareable link too? Publish {isCover ? "the cover" : "the poster"} below and Color Hunt will give it a clean public page.
             </p>
           ) : null}
         </div>
@@ -316,8 +357,8 @@ export function SharePosterPanel({
             <p className="eyebrow">Public sharing</p>
             <p className="body-copy mt-2 text-sm">
               {isPublic
-                ? "Your poster already has a public Color Hunt page."
-                : "Publish the poster when you want a clean public page and a link you can send around."}
+                ? `Your ${isCover ? "cover" : "poster"} already has a public Color Hunt page.`
+                : `Publish the ${isCover ? "cover" : "poster"} when you want a clean public page and a link you can send around.`}
             </p>
           </div>
           <button
@@ -326,7 +367,7 @@ export function SharePosterPanel({
             onClick={() => handleToggle(!isPublic)}
             disabled={isPending || !schemaReady || !isComplete}
           >
-            {isPending ? "Saving..." : isPublic ? "Turn sharing off" : "Publish poster"}
+            {isPending ? "Saving..." : isPublic ? "Turn sharing off" : isCover ? "Publish cover" : "Publish poster"}
           </button>
         </div>
 
@@ -353,13 +394,13 @@ export function SharePosterPanel({
                 })
               }
             >
-              View public poster
+              View public {isCover ? "cover" : "poster"}
             </a>
           </>
         ) : null}
       </div>
 
-      {isPublic && shareUrl ? (
+      {isPublic && shareUrl && !isCover ? (
         <div className="mt-5 rounded-[1.3rem] border border-[rgba(53,37,30,0.08)] bg-white/55 p-4">
           <p className="eyebrow">Challenge a friend</p>
           <p className="body-copy mt-2 text-sm">
