@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/admin-supabase";
-import { getCoverTemplate } from "@/lib/covers";
+import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength } from "@/lib/covers";
 import { ensureProfile, getGroupParticipantByInviteToken } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { getMissionByColorName, getRandomMission } from "@/lib/missions";
@@ -286,10 +286,17 @@ export async function createCoverAction(formData: FormData) {
   const analytics = getAnalyticsContext(formData);
   const templateId = String(formData.get("cover_template") || "").trim();
   const submittedTitle = String(formData.get("title") || "").trim();
+  const submittedSecondLine = String(formData.get("title_line_two") || "").trim();
+  const requestedTitleStyle = String(formData.get("title_style") || "default");
   const requestedPhotoCount = Number(formData.get("image_count") || 4);
   const template = getCoverTemplate(templateId);
   const photoCount = requestedPhotoCount === 6 ? 6 : 4;
-  const title = submittedTitle || template.label;
+  const titleStyle = template.isCustomTitle && requestedTitleStyle === "purple-stacked" ? "purple-stacked" : template.isCustomTitle ? "purple" : "default";
+  const title = template.isCustomTitle
+    ? titleStyle === "purple-stacked"
+      ? `${(submittedTitle || "YOUR").slice(0, maxCustomCoverTitleLineLength)}\n${(submittedSecondLine || "TITLE").slice(0, maxCustomCoverTitleLineLength)}`
+      : (submittedTitle || "YOUR TITLE").slice(0, maxCustomCoverTitleLength)
+    : template.label;
   const location = template.label;
 
   const user = await requireAuthenticatedUser();
@@ -303,6 +310,7 @@ export async function createCoverAction(formData: FormData) {
       location,
       creation_mode: "cover",
       cover_template: template.id,
+      title_style: titleStyle,
       start_date: null,
       end_date: null,
     })
@@ -587,7 +595,16 @@ export async function signOutAction() {
 export async function updateTripTitleAction(formData: FormData) {
   const analytics = getAnalyticsContext(formData);
   const tripId = String(formData.get("trip_id") || "").trim();
-  const nextTitle = String(formData.get("title") || "").trim();
+  let nextTitle = String(formData.get("title") || "").trim();
+  const requestedTitleStyle = String(formData.get("title_style") || "default");
+  const titleStyle = requestedTitleStyle === "purple-stacked" ? "purple-stacked" : requestedTitleStyle === "purple" ? "purple" : "default";
+  const submittedSecondLine = String(formData.get("title_line_two") || "").trim();
+
+  if (titleStyle === "purple") {
+    nextTitle = nextTitle.slice(0, maxCustomCoverTitleLength);
+  } else if (titleStyle === "purple-stacked") {
+    nextTitle = `${nextTitle.slice(0, maxCustomCoverTitleLineLength)}\n${submittedSecondLine.slice(0, maxCustomCoverTitleLineLength)}`;
+  }
 
   if (!tripId) {
     throw new Error("Trip ID is required.");
@@ -600,15 +617,29 @@ export async function updateTripTitleAction(formData: FormData) {
   const user = await requireAuthenticatedUser();
   const supabase = await createClient();
 
-  const { data: trip, error: tripError } = await supabase
+  let { data: trip, error: tripError } = await supabase
     .from("trips")
     .update({
       title: nextTitle,
+      title_style: titleStyle,
     })
     .eq("id", tripId)
     .eq("user_id", user.id)
     .select("id, title, location, share_id")
     .single();
+
+  // Existing projects can save a title before the title-style migration is applied.
+  if (isUnsupportedCoverMetadata(tripError)) {
+    const fallback = await supabase
+      .from("trips")
+      .update({ title: nextTitle })
+      .eq("id", tripId)
+      .eq("user_id", user.id)
+      .select("id, title, location, share_id")
+      .single();
+    trip = fallback.data;
+    tripError = fallback.error;
+  }
 
   if (tripError || !trip) {
     throw tripError ?? new Error("Unable to update the poster title.");
@@ -625,6 +656,7 @@ export async function updateTripTitleAction(formData: FormData) {
       location: trip.location,
       shareId: trip.share_id ?? null,
       title: trip.title,
+      titleStyle,
     },
   });
 
