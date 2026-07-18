@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createCoverAction } from "@/app/actions";
-import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
+import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { createClient } from "@/lib/supabase/server";
 import { coverTemplates } from "@/lib/covers";
 import { isAnonymousUser } from "@/lib/user-state";
@@ -15,7 +14,6 @@ export default async function CoverTemplateLibraryPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const isGuest = isAnonymousUser(user);
-  const canStartTemplateDirectly = Boolean(user);
 
   return (
     <main className="app-shell page-frame">
@@ -55,38 +53,33 @@ export default async function CoverTemplateLibraryPage() {
               className="cover-library-card playful-card rounded-[2rem] p-5 sm:p-6"
             >
               <div className="cover-library-thumb">
-                <Image
-                  src={template.overlaySrc!}
-                  alt=""
-                  fill
-                  className="cover-library-thumb-image"
-                  sizes="(min-width: 1024px) 12rem, 40vw"
-                />
+                {template.overlaySrc ? (
+                  <Image
+                    src={template.overlaySrc}
+                    alt=""
+                    fill
+                    className="cover-library-thumb-image"
+                    sizes="(min-width: 1024px) 12rem, 40vw"
+                  />
+                ) : (
+                  <CoverPosterPreview
+                    templateId={template.id}
+                    photos={Array.from({ length: template.photoCount }, () => null)}
+                    title="YOUR TITLE"
+                    titleStyle="purple"
+                  />
+                )}
               </div>
 
               <div className="cover-library-card-copy mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="cover-library-card-text">
-                  <p className="eyebrow">4 or 6 photos · ready to post</p>
+                  <p className="eyebrow">{template.isCustomTitle ? "Custom text · 4 or 6 photos" : "4 or 6 photos · ready to post"}</p>
                   <h2 className="panel-title mt-2 text-2xl font-semibold">{template.label}</h2>
                   <p className="body-copy mt-2 text-sm sm:text-base">{template.description}</p>
                 </div>
-                {canStartTemplateDirectly ? (
-                  <form action={createCoverAction} className="cover-library-card-action w-full sm:w-auto">
-                    <AnalyticsHiddenFields />
-                    <input type="hidden" name="cover_template" value={template.id} />
-                    <input type="hidden" name="title" value={template.label} />
-                    <button className="button-primary w-full sm:w-auto" type="submit">
-                      Make this cover
-                    </button>
-                    <p className="micro-copy mt-2 text-center text-[rgba(67,58,97,0.62)] sm:text-left">
-                      Add your photos next.
-                    </p>
-                  </form>
-                ) : (
-                  <Link className="button-primary w-full sm:w-auto" href="#template-auth">
-                    Start making
-                  </Link>
-                )}
+                <Link className="button-primary w-full sm:w-auto" href={`/covers/${template.id}/new`}>
+                  Choose this template
+                </Link>
               </div>
             </article>
           ))}

@@ -338,16 +338,20 @@ export async function createCoverAction(formData: FormData) {
     throw tripError ?? new Error("Unable to create cover.");
   }
 
-  const { error: missionError } = await writableClient.from("missions").insert({
-    trip_id: trip.id,
-    color_name: template.label,
-    color_hex: "#2d224a",
-    prompt: `Add ${photoCount} photos for the ${template.label.toLowerCase()}.`,
-    max_photos: photoCount,
-  });
+  const { data: mission, error: missionError } = await writableClient
+    .from("missions")
+    .insert({
+      trip_id: trip.id,
+      color_name: template.label,
+      color_hex: "#2d224a",
+      prompt: `Add ${photoCount} photos for the ${template.label.toLowerCase()}.`,
+      max_photos: photoCount,
+    })
+    .select("id")
+    .single();
 
-  if (missionError) {
-    throw missionError;
+  if (missionError || !mission) {
+    throw missionError ?? new Error("Unable to prepare the cover photos.");
   }
 
   await trackServerEvent({
@@ -381,7 +385,7 @@ export async function createCoverAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
-  redirect(`/trips/${trip.id}`);
+  return { tripId: trip.id, missionId: mission.id };
 }
 
 export async function createGroupHuntAction(formData: FormData) {
