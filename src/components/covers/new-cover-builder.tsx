@@ -212,7 +212,6 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
               tripId={draft.tripId}
               buttonLabel="Save & share cover"
               className="button-primary mt-5 w-full"
-              showHint={false}
             />
           ) : <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p> : (
             <button
