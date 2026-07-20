@@ -26,7 +26,7 @@ function getTripHref(summary: DashboardTripSummary) {
     return `/covers/${templateId}/new?draft=${summary.trip.id}`;
   }
 
-  return summary.isComplete ? `/trips/${summary.trip.id}/poster` : `/trips/${summary.trip.id}`;
+  return `/trips/new?draft=${summary.trip.id}`;
 }
 
 function isCoverSummary(summary: DashboardTripSummary) {

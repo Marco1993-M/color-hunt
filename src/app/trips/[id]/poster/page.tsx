@@ -38,6 +38,10 @@ export default async function PosterPage({ params }: PosterPageProps) {
     redirect(`/covers/${coverTemplate.id}/new?draft=${trip.id}`);
   }
 
+  if (!trip.group_hunt_id) {
+    redirect(`/trips/new?draft=${trip.id}`);
+  }
+
   const shareState = await getTripShareState(id, user.id);
   const coverThemeId = getCoverThemeId(coverTemplateId);
   const isComplete = isPosterComplete(photos, mission.max_photos);

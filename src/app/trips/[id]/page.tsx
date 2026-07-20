@@ -37,6 +37,10 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
     redirect(`/covers/${coverTemplate.id}/new?draft=${trip.id}`);
   }
 
+  if (!isGroupTrip) {
+    redirect(`/trips/new?draft=${trip.id}`);
+  }
+
   return (
     <main className="app-shell page-frame">
       <EventOnView

@@ -282,6 +282,58 @@ export async function createTripAction(formData: FormData) {
   redirect(`/trips/${trip.id}`);
 }
 
+export async function createQuickHuntAction(formData: FormData) {
+  const analytics = getAnalyticsContext(formData);
+  const selectedColor = String(formData.get("color_name") || "random").trim();
+  const requestedTitle = String(formData.get("title") || "").trim();
+  const requestedLocation = String(formData.get("location") || "").trim();
+  const mission = selectedColor === "random" ? getRandomMission() : getMissionByColorName(selectedColor);
+  const title = requestedTitle || `${mission.color_name} Hunt`;
+  const location = requestedLocation || "Everywhere";
+  const user = await requireAuthenticatedUser();
+  const writableClient = await createWritableTripClient();
+
+  const { data: trip, error: tripError } = await writableClient
+    .from("trips")
+    .insert({ user_id: user.id, title, location, start_date: null, end_date: null })
+    .select("id")
+    .single();
+
+  if (tripError || !trip) {
+    throw tripError ?? new Error("Unable to start this hunt.");
+  }
+
+  const { data: createdMission, error: missionError } = await writableClient
+    .from("missions")
+    .insert({
+      trip_id: trip.id,
+      color_name: mission.color_name,
+      color_hex: mission.color_hex,
+      prompt: mission.prompt,
+      max_photos: 9,
+    })
+    .select("id")
+    .single();
+
+  if (missionError || !createdMission) {
+    await writableClient.from("trips").delete().eq("id", trip.id).eq("user_id", user.id);
+    throw missionError ?? new Error("Unable to prepare your photo slots.");
+  }
+
+  await trackServerEvent({
+    eventName: "hunt_created",
+    tripId: trip.id,
+    userId: user.id,
+    path: "/trips/new",
+    sessionId: analytics.sessionId,
+    journeyId: analytics.journeyId,
+    metadata: { selectedColor, assignedColor: mission.color_name, maxPhotos: 9, creationMode: "hunt" },
+  });
+
+  revalidatePath("/dashboard");
+  return { tripId: trip.id, missionId: createdMission.id, title, location, mission };
+}
+
 export async function createCoverAction(formData: FormData) {
   const analytics = getAnalyticsContext(formData);
   const templateId = String(formData.get("cover_template") || "").trim();

@@ -473,11 +473,11 @@ export default async function Home({ searchParams }: HomeProps) {
             <p className="landing-studio-note">Four or six photos · One finished cover · Ready to share</p>
             <TrackedLink
               className="landing-studio-hunt-link"
-              href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+              href={user ? (isChallengeFlow ? challengeNextPath : "/trips/new") : "#start"}
               eventName="landing_cta_clicked"
               metadata={{
                 challengeColorName,
-                destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
+                destination: user ? (isChallengeFlow ? challengeNextPath : "/trips/new") : "#start",
                 isAuthenticated: Boolean(user),
                 isChallengeFlow,
                 source: "landing_studio_hunt",
