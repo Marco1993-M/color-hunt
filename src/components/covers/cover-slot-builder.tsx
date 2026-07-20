@@ -34,6 +34,7 @@ type CoverSlotBuilderProps = {
   maxPhotos: number;
   inline?: boolean;
   previewId?: string;
+  variant?: "cover" | "hunt";
 };
 
 const acceptedFileTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -50,6 +51,7 @@ export function CoverSlotBuilder({
   maxPhotos,
   inline = false,
   previewId,
+  variant = "cover",
 }: CoverSlotBuilderProps) {
   const router = useRouter();
   const [selectedSlot, setSelectedSlot] = useState(0);
@@ -78,8 +80,17 @@ export function CoverSlotBuilder({
   }, [maxPhotos, photos]);
   const selectedPhoto = slotPhotoMap[selectedSlot];
   const filledSlots = slotPhotoMap.filter(Boolean).length;
+  const isHunt = variant === "hunt";
   const template = getCoverTemplate(templateId);
-  const templateSlots = getCoverTemplateSlots(templateId, maxPhotos);
+  const gridColumns = isHunt ? 3 : getCoverGridColumns(maxPhotos);
+  const templateSlots = isHunt
+    ? Array.from({ length: maxPhotos }, (_, index) => ({
+        left: (index % 3) / 3,
+        top: Math.floor(index / 3) / Math.ceil(maxPhotos / 3),
+        width: 1 / 3,
+        height: 1 / Math.ceil(maxPhotos / 3),
+      }))
+    : getCoverTemplateSlots(templateId, maxPhotos);
   const cropPhoto = cropSlot === null ? null : slotPhotoMap[cropSlot];
 
   function openCropEditor(index: number) {
@@ -246,10 +257,10 @@ export function CoverSlotBuilder({
         }
 
         trackEvent({
-          eventName: "cover_slot_filled",
+          eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled",
           tripId,
           metadata: {
-            templateId,
+            templateId: isHunt ? null : templateId,
             slotIndex: targetSlot,
             source,
             filledSlotsAfterUpload: Math.min(filledSlots + (existingPhoto ? 0 : 1), maxPhotos),
@@ -365,9 +376,9 @@ export function CoverSlotBuilder({
         }
 
         trackEvent({
-          eventName: "cover_batch_uploaded",
+          eventName: isHunt ? "hunt_batch_uploaded" : "cover_batch_uploaded",
           tripId,
-          metadata: { templateId, photoCount: queuedFiles.length },
+          metadata: { templateId: isHunt ? null : templateId, photoCount: queuedFiles.length },
         });
         setSelectedSlot(Math.min(emptySlots[queuedFiles.length] ?? 0, maxPhotos - 1));
         setStatus(`${queuedFiles.length} photo${queuedFiles.length === 1 ? "" : "s"} added. Adjust any crop that needs it.`);
@@ -404,10 +415,10 @@ export function CoverSlotBuilder({
         await supabase.storage.from(bucketName).remove([selectedPhoto.storage_path]);
 
         trackEvent({
-          eventName: "cover_slot_cleared",
+          eventName: isHunt ? "hunt_slot_cleared" : "cover_slot_cleared",
           tripId,
           metadata: {
-            templateId,
+            templateId: isHunt ? null : templateId,
             slotIndex: selectedSlot,
             filledSlotsAfterDelete: Math.max(filledSlots - 1, 0),
           },
@@ -435,8 +446,8 @@ export function CoverSlotBuilder({
           tabIndex={-1}
         />
         <div className="cover-template-interactive">
-          <div id={previewId} className="cover-preview-shell">
-            <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${getCoverGridColumns(maxPhotos)}, minmax(0, 1fr))` }}>
+          <div id={previewId} className={`cover-preview-shell${isHunt ? " hunt-slot-shell" : ""}`}>
+            <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${Math.ceil(maxPhotos / gridColumns)}, minmax(0, 1fr))` }}>
               {slotPhotoMap.map((photo, index) => (
                 <div key={`inline-photo-${index}`} className="cover-preview-cell">
                   {photo ? (
@@ -446,8 +457,8 @@ export function CoverSlotBuilder({
                 </div>
               ))}
             </div>
-            {template.overlaySrc ? <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" /> : null}
-            {template.isCustomTitle && (titleStyle === "purple" || titleStyle === "purple-stacked") ? <PurpleGlyphTitle title={title} stacked={titleStyle === "purple-stacked"} /> : null}
+            {!isHunt && template.overlaySrc ? <Image src={template.overlaySrc} alt="" fill className="cover-preview-overlay" sizes="(min-width: 1024px) 680px, 100vw" /> : null}
+            {!isHunt && template.isCustomTitle && (titleStyle === "purple" || titleStyle === "purple-stacked") ? <PurpleGlyphTitle title={title} stacked={titleStyle === "purple-stacked"} /> : null}
             <div className="cover-template-slot-layer" data-export-hidden="true">
               {templateSlots.map((slot, index) => {
                 const hasPhoto = Boolean(slotPhotoMap[index]);

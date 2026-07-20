@@ -22,6 +22,7 @@ type SaveImageButtonProps = {
   className?: string;
   formatId?: PosterExportFormatId;
   themeId?: PosterThemeId;
+  showHint?: boolean;
 };
 
 export function SaveImageButton({
@@ -35,6 +36,7 @@ export function SaveImageButton({
   className = "button-primary w-full sm:w-auto",
   formatId = "post",
   themeId = "classic",
+  showHint = true,
 }: SaveImageButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,13 +121,13 @@ export function SaveImageButton({
       <button type="button" onClick={handleOpenImage} className={className} disabled={isPending}>
         {isPending ? "Preparing image..." : posterData || fileUrl ? buttonLabel : "Preparing poster..."}
       </button>
-      <p className="mt-2 text-xs text-[var(--muted)]">
+      {showHint ? <p className="mt-2 text-xs text-[var(--muted)]">
         {!posterData && !fileUrl
           ? "The main poster asset is still being prepared. Try again in a moment."
           : isPending
           ? "Opening your phone's save and share options."
           : "Save the poster or pass it into your phone's share sheet."}
-      </p>
+      </p> : null}
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>
   );
