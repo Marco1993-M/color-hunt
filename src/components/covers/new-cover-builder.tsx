@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { updateTripTitleAction } from "@/app/actions";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
@@ -39,6 +40,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
   const [isCreating, startTransition] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
   const [draft, setDraft] = useState<CoverDraft | null>(initialDraft);
+  const [hasSavedOutput, setHasSavedOutput] = useState(false);
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
   const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
   const isDraftComplete = Boolean(draft && draft.photos.length >= draft.maxPhotos);
@@ -55,6 +57,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
 
   useEffect(() => {
     setDraft(initialDraft);
+    setHasSavedOutput(false);
     if (initialDraft?.title) {
       const [firstLine, secondLine = ""] = initialDraft.title.split("\n", 2);
       setTitle(firstLine);
@@ -215,8 +218,12 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
                 tripId={draft.tripId}
                 buttonLabel="Save & share cover"
                 className="button-primary mt-5 w-full"
+                onSaved={() => setHasSavedOutput(true)}
               />
-              {isGuest ? <div className="mt-5"><SocialUpgradePanel tripId={draft.tripId} nextPath={`/covers/${templateId}/new?draft=${draft.tripId}`} /></div> : null}
+              {hasSavedOutput ? <div className="mt-5 space-y-3">
+                {isGuest ? <SocialUpgradePanel tripId={draft.tripId} nextPath={`/covers/${templateId}/new?draft=${draft.tripId}`} /> : null}
+                <Link href="/covers/new" className="button-secondary block w-full text-center">Make another cover</Link>
+              </div> : null}
             </>
           ) : <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p> : (
             <button

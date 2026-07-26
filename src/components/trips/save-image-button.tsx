@@ -23,6 +23,7 @@ type SaveImageButtonProps = {
   formatId?: PosterExportFormatId;
   themeId?: PosterThemeId;
   showHint?: boolean;
+  onSaved?: (mode: "shared" | "downloaded") => void;
 };
 
 export function SaveImageButton({
@@ -37,6 +38,7 @@ export function SaveImageButton({
   formatId = "post",
   themeId = "classic",
   showHint = true,
+  onSaved,
 }: SaveImageButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export function SaveImageButton({
             posterTheme: themeId,
           },
         });
+        onSaved?.(mode);
         return;
       }
 
@@ -96,6 +99,7 @@ export function SaveImageButton({
           posterTheme: themeId,
         },
       });
+      onSaved?.(mode);
     } catch (openFailure) {
       const message = openFailure instanceof Error ? openFailure.message : "Couldn't open the poster image.";
       trackEvent({

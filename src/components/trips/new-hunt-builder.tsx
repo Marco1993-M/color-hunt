@@ -42,6 +42,7 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [location, setLocation] = useState(initialDraft?.location === "Everywhere" ? "" : initialDraft?.location ?? "");
   const [draft, setDraft] = useState<HuntDraft | null>(initialDraft);
+  const [hasSavedOutput, setHasSavedOutput] = useState(false);
   const [isCreating, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const mission = useMemo(
@@ -62,6 +63,7 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
 
   useEffect(() => {
     setDraft(initialDraft);
+    setHasSavedOutput(false);
     if (initialDraft) {
       setSelectedColor(initialDraft.colorName);
       setTitle(initialDraft.title);
@@ -125,8 +127,12 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
                     tripId={draft.tripId}
                     buttonLabel="Save & share poster"
                     className="button-primary mt-5 w-full"
+                    onSaved={() => setHasSavedOutput(true)}
                   />
-                  {isGuest ? <div className="mt-5"><SocialUpgradePanel tripId={draft.tripId} nextPath={`/trips/new?draft=${draft.tripId}`} /></div> : null}
+                  {hasSavedOutput ? <div className="mt-5 space-y-3">
+                    {isGuest ? <SocialUpgradePanel tripId={draft.tripId} nextPath={`/trips/new?draft=${draft.tripId}`} /> : null}
+                    <Link href="/trips/new" className="button-secondary block w-full text-center">Turn another color into a poster</Link>
+                  </div> : null}
                 </>
               ) : (
                 <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> to add each moment. Tap a photo to adjust its crop.</p>

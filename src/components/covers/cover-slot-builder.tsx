@@ -364,10 +364,10 @@ export function CoverSlotBuilder({
           }
 
           trackEvent({
-            eventName: "cover_slot_filled",
+            eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled",
             tripId,
             metadata: {
-              templateId,
+              templateId: isHunt ? null : templateId,
               slotIndex: targetSlot,
               source: "library_batch",
               filledSlotsAfterUpload: filledSlots + queueIndex + 1,
@@ -437,6 +437,16 @@ export function CoverSlotBuilder({
     return (
       <>
         <input
+          ref={batchInputRef}
+          className="sr-only"
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          multiple
+          onChange={handleBatchFileSelection}
+          disabled={isPending || filledSlots === maxPhotos}
+          tabIndex={-1}
+        />
+        <input
           ref={libraryInputRef}
           className="sr-only"
           type="file"
@@ -462,22 +472,41 @@ export function CoverSlotBuilder({
             <div className="cover-template-slot-layer" data-export-hidden="true">
               {templateSlots.map((slot, index) => {
                 const hasPhoto = Boolean(slotPhotoMap[index]);
+                const isNext = !hasPhoto && selectedSlot === index;
                 return (
                   <button
                     key={`${template.id}-inline-slot-${index}`}
                     type="button"
-                    className={`cover-template-slot-button cover-template-inline-slot ${hasPhoto ? "is-filled" : "is-empty"}`}
+                    className={`cover-template-slot-button cover-template-inline-slot ${hasPhoto ? "is-filled" : "is-empty"} ${isNext ? "is-next" : ""}`}
                     style={{ left: `${slot.left * 100}%`, top: `${slot.top * 100}%`, width: `${slot.width * 100}%`, height: `${slot.height * 100}%` }}
                     onClick={() => hasPhoto ? openCropEditor(index) : openPreferredPicker(index, false)}
-                    aria-label={hasPhoto ? `Replace photo ${index + 1}` : `Add photo ${index + 1}`}
+                    aria-label={hasPhoto ? `Edit photo ${index + 1}` : isNext ? `Add next photo, slot ${index + 1}` : `Add photo ${index + 1}`}
                   >
-                    <span className="cover-template-inline-add">{hasPhoto ? "Edit" : "+"}</span>
+                    <span className="cover-template-inline-add">{hasPhoto ? "Edit" : isNext ? "Next +" : "+"}</span>
                   </button>
                 );
               })}
             </div>
           </div>
         </div>
+        {isHunt && filledSlots < maxPhotos ? (
+          <div className="cover-inline-momentum" data-export-hidden="true">
+            <span>{filledSlots === 0 ? "Start with a set, or tap any frame." : `${filledSlots}/${maxPhotos} frames ready. Next slot is highlighted.`}</span>
+            {filledSlots === 0 ? (
+              <button
+                type="button"
+                className="button-secondary"
+                disabled={isPending}
+                onClick={() => {
+                  trackEvent({ eventName: "hunt_batch_picker_opened", tripId, metadata: { filledSlots, maxPhotos } });
+                  batchInputRef.current?.click();
+                }}
+              >
+                Add up to {maxPhotos} photos
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {cropPhoto ? <div className="cover-crop-modal" role="dialog" aria-modal="true"><div className="cover-crop-panel"><div className="cover-crop-preview">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={getPhotoUrl(cropPhoto)} alt="Crop preview" style={{ objectPosition: `${cropX * 100}% ${cropY * 100}%`, transform: `scale(${cropZoom})`, transformOrigin: `${cropX * 100}% ${cropY * 100}%` }} /></div><div className="cover-crop-controls"><p className="eyebrow">Adjust photo {(cropSlot ?? 0) + 1}</p><label>Left / right<input type="range" min="0" max="1" step="0.01" value={cropX} onChange={(event) => setCropX(Number(event.target.value))} /></label><label>Up / down<input type="range" min="0" max="1" step="0.01" value={cropY} onChange={(event) => setCropY(Number(event.target.value))} /></label><label>Zoom<input type="range" min="1" max="2.5" step="0.01" value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} /></label><div className="flex gap-3"><button type="button" className="button-secondary flex-1" onClick={() => setCropSlot(null)}>Cancel</button><button type="button" className="button-primary flex-1" disabled={isPending} onClick={saveCrop}>Save crop</button></div></div></div></div> : null}
         {status || error ? <FeedbackToast kind={error ? "error" : "success"} message={error ?? status ?? ""} onDismiss={() => { setStatus(null); setError(null); }} /> : null}
       </>
