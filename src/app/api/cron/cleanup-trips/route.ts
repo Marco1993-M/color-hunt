@@ -42,8 +42,11 @@ function shouldDeleteTrip(trip: CleanupTripRecord, now: Date) {
     maxPhotos,
   });
   const lastActivityAt = getLastActivityAt(trip);
-  const expiresAt = new Date(lastActivityAt);
-  expiresAt.setUTCDate(expiresAt.getUTCDate() + retentionDays);
+  const expiresAt = new Date(
+    lastActivityAt.getTime() + (photoCount === 0
+      ? retentionPolicy.emptyDraftHours * 60 * 60 * 1000
+      : retentionDays * 24 * 60 * 60 * 1000),
+  );
 
   return {
     photoCount,
@@ -132,6 +135,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       policy: {
+        emptyDraftHours: retentionPolicy.emptyDraftHours,
         incompleteDays: retentionPolicy.incompleteDays,
         completePrivateDays: retentionPolicy.completePrivateDays,
         publicDays: retentionPolicy.publicDays,

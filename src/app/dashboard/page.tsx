@@ -75,6 +75,14 @@ function getProgressPercent(summary: DashboardTripSummary) {
   return Math.max(0, Math.min(100, (summary.photoCount / summary.maxPhotos) * 100));
 }
 
+function isVisibleDashboardDraft(summary: DashboardTripSummary) {
+  if (summary.photoCount > 0 || summary.isComplete) return true;
+
+  const createdAt = new Date(summary.trip.created_at).getTime();
+  const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+  return Number.isNaN(createdAt) || createdAt >= twelveHoursAgo;
+}
+
 function getContinueDestination(
   activeTrips: DashboardTripSummary[],
   hostedHunts: Awaited<ReturnType<typeof getGroupHuntsForUser>>["hosted"],
@@ -111,7 +119,7 @@ export default async function DashboardPage() {
   ]);
 
   const isGuest = isAnonymousUser(user);
-  const soloTripSummaries = tripSummaries.filter((summary) => !summary.trip.group_hunt_id);
+  const soloTripSummaries = tripSummaries.filter((summary) => !summary.trip.group_hunt_id && isVisibleDashboardDraft(summary));
   const activeTrips = soloTripSummaries.filter((summary) => !summary.isComplete);
   const pastTrips = soloTripSummaries.filter((summary) => summary.isComplete);
   const hasGroups = groupHunts.hosted.length > 0 || groupHunts.joined.length > 0;
