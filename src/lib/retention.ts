@@ -6,6 +6,7 @@ function readPositiveInteger(value: string | undefined, fallback: number) {
 }
 
 export const retentionPolicy = {
+  emptyDraftHours: readPositiveInteger(process.env.COLOR_HUNT_RETENTION_EMPTY_DRAFT_HOURS, 24),
   incompleteDays: readPositiveInteger(process.env.COLOR_HUNT_RETENTION_INCOMPLETE_DAYS, 30),
   completePrivateDays: readPositiveInteger(process.env.COLOR_HUNT_RETENTION_COMPLETE_PRIVATE_DAYS, 90),
   publicDays: readPositiveInteger(process.env.COLOR_HUNT_RETENTION_PUBLIC_DAYS, 365),
