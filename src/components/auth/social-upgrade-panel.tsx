@@ -74,9 +74,9 @@ export function SocialUpgradePanel({ tripId, nextPath }: SocialUpgradePanelProps
     <div className="glass-panel rounded-[1.8rem] p-5 sm:p-6">
       <div className="space-y-3">
         <p className="eyebrow">Save this poster</p>
-        <h3 className="panel-title text-2xl font-semibold">Your Color Hunt is ready. Keep it with Google.</h3>
+        <h3 className="panel-title text-2xl font-semibold">Keep this edit and make the next one faster.</h3>
         <p className="body-copy max-w-2xl text-sm sm:text-base">
-          You can hunt as a guest, but publishing, downloading, and coming back later need a real Google-backed account attached to this poster.
+          Your download is yours either way. Connect Google to keep this editable, return to it later, and build a personal library of posters.
         </p>
       </div>
 
@@ -85,9 +85,9 @@ export function SocialUpgradePanel({ tripId, nextPath }: SocialUpgradePanelProps
       </div>
 
       <div className="game-start-points mt-5">
-        <span>Keep this trip</span>
-        <span>Publish the poster</span>
-        <span>Come back later</span>
+        <span>Keep this edit</span>
+        <span>Return anytime</span>
+        <span>Make more posters</span>
       </div>
     </div>
   );

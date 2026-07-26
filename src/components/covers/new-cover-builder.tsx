@@ -6,6 +6,7 @@ import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-f
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
 import { SaveImageButton } from "@/components/trips/save-image-button";
+import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { trackEvent } from "@/lib/analytics";
 import { getCoverTemplate, maxCustomCoverTitleLength, maxCustomCoverTitleLineLength, type CoverTemplateId } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
@@ -26,10 +27,11 @@ type NewCoverBuilderProps = {
   templateId: CoverTemplateId;
   userId: string;
   bucketName: string;
+  isGuest?: boolean;
   initialDraft?: CoverDraft | null;
 };
 
-export function NewCoverBuilder({ createAction, templateId, userId, bucketName, initialDraft = null }: NewCoverBuilderProps) {
+export function NewCoverBuilder({ createAction, templateId, userId, bucketName, isGuest = false, initialDraft = null }: NewCoverBuilderProps) {
   const [photoCount, setPhotoCount] = useState<4 | 6>(4);
   const [title, setTitle] = useState("");
   const [secondTitleLine, setSecondTitleLine] = useState("");
@@ -205,14 +207,17 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </div>
           ) : null}
           {draft ? isDraftComplete ? (
-            <SaveImageButton
-              posterData={posterData}
-              layoutSourceId="cover-builder-export"
-              fileName={`${draft.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "cover"}.png`}
-              tripId={draft.tripId}
-              buttonLabel="Save & share cover"
-              className="button-primary mt-5 w-full"
-            />
+            <>
+              <SaveImageButton
+                posterData={posterData}
+                layoutSourceId="cover-builder-export"
+                fileName={`${draft.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "cover"}.png`}
+                tripId={draft.tripId}
+                buttonLabel="Save & share cover"
+                className="button-primary mt-5 w-full"
+              />
+              {isGuest ? <div className="mt-5"><SocialUpgradePanel tripId={draft.tripId} nextPath={`/covers/${templateId}/new?draft=${draft.tripId}`} /></div> : null}
+            </>
           ) : <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> on the cover to add each photo.</p> : (
             <button
               className="button-primary mt-5 w-full"

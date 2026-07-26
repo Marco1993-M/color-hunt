@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
+import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
 import { SaveImageButton } from "@/components/trips/save-image-button";
 import { getAnalyticsIds, trackEvent } from "@/lib/analytics";
 import { getPhotoUrl } from "@/lib/photo-url";
@@ -32,10 +33,11 @@ type NewHuntBuilderProps = {
   missionSeeds: MissionSeed[];
   userId: string;
   bucketName: string;
+  isGuest?: boolean;
   initialDraft?: HuntDraft | null;
 };
 
-export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName, initialDraft = null }: NewHuntBuilderProps) {
+export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName, isGuest = false, initialDraft = null }: NewHuntBuilderProps) {
   const [selectedColor, setSelectedColor] = useState(initialDraft?.colorName ?? missionSeeds[0]?.color_name ?? "random");
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [location, setLocation] = useState(initialDraft?.location === "Everywhere" ? "" : initialDraft?.location ?? "");
@@ -116,13 +118,16 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
                 <i style={{ width: `${Math.min((draft.photos.length / 9) * 100, 100)}%` }} />
               </div>
               {isComplete ? (
-                <SaveImageButton
-                  posterData={posterData}
-                  fileName={`${draft.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "color-hunt"}.png`}
-                  tripId={draft.tripId}
-                  buttonLabel="Save & share poster"
-                  className="button-primary mt-5 w-full"
-                />
+                <>
+                  <SaveImageButton
+                    posterData={posterData}
+                    fileName={`${draft.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "color-hunt"}.png`}
+                    tripId={draft.tripId}
+                    buttonLabel="Save & share poster"
+                    className="button-primary mt-5 w-full"
+                  />
+                  {isGuest ? <div className="mt-5"><SocialUpgradePanel tripId={draft.tripId} nextPath={`/trips/new?draft=${draft.tripId}`} /></div> : null}
+                </>
               ) : (
                 <p className="mt-5 text-center text-sm font-semibold text-[var(--muted)]">Tap a <strong>+</strong> to add each moment. Tap a photo to adjust its crop.</p>
               )}
