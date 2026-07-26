@@ -5,7 +5,6 @@ import { Fredoka } from "next/font/google";
 import { redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { TrackedLink } from "@/components/analytics/tracked-link";
-import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { isAnonymousUser } from "@/lib/user-state";
@@ -473,11 +472,11 @@ export default async function Home({ searchParams }: HomeProps) {
             <p className="landing-studio-note">Four or six photos · One finished cover · Ready to share</p>
             <TrackedLink
               className="landing-studio-hunt-link"
-              href={user ? (isChallengeFlow ? challengeNextPath : "/trips/new") : "#start"}
+              href={isChallengeFlow ? challengeNextPath : "/trips/new"}
               eventName="landing_cta_clicked"
               metadata={{
                 challengeColorName,
-                destination: user ? (isChallengeFlow ? challengeNextPath : "/trips/new") : "#start",
+                destination: isChallengeFlow ? challengeNextPath : "/trips/new",
                 isAuthenticated: Boolean(user),
                 isChallengeFlow,
                 source: "landing_studio_hunt",
@@ -545,11 +544,11 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
               <TrackedLink
                 className="button-primary mt-6 w-full sm:w-auto"
-                href={user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start"}
+                href={isChallengeFlow ? challengeNextPath : "/trips/new"}
                 eventName="landing_cta_clicked"
                 metadata={{
                   challengeColorName,
-                  destination: user ? (isChallengeFlow ? challengeNextPath : "/dashboard") : "#start",
+                  destination: isChallengeFlow ? challengeNextPath : "/trips/new",
                   isAuthenticated: Boolean(user),
                   isChallengeFlow,
                   source: "landing_hunt_spotlight",
@@ -590,11 +589,12 @@ export default async function Home({ searchParams }: HomeProps) {
                 </Link>
               </div>
             ) : (
-              <AuthPanel
-                nextPath={challengeNextPath}
-                challengeColorName={challengeColorName}
-                requireSignIn={isChallengeFlow}
-              />
+              <div className="playful-card rounded-[2rem] p-6 sm:p-8">
+                <p className="eyebrow mb-3">Make first</p>
+                <h2 className="panel-title text-3xl font-semibold">You do not need an account to begin.</h2>
+                <p className="body-copy mt-3 text-base">Build the poster as a private guest. Download it when it is ready, then connect Google only if you want to keep editing or return later.</p>
+                <Link className="button-primary mt-6 w-full sm:w-auto" href={isChallengeFlow ? challengeNextPath : "/trips/new"}>Start a Color Hunt</Link>
+              </div>
             )}
           </div>
           <div className="landing-proof-card">

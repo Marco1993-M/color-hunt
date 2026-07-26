@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { createGroupHuntAction, createQuickHuntAction, createTripAction } from "@/app/actions";
 import { EventOnView } from "@/components/analytics/event-on-view";
+import { GuestSessionGate } from "@/components/auth/guest-session-gate";
 import { NewHuntBuilder } from "@/components/trips/new-hunt-builder";
 import { NewTripBuilder } from "@/components/trips/new-trip-builder";
-import { requireUser } from "@/lib/auth";
 import { isCoverTripLike } from "@/lib/covers";
 import { getTripBundle } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
+import { isAnonymousUser } from "@/lib/user-state";
 import { missionSeeds } from "@/lib/missions";
 
 type NewTripPageProps = {
@@ -23,8 +25,20 @@ type NewTripPageProps = {
 };
 
 export default async function NewTripPage({ searchParams }: NewTripPageProps) {
-  const { user } = await requireUser();
   const params = await searchParams;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const nextQuery = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string" && value) nextQuery.set(key, value);
+  }
+  const nextPath = `/trips/new${nextQuery.size ? `?${nextQuery.toString()}` : ""}`;
+
+  if (!user) {
+    return <main className="app-shell page-frame"><GuestSessionGate nextPath={nextPath} entryMode="hunt" /></main>;
+  }
+
+  const isGuest = isAnonymousUser(user);
   const isGroupMode = params.mode === "group";
   const challengeColor = params.challengeColor?.trim() || "";
   const challengeLocation = params.challengeLocation?.trim() || "";
@@ -86,6 +100,7 @@ export default async function NewTripPage({ searchParams }: NewTripPageProps) {
           missionSeeds={missionSeeds}
           userId={user.id}
           bucketName={getSupabaseEnv().storageBucket}
+          isGuest={isGuest}
           initialDraft={isSoloDraft && draftBundle ? {
             tripId: draftBundle.trip.id,
             missionId: draftBundle.mission.id,

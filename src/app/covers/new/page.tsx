@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { EventOnView } from "@/components/analytics/event-on-view";
-import { AuthPanel } from "@/components/auth/auth-panel";
 import { SessionLandingRedirect } from "@/components/auth/session-landing-redirect";
 import { CoverPosterPreview } from "@/components/covers/cover-poster-preview";
 import { createClient } from "@/lib/supabase/server";
@@ -38,12 +37,6 @@ export default async function CoverTemplateLibraryPage() {
             Start with the finish line. Choose a style, then decide whether your moment needs four or six photos before adding everything in one go.
           </p>
         </section>
-
-        {!user ? (
-          <section id="template-auth" className="mt-6">
-            <AuthPanel nextPath="/covers/new" entryMode="cover" />
-          </section>
-        ) : null}
 
         <section className="cover-library-grid mt-8 grid gap-5 lg:grid-cols-2">
           {coverTemplates.map((template) => (
