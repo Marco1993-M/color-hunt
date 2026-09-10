@@ -4,7 +4,7 @@ export type Trip = {
   title: string;
   location: string;
   creation_mode?: "hunt" | "cover" | null;
-  cover_template?: "june" | "july" | "august" | "summer-2026" | "usa" | "custom-title" | null;
+  cover_template?: "june" | "july" | "august" | "summer-2026" | "usa" | "custom-title" | "wild-memory-87" | null;
   title_style?: "default" | "purple" | "purple-stacked" | null;
   start_date: string | null;
   end_date: string | null;
@@ -77,6 +77,7 @@ export type Photo = {
   poster_focal_x?: number | null;
   poster_focal_y?: number | null;
   poster_zoom?: number | null;
+  photo_filter?: "none" | "wild-memory-87" | null;
   caption: string | null;
   dominant_color: string | null;
   color_match_score: number | null;
@@ -90,4 +91,5 @@ export type PosterExport = {
   storage_path: string;
   image_url: string;
   generated_at: string;
+  source_revision?: string | null;
 };

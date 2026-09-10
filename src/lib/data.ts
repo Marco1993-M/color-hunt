@@ -1,3 +1,5 @@
+import { signPhotoUrls } from "@/lib/signed-assets";
+import { getPosterRevision } from "@/lib/poster-revision";
 import { getPhotoUrl as getPublicPhotoUrl } from "@/lib/photo-url";
 import { createAdminClient } from "@/lib/admin-supabase";
 import type {
@@ -48,6 +50,7 @@ function normalizePhoto(photo: Partial<Photo> & Record<string, unknown>) {
     poster_focal_x: photo.poster_focal_x ?? 0.5,
     poster_focal_y: photo.poster_focal_y ?? 0.5,
     poster_zoom: photo.poster_zoom ?? 1,
+    photo_filter: photo.photo_filter === "wild-memory-87" ? "wild-memory-87" : "none",
   } as Photo;
 }
 
@@ -207,7 +210,7 @@ export async function getTripBundle(tripId: string, userId: string) {
       .maybeSingle(),
     supabase
       .from("photos")
-      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, caption, dominant_color, color_match_score, created_at")
+      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, photo_filter, caption, dominant_color, color_match_score, created_at")
       .eq("trip_id", tripId)
       .eq("user_id", userId)
       .order("sort_order", { ascending: true, nullsFirst: false })
@@ -289,7 +292,7 @@ export async function getTripBundle(tripId: string, userId: string) {
         .maybeSingle(),
       admin
         .from("photos")
-        .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, caption, dominant_color, color_match_score, created_at")
+        .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, photo_filter, caption, dominant_color, color_match_score, created_at")
         .eq("trip_id", tripId)
         .eq("user_id", userId)
         .order("sort_order", { ascending: true, nullsFirst: false })
@@ -358,14 +361,14 @@ export async function getTripBundle(tripId: string, userId: string) {
     return {
       trip: adminTrip,
       mission: adminMissionResult.data as Mission,
-      photos: sortPhotosByDisplayOrder((adminPhotos ?? []).map((photo) => normalizePhoto(photo as Photo))),
+      photos: await signPhotoUrls(sortPhotosByDisplayOrder((adminPhotos ?? []).map((photo) => normalizePhoto(photo as Photo)))),
     };
   }
 
   return {
     trip: normalizeTrip(trip as Trip),
     mission,
-    photos: sortPhotosByDisplayOrder((photos ?? []).map((photo) => normalizePhoto(photo as Photo))),
+    photos: await signPhotoUrls(sortPhotosByDisplayOrder((photos ?? []).map((photo) => normalizePhoto(photo as Photo)))),
   };
 }
 
@@ -441,7 +444,7 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
       .maybeSingle(),
     supabase
       .from("photos")
-      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, caption, dominant_color, color_match_score, created_at")
+      .select("id, trip_id, mission_id, user_id, image_url, storage_path, sort_order, poster_focal_x, poster_focal_y, poster_zoom, photo_filter, caption, dominant_color, color_match_score, created_at")
       .eq("trip_id", trip.id)
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
@@ -490,15 +493,15 @@ export async function getPublicTripBundleByShareId(shareId: string): Promise<Tri
   return {
     trip,
     mission: mission as Mission,
-    photos: sortPhotosByDisplayOrder((photos ?? []).map((photo) => normalizePhoto(photo as Photo))),
+    photos: await signPhotoUrls(sortPhotosByDisplayOrder((photos ?? []).map((photo) => normalizePhoto(photo as Photo)))),
   };
 }
 
-export async function getPosterExportForTrip(tripId: string, format: PosterExport["format"]) {
+export async function getPosterExportForTrip(tripId: string, format: PosterExport["format"], bundle: TripBundle) {
   const supabase = await createClient();
   const result = await supabase
     .from("poster_exports")
-    .select("id, trip_id, format, storage_path, image_url, generated_at")
+    .select("id, trip_id, format, storage_path, image_url, generated_at, source_revision")
     .eq("trip_id", tripId)
     .eq("format", format)
     .maybeSingle();
@@ -507,7 +510,11 @@ export async function getPosterExportForTrip(tripId: string, format: PosterExpor
     throw result.error;
   }
 
-  return (result.data as PosterExport | null) ?? null;
+  const row = result.data as PosterExport | null;
+  if (!row || row.source_revision !== getPosterRevision(bundle)) return null;
+  const signed = await createAdminClient().storage.from("poster-exports").createSignedUrl(row.storage_path, 3600);
+  if (signed.error) return null;
+  return { ...row, image_url: signed.data.signedUrl };
 }
 
 export async function getPublicTripsForSitemap() {
@@ -709,7 +716,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
         .map((trip) => [String(trip.group_participant_id), trip]),
     );
 
-    let missionsByTripId = new Map<string, Mission>();
+    const missionsByTripId = new Map<string, Mission>();
     let photosByTripId = new Map<string, Photo[]>();
 
     if (tripIds.length > 0) {
@@ -785,7 +792,7 @@ export async function getGroupHuntById(groupHuntId: string, userId: string): Pro
   return {
     hunt: hunt as GroupHunt,
     participants: seats,
-    results,
+    results: await Promise.all(results.map(async result => ({ ...result, photos: await signPhotoUrls(result.photos ?? []) }))),
   };
 }
 
@@ -921,7 +928,7 @@ export async function getPublicGroupHuntByShareId(shareId: string): Promise<Grou
         .filter((trip) => Boolean(trip.group_participant_id))
         .map((trip) => [String(trip.group_participant_id), trip]),
     );
-    let missionsByTripId = new Map<string, Mission>();
+    const missionsByTripId = new Map<string, Mission>();
     let photosByTripId = new Map<string, Photo[]>();
 
     if (tripIds.length > 0) {
@@ -1011,7 +1018,7 @@ export async function getPublicGroupHuntByShareId(shareId: string): Promise<Grou
     return {
       hunt: hunt as GroupHunt,
       participants: seats,
-      results,
+      results: await Promise.all(results.map(async result => ({ ...result, photos: await signPhotoUrls(result.photos ?? []) }))),
     };
   }
 

@@ -3,6 +3,7 @@
 import { toBlob } from "html-to-image";
 import { getPosterExportFormat, type PosterExportFormatId } from "@/lib/poster-export";
 import { getPosterPhotoPlacement, getPosterSubtitle, type PosterPhotoPlacement } from "@/lib/poster";
+import { getPhotoFilterId, type PhotoFilterId } from "@/lib/photo-filter";
 
 export type PosterCaptureData = {
   posterTitle: string;
@@ -13,6 +14,7 @@ export type PosterCaptureData = {
   posterTone: string;
   photoUrls: Array<string | null>;
   photoPlacements: Array<PosterPhotoPlacement | null>;
+  photoFilters?: Array<PhotoFilterId | null>;
 };
 
 export type PosterThemeId =
@@ -1145,7 +1147,14 @@ async function renderPostFromLiveLayout({
     cacheBust: true,
     pixelRatio: scale,
     backgroundColor: "#faf6ef",
-    filter: (node) => !(node instanceof HTMLImageElement),
+    filter: (node) => {
+      if (node instanceof Element && node.hasAttribute("data-export-hidden")) {
+        return false;
+      }
+
+      // Repaint editable photo cells onto the canvas so crop placement remains exact.
+      return !(node instanceof HTMLImageElement && node.closest(".poster-photo-tile, .cover-preview-cell"));
+    },
   });
 
   if (!backgroundBlob) {
@@ -1155,7 +1164,7 @@ async function renderPostFromLiveLayout({
   const backgroundImage = await loadBlobImage(backgroundBlob);
   context.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
 
-  const tiles = Array.from(sourceNode.querySelectorAll(".poster-photo-tile"));
+  const tiles = Array.from(sourceNode.querySelectorAll(".poster-photo-tile, .cover-preview-cell"));
   const loadedImages = await Promise.all(
     data.photoUrls.map(async (sourceUrl) => {
       if (!sourceUrl) {
@@ -1196,7 +1205,16 @@ async function renderPostFromLiveLayout({
     context.save();
     buildRoundedRectPath(context, x, y, width, height, radius);
     context.clip();
+    const photoFilter = getPhotoFilterId(data.photoFilters?.[index]);
+    if (photoFilter === "wild-memory-87") {
+      context.filter = "sepia(0.36) saturate(1.48) contrast(1.14) brightness(0.88)";
+    }
     context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    context.filter = "none";
+
+    if (photoFilter === "wild-memory-87") {
+      drawWildMemoryDetails(context, x, y, width, height, image, drawX, drawY, drawWidth, drawHeight, index);
+    }
     context.restore();
   });
 
@@ -1210,6 +1228,89 @@ async function renderPostFromLiveLayout({
       resolve(blob);
     }, "image/png");
   });
+}
+
+function drawWildMemoryDetails(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  image: CanvasImageSource,
+  drawX: number,
+  drawY: number,
+  drawWidth: number,
+  drawHeight: number,
+  seed: number,
+) {
+  context.save();
+  const edgeCanvas = document.createElement("canvas");
+  edgeCanvas.width = Math.max(1, Math.round(width));
+  edgeCanvas.height = Math.max(1, Math.round(height));
+  const edgeContext = edgeCanvas.getContext("2d");
+
+  if (edgeContext) {
+    // Keep the centre crisp. Only the outer 40% receives the soft, split-channel treatment.
+    edgeContext.filter = "blur(3.2px) sepia(0.42) saturate(1.7) contrast(1.08)";
+    edgeContext.drawImage(image, drawX - x, drawY - y, drawWidth, drawHeight);
+    edgeContext.filter = "none";
+    edgeContext.globalCompositeOperation = "destination-in";
+    const edgeMask = edgeContext.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.2, width / 2, height / 2, Math.max(width, height) * 0.72);
+    edgeMask.addColorStop(0, "rgba(0, 0, 0, 0)");
+    edgeMask.addColorStop(0.52, "rgba(0, 0, 0, 0)");
+    edgeMask.addColorStop(1, "rgba(0, 0, 0, 0.96)");
+    edgeContext.fillStyle = edgeMask;
+    edgeContext.fillRect(0, 0, width, height);
+
+    context.globalAlpha = 0.74;
+    context.drawImage(edgeCanvas, x, y, width, height);
+
+    for (const [offset, color] of [[-2.7, "#ff3c37"], [0, "#41d36a"], [2.7, "#3588ff"]] as const) {
+      const channelCanvas = document.createElement("canvas");
+      channelCanvas.width = edgeCanvas.width;
+      channelCanvas.height = edgeCanvas.height;
+      const channelContext = channelCanvas.getContext("2d");
+      if (!channelContext) continue;
+      channelContext.drawImage(edgeCanvas, 0, 0);
+      channelContext.globalCompositeOperation = "source-in";
+      channelContext.fillStyle = color;
+      channelContext.fillRect(0, 0, width, height);
+      context.globalCompositeOperation = "screen";
+      context.globalAlpha = 0.16;
+      context.drawImage(channelCanvas, x + offset, y, width, height);
+    }
+  }
+
+  context.globalCompositeOperation = "source-over";
+
+  let random = (seed + 1) * 1_103_515_245;
+  const next = () => {
+    random = (random * 1_664_525 + 1_013_904_223) % 4_294_967_296;
+    return random / 4_294_967_296;
+  };
+  context.globalAlpha = 0.1;
+  for (let grain = 0; grain < Math.max(190, Math.round((width * height) / 600)); grain += 1) {
+    context.fillStyle = next() > 0.5 ? "#f8d0a0" : "#160f14";
+    const size = 0.35 + next() * 1.55;
+    context.fillRect(x + next() * width, y + next() * height, size, size);
+  }
+
+  const haze = context.createLinearGradient(x, y, x + width, y + height);
+  haze.addColorStop(0, "rgba(255, 160, 73, 0.11)");
+  haze.addColorStop(0.45, "rgba(255, 220, 166, 0.02)");
+  haze.addColorStop(1, "rgba(69, 18, 46, 0.1)");
+  context.globalAlpha = 1;
+  context.fillStyle = haze;
+  context.fillRect(x, y, width, height);
+
+  const vignette = context.createRadialGradient(x + width / 2, y + height * 0.46, Math.min(width, height) * 0.15, x + width / 2, y + height * 0.5, Math.max(width, height) * 0.72);
+  vignette.addColorStop(0, "rgba(32, 13, 14, 0)");
+  vignette.addColorStop(0.58, "rgba(24, 10, 14, 0.08)");
+  vignette.addColorStop(1, "rgba(10, 5, 10, 0.62)");
+  context.globalAlpha = 1;
+  context.fillStyle = vignette;
+  context.fillRect(x, y, width, height);
+  context.restore();
 }
 
 async function renderManualPosterBlob({

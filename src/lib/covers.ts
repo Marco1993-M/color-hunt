@@ -1,6 +1,6 @@
 import type { Mission, Trip } from "@/lib/types";
 
-export type CoverTemplateId = "june" | "july" | "august" | "summer-2026" | "usa" | "custom-title";
+export type CoverTemplateId = "june" | "july" | "august" | "summer-2026" | "usa" | "custom-title" | "wild-memory-87";
 
 export type CoverTemplate = {
   id: CoverTemplateId;
@@ -30,6 +30,15 @@ const twoByTwoSlots = [
 ] as const;
 
 export const coverTemplates: CoverTemplate[] = [
+  {
+    id: "wild-memory-87",
+    label: "Wild Memory '87",
+    description: "One photo, distorted like a found analogue memory",
+    themeId: "classic",
+    photoCount: 1,
+    gridColumns: 1,
+    slots: [{ left: 0, top: 0, width: 1, height: 1 }],
+  },
   {
     id: "june",
     label: "June cover",
@@ -93,7 +102,7 @@ export const coverTemplates: CoverTemplate[] = [
 ];
 
 export function isCoverTemplateId(value: string | null | undefined): value is CoverTemplateId {
-  return value === "custom-title" || value === "june" || value === "july" || value === "august" || value === "summer-2026" || value === "usa";
+  return value === "custom-title" || value === "june" || value === "july" || value === "august" || value === "summer-2026" || value === "usa" || value === "wild-memory-87";
 }
 
 export function getCoverTemplate(templateId: string | null | undefined) {
@@ -105,6 +114,7 @@ export function getCoverThemeId(templateId: string | null | undefined) {
 }
 
 export function getCoverGridColumns(photoCount: number) {
+  if (photoCount === 1) return 1;
   return photoCount === 6 ? 3 : 2;
 }
 
@@ -195,7 +205,8 @@ export function inferCoverTemplateId({
     trip.cover_template === "july" ||
     trip.cover_template === "august" ||
     trip.cover_template === "summer-2026" ||
-    trip.cover_template === "usa"
+    trip.cover_template === "usa" ||
+    trip.cover_template === "wild-memory-87"
   ) {
     return trip.cover_template;
   }

@@ -1,55 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/admin-supabase";
 import { getSupabaseEnv } from "@/lib/env";
-import { isAnonymousUser } from "@/lib/user-state";
-
-async function transferGuestTripToUser({
-  tripId,
-  fromUserId,
-  toUserId,
-}: {
-  tripId: string;
-  fromUserId: string;
-  toUserId: string;
-}) {
-  const admin = createAdminClient();
-
-  const { data: trip, error: tripError } = await admin
-    .from("trips")
-    .select("id, user_id")
-    .eq("id", tripId)
-    .eq("user_id", fromUserId)
-    .maybeSingle();
-
-  if (tripError) {
-    throw tripError;
-  }
-
-  if (!trip) {
-    return;
-  }
-
-  const { error: photoTransferError } = await admin
-    .from("photos")
-    .update({ user_id: toUserId })
-    .eq("trip_id", tripId)
-    .eq("user_id", fromUserId);
-
-  if (photoTransferError) {
-    throw photoTransferError;
-  }
-
-  const { error: tripTransferError } = await admin
-    .from("trips")
-    .update({ user_id: toUserId })
-    .eq("id", tripId)
-    .eq("user_id", fromUserId);
-
-  if (tripTransferError) {
-    throw tripTransferError;
-  }
-}
+import { safeNextPath } from "@/lib/safe-next-path";
 
 export async function handleAuthCallback(
   request: NextRequest,
@@ -63,10 +15,10 @@ export async function handleAuthCallback(
   const code = requestUrl.searchParams.get("code");
   const transferTripId = options?.transferTripId ?? requestUrl.searchParams.get("transferTripId");
   const guestUserId = options?.guestUserId ?? requestUrl.searchParams.get("guestUserId");
-  const next =
+  const next = safeNextPath(
     options?.next ||
     requestUrl.searchParams.get("next") ||
-    (transferTripId ? `/trips/${transferTripId}/poster` : "/dashboard");
+    (transferTripId ? `/trips/${transferTripId}/poster` : "/dashboard"));
   const handoffUrl = new URL("/auth/finish", request.url);
   handoffUrl.searchParams.set("next", next);
   if (transferTripId) {
@@ -92,37 +44,10 @@ export async function handleAuthCallback(
       },
     });
 
-    const {
-      data: { user: previousUser },
-    } = await supabase.auth.getUser();
-
-    await supabase.auth.exchangeCodeForSession(code);
-
-    const {
-      data: { user: nextUser },
-    } = await supabase.auth.getUser();
-
-    const guestOwnerId = previousUser?.id ?? guestUserId;
-    const canTransferFromPreviousSession =
-      previousUser && guestOwnerId === previousUser.id ? isAnonymousUser(previousUser) : true;
-
-    if (
-      transferTripId &&
-      guestOwnerId &&
-      nextUser &&
-      guestOwnerId !== nextUser.id &&
-      canTransferFromPreviousSession &&
-      !isAnonymousUser(nextUser)
-    ) {
-      try {
-        await transferGuestTripToUser({
-          tripId: transferTripId,
-          fromUserId: guestOwnerId,
-          toUserId: nextUser.id,
-        });
-      } catch (error) {
-        console.error("guest trip transfer failed", error);
-      }
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      handoffUrl.searchParams.set("error", "Sign-in could not be completed. Please try again.");
+      response.headers.set("location", handoffUrl.toString());
     }
   }
 

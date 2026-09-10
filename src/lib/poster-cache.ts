@@ -1,3 +1,4 @@
+import { getPosterRevision } from "@/lib/poster-revision";
 import { createAdminClient } from "@/lib/admin-supabase";
 import { posterExportFormats, type PosterExportFormatId } from "@/lib/poster-export";
 import { getPosterExportFileName, renderPosterPngBuffer } from "@/lib/poster-render";
@@ -42,7 +43,7 @@ export async function generatePosterExports({
     error: existingError,
   } = await supabase
     .from("poster_exports")
-    .select("id, trip_id, format, storage_path, image_url, generated_at")
+    .select("id, trip_id, format, storage_path, image_url, generated_at, source_revision")
     .eq("trip_id", trip.id);
 
   if (existingError) {
@@ -53,6 +54,7 @@ export async function generatePosterExports({
     ((existingRows as PosterExport[] | null) ?? []).map((row) => [row.format, row]),
   );
 
+  const sourceRevision = getPosterRevision({ trip, mission, photos });
   const generatedAt = new Date().toISOString();
   const nextRows: PosterExport[] = [];
   const oldPathsToDelete: string[] = [];
@@ -64,7 +66,7 @@ export async function generatePosterExports({
   for (const format of formatsToGenerate) {
     const existingRow = existingByFormat.get(format.id);
 
-    if (existingRow && !force) {
+    if (existingRow && existingRow.source_revision === sourceRevision && !force) {
       nextRows.push(existingRow);
       continue;
     }
@@ -98,6 +100,7 @@ export async function generatePosterExports({
       storage_path: storagePath,
       image_url: getPosterExportPublicUrl(storagePath),
       generated_at: generatedAt,
+      source_revision: sourceRevision,
     });
   }
 
@@ -120,8 +123,9 @@ export async function generatePosterExports({
     await supabase.storage.from(POSTER_EXPORT_BUCKET).remove(oldPathsToDelete);
   }
 
-  return nextRows.map((row) => ({
-    ...row,
-    fileName: getPosterExportFileName(trip.location, row.format),
+  return Promise.all(nextRows.map(async row => {
+    const signed = await supabase.storage.from(POSTER_EXPORT_BUCKET).createSignedUrl(row.storage_path, 3600);
+    if (signed.error) throw signed.error;
+    return { ...row, image_url: signed.data.signedUrl, fileName: getPosterExportFileName(trip.location, row.format) };
   }));
 }

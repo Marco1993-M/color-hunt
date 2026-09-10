@@ -1,3 +1,4 @@
+import { getPhotoSlots } from "./photo-slots";
 import type { Photo } from "@/lib/types";
 
 export const POSTER_FRAME_COUNT = 9;
@@ -81,5 +82,5 @@ export function buildPosterPhotoPlacements(photos: Photo[], frameCount = POSTER_
 }
 
 export function isPosterComplete(photos: Photo[], maxPhotos = POSTER_FRAME_COUNT) {
-  return photos.length >= maxPhotos;
+  return getPhotoSlots(photos, maxPhotos).every(Boolean);
 }
