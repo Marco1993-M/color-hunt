@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { trackEvent } from "@/lib/analytics";
@@ -40,6 +41,7 @@ export function SaveImageButton({
   showHint = true,
   onSaved,
 }: SaveImageButtonProps) {
+  const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,7 +114,8 @@ export function SaveImageButton({
           posterTheme: themeId,
         },
       });
-      setError(message);
+      router.refresh();
+      setError("We couldn’t prepare the image. Check your connection and try again; your photo links are being refreshed.");
     } finally {
       window.setTimeout(() => {
         setIsPending(false);

@@ -18,7 +18,7 @@ export function EventOnView({ eventName, tripId = null, shareId = null, metadata
       eventName,
       tripId,
       shareId,
-      metadata,
+      metadata: JSON.parse(metadataKey),
     });
   }, [eventName, metadataKey, shareId, tripId]);
 

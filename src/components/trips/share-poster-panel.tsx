@@ -146,7 +146,7 @@ export function SharePosterPanel({
       return null;
     }
 
-    const url = new URL("/", window.location.origin);
+    const url = new URL("/trips/new", window.location.origin);
     url.searchParams.set("challengeColor", challengeColorName);
     url.searchParams.set("challengeLocation", location);
     url.searchParams.set("challengeTitle", tripTitle);

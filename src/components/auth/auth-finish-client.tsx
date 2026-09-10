@@ -1,5 +1,6 @@
 "use client";
 
+import { safeNextPath } from "@/lib/safe-next-path";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -63,6 +64,7 @@ function clearUpgradeContext() {
 
 export function AuthFinishClient({ nextPath, transferTripId, guestUserId }: AuthFinishClientProps) {
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -132,7 +134,7 @@ export function AuthFinishClient({ nextPath, transferTripId, guestUserId }: Auth
         }
       }
 
-      window.location.replace(resolvedNextPath);
+      window.location.replace(safeNextPath(resolvedNextPath));
     }
 
     async function resolveUser() {
@@ -182,7 +184,8 @@ export function AuthFinishClient({ nextPath, transferTripId, guestUserId }: Auth
         return;
       }
 
-      setError("This sign-in took longer than expected. You can go to the dashboard or try again.");
+      window.clearInterval(interval);
+      setError(current => current ?? "This sign-in took longer than expected. Check your connection and try again.");
     }, 8000);
 
     void resolveUser();
@@ -193,7 +196,7 @@ export function AuthFinishClient({ nextPath, transferTripId, guestUserId }: Auth
       window.clearInterval(interval);
       window.clearTimeout(timeout);
     };
-  }, [guestUserId, nextPath, transferTripId]);
+  }, [guestUserId, nextPath, transferTripId, attempt]);
 
   return (
     <div className="playful-card rounded-[2rem] p-6 text-center sm:p-8">
@@ -210,7 +213,8 @@ export function AuthFinishClient({ nextPath, transferTripId, guestUserId }: Auth
         <div className="mt-6 rounded-[1.5rem] border border-[rgba(53,37,30,0.1)] bg-white/65 p-4">
           <p className="body-copy text-sm sm:text-base">{error}</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link className="button-primary w-full sm:w-auto" href={nextPath}>
+            <button type="button" className="button-primary w-full sm:w-auto" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Try again</button>
+            <Link className="button-secondary w-full sm:w-auto" href="/dashboard">
               Open dashboard
             </Link>
             <Link className="button-secondary w-full sm:w-auto" href="/">

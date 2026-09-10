@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { getPhotoSlots } from "@/lib/photo-slots";
 import Link from "next/link";
 import { CoverSlotBuilder } from "@/components/covers/cover-slot-builder";
 import { SocialUpgradePanel } from "@/components/auth/social-upgrade-panel";
@@ -35,12 +36,15 @@ type NewHuntBuilderProps = {
   bucketName: string;
   isGuest?: boolean;
   initialDraft?: HuntDraft | null;
+  challengeColor?: string;
+  challengeTitle?: string;
+  challengeLocation?: string;
 };
 
-export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName, isGuest = false, initialDraft = null }: NewHuntBuilderProps) {
-  const [selectedColor, setSelectedColor] = useState(initialDraft?.colorName ?? missionSeeds[0]?.color_name ?? "random");
-  const [title, setTitle] = useState(initialDraft?.title ?? "");
-  const [location, setLocation] = useState(initialDraft?.location === "Everywhere" ? "" : initialDraft?.location ?? "");
+export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName, isGuest = false, initialDraft = null, challengeColor = "", challengeTitle = "", challengeLocation = "" }: NewHuntBuilderProps) {
+  const [selectedColor, setSelectedColor] = useState(initialDraft?.colorName ?? (challengeColor || missionSeeds[0]?.color_name) ?? "random");
+  const [title, setTitle] = useState(initialDraft?.title ?? challengeTitle);
+  const [location, setLocation] = useState(initialDraft?.location === "Everywhere" ? "" : initialDraft?.location ?? challengeLocation);
   const [draft, setDraft] = useState<HuntDraft | null>(initialDraft);
   const [hasSavedOutput, setHasSavedOutput] = useState(false);
   const [isCreating, startTransition] = useTransition();
@@ -49,7 +53,8 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
     () => missionSeeds.find((entry) => entry.color_name === selectedColor) ?? missionSeeds[0],
     [missionSeeds, selectedColor],
   );
-  const isComplete = Boolean(draft && draft.photos.length >= 9);
+  const validPhotos = getPhotoSlots(draft?.photos ?? [], 9).filter((photo): photo is Photo => Boolean(photo));
+  const isComplete = validPhotos.length === 9;
   const posterData = draft ? {
     posterTitle: draft.title,
     locationLabel: draft.location,
@@ -57,11 +62,14 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
     missionColorName: draft.colorName,
     tripYear: String(new Date().getFullYear()),
     posterTone: draft.colorHex,
-    photoUrls: draft.photos.map(getPhotoUrl),
-    photoPlacements: draft.photos.map(getPosterPhotoPlacement),
+    photoUrls: validPhotos.map(getPhotoUrl),
+    photoPlacements: validPhotos.map(getPosterPhotoPlacement),
+    photoFilters: validPhotos.map((photo) => photo.photo_filter ?? "none"),
   } : null;
 
-  useEffect(() => {
+  const [previousDraft, setPreviousDraft] = useState(initialDraft);
+  if (previousDraft !== initialDraft) {
+    setPreviousDraft(initialDraft);
     setDraft(initialDraft);
     setHasSavedOutput(false);
     if (initialDraft) {
@@ -69,7 +77,7 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
       setTitle(initialDraft.title);
       setLocation(initialDraft.location === "Everywhere" ? "" : initialDraft.location);
     }
-  }, [initialDraft]);
+  }
 
   function startHunt() {
     if (!mission) {
@@ -115,9 +123,9 @@ export function NewHuntBuilder({ createAction, missionSeeds, userId, bucketName,
               <p className="eyebrow">Your {draft.colorName} Hunt</p>
               <h1 className="panel-title mt-2 text-3xl font-semibold">Nine frames. One point of view.</h1>
               <p className="body-copy mt-3 text-sm sm:text-base">{draft.prompt}</p>
-              <div className="cover-creator-progress mt-5">
-                <span>{draft.photos.length}/9 ready</span>
-                <i style={{ width: `${Math.min((draft.photos.length / 9) * 100, 100)}%` }} />
+              <div className="cover-creator-progress hunt-creator-progress mt-5">
+                <span>{validPhotos.length}/9 ready</span>
+                <i style={{ width: `${Math.min((validPhotos.length / 9) * 100, 100)}%` }} />
               </div>
               {isComplete ? (
                 <>

@@ -1,5 +1,6 @@
 "use client";
 
+import { safeNextPath } from "@/lib/safe-next-path";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -94,7 +95,7 @@ export function PostAuthUpgradeResume() {
 
       if (response.ok) {
         clearUpgradeContext();
-        router.replace(context.nextPath || `/trips/${context.tripId}/poster`);
+        router.replace(safeNextPath(context.nextPath, `/trips/${context.tripId}/poster`));
         router.refresh();
       }
     }

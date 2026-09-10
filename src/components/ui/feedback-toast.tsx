@@ -26,7 +26,7 @@ export function FeedbackToast({ kind, message, onDismiss }: FeedbackToastProps) 
         : "border-[rgba(32,26,23,0.12)] bg-[rgba(255,251,246,0.96)] text-[rgba(32,26,23,0.78)]";
 
   return (
-    <div className={`toast-shell ${toneClass}`}>
+    <div className={`toast-shell ${toneClass}`} role={kind === "error" ? "alert" : "status"} aria-live={kind === "error" ? "assertive" : "polite"}>
       <p className="pr-2 text-sm leading-6">{message}</p>
       {onDismiss ? (
         <button

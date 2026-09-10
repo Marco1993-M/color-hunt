@@ -1,5 +1,7 @@
 "use client";
 
+import { savePhotoUpload } from "@/lib/upload-photo";
+import { getPhotoSlots, selectImageFiles, photoErrorMessage, getFileUploadId } from "@/lib/photo-slots";
 import imageCompression from "browser-image-compression";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -8,15 +10,6 @@ import { trackEvent } from "@/lib/analytics";
 import { getSupabaseEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
 import type { Photo } from "@/lib/types";
-
-type SupabaseErrorLike = {
-  code?: string;
-  message?: string;
-};
-
-function isMissingSortOrderColumn(error: SupabaseErrorLike | null | undefined) {
-  return error?.code === "42703" || error?.code === "PGRST204";
-}
 
 type UploadPanelProps = {
   tripId: string;
@@ -29,7 +22,7 @@ type UploadPanelProps = {
   enablePosterWarmup?: boolean;
 };
 
-const acceptedFileTypes = ["image/jpeg", "image/png", "image/webp"];
+
 
 export function UploadPanel({
   tripId,
@@ -159,23 +152,9 @@ export function UploadPanel({
     }
   }
 
-  useEffect(() => {
-    setOrderedPhotos(photos);
-  }, [photos]);
-
-  useEffect(() => {
-    if (selectedFiles.length === 0) {
-      setPreviewUrls([]);
-      return;
-    }
-
-    const nextPreviewUrls = selectedFiles.map((selectedFile) => URL.createObjectURL(selectedFile));
-    setPreviewUrls(nextPreviewUrls);
-
-    return () => {
-      nextPreviewUrls.forEach((nextPreviewUrl) => URL.revokeObjectURL(nextPreviewUrl));
-    };
-  }, [selectedFiles]);
+  const [previousPhotos, setPreviousPhotos] = useState(photos);
+  if (previousPhotos !== photos) { setPreviousPhotos(photos); setOrderedPhotos(photos); }
+  useEffect(() => () => previewUrls.forEach(url => URL.revokeObjectURL(url)), [previewUrls]);
 
   function clearSelectedFile() {
     setSelectedFiles([]);
@@ -187,14 +166,20 @@ export function UploadPanel({
     event: React.ChangeEvent<HTMLInputElement>,
     source: "camera" | "library",
   ) {
-    const nextFiles = Array.from(event.target.files ?? []).filter((candidate) =>
-      acceptedFileTypes.includes(candidate.type),
-    );
+    const selected = Array.from(event.target.files ?? []);
+    if (!selected.length) return;
+    const { accepted: nextFiles, rejected } = selectImageFiles(selected);
+    if (rejected) {
+      setError("Choose JPG, PNG or WebP photos. Export HEIC photos as JPG first.");
+      event.target.value = "";
+      return;
+    }
 
     if (nextFiles.length > 0) {
       const remainingCapacity = Math.max(maxPhotos - currentCount, 0);
       const limitedFiles = nextFiles.slice(0, remainingCapacity);
       setSelectedFiles(limitedFiles);
+      setPreviewUrls(limitedFiles.map(file => URL.createObjectURL(file)));
       setSelectedSource(source);
 
       if (nextFiles.length > limitedFiles.length) {
@@ -227,20 +212,8 @@ export function UploadPanel({
   }
 
   async function persistPhotoOrder(nextPhotos: Photo[], supabase = createClient()) {
-    const updates = nextPhotos.map((photo, index) =>
-      supabase.from("photos").update({ sort_order: index }).eq("id", photo.id).eq("user_id", userId),
-    );
-
-    const results = await Promise.all(updates);
-    const updateError = results.find((result) => result.error)?.error as SupabaseErrorLike | undefined;
-
-    if (updateError) {
-      if (isMissingSortOrderColumn(updateError)) {
-        throw new Error("Photo reordering needs the latest database schema. Run the updated Supabase SQL, then try again.");
-      }
-
-      throw updateError;
-    }
+    const { error } = await supabase.rpc("reorder_trip_photos", { p_trip_id: tripId, p_photo_ids: nextPhotos.map(photo => photo.id) });
+    if (error) throw new Error(error.message || "Unable to save the new order.");
   }
 
   function buildDraggedPhotos(fromPhotoId: string, toPhotoId: string) {
@@ -444,16 +417,6 @@ export function UploadPanel({
           setStatus("Photo removed, but the storage cleanup may need a second pass.");
         }
 
-        if (nextPhotos.length > 0) {
-          try {
-            await persistPhotoOrder(nextPhotos, supabase);
-          } catch (reorderError) {
-            if (!(reorderError instanceof Error && reorderError.message.includes("latest database schema"))) {
-              throw reorderError;
-            }
-          }
-        }
-
         trackEvent({
           eventName: "photo_deleted",
           tripId,
@@ -472,7 +435,7 @@ export function UploadPanel({
             message,
           },
         });
-        setOrderedPhotos(previousPhotos);
+        router.refresh();
         setError(message);
         setStatus(null);
       }
@@ -481,178 +444,41 @@ export function UploadPanel({
 
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (selectedFiles.length === 0) {
-      setError("Choose a JPG, PNG, or WebP image first.");
-      trackEvent({
-        eventName: "photo_upload_failed",
-        tripId,
-        metadata: {
-          reason: "missing_files",
-        },
-      });
-      return;
-    }
-
-    if (remaining <= 0) {
-      setError("This mission is already complete.");
-      trackEvent({
-        eventName: "photo_upload_blocked_complete",
-        tripId,
-        metadata: {
-          maxPhotos,
-        },
-      });
-      return;
-    }
-
+    if (isPending || !selectedFiles.length) return;
     setError(null);
-    setStatus("Compressing image...");
-
     startTransition(async () => {
+      let remainingFiles = selectedFiles;
+      let savedCount = 0;
       try {
         const supabase = createClient();
-        const filesToUpload = selectedFiles.slice(0, remaining);
-
-        for (const [index, file] of filesToUpload.entries()) {
-          if (!acceptedFileTypes.includes(file.type)) {
-            throw new Error("Unsupported file type. Use JPG, PNG, or WebP.");
-          }
-
-          setStatus(
-            filesToUpload.length > 1
-              ? `Compressing image ${index + 1} of ${filesToUpload.length}...`
-              : "Compressing image...",
-          );
-
-          const compressed = await imageCompression(file, {
-            maxSizeMB: 0.55,
-            maxWidthOrHeight: 1600,
-            useWebWorker: true,
-            fileType: "image/webp",
-            initialQuality: 0.82,
-          });
-
-          const photoId = crypto.randomUUID();
-          const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
-          const uploadFile = new File([compressed], `${photoId}.webp`, {
-            type: "image/webp",
-          });
-
-          setStatus(
-            filesToUpload.length > 1
-              ? `Uploading image ${index + 1} of ${filesToUpload.length}...`
-              : "Uploading to storage...",
-          );
-
-          const { error: uploadError } = await supabase.storage.from(bucketName).upload(storagePath, uploadFile, {
-            cacheControl: "3600",
-            contentType: "image/webp",
-            upsert: false,
-          });
-
-          if (uploadError) {
-            throw uploadError;
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
-
-          setStatus(
-            filesToUpload.length > 1
-              ? `Saving image ${index + 1} of ${filesToUpload.length}...`
-              : "Saving photo details...",
-          );
-
-          const { error: insertError } = await supabase.from("photos").insert({
-            id: photoId,
-            trip_id: tripId,
-            mission_id: missionId,
-            user_id: userId,
-            image_url: publicUrl,
-            storage_path: storagePath,
-            sort_order: currentCount + index,
-            caption: null,
-            dominant_color: null,
-            color_match_score: null,
-          });
-
-          let finalInsertError = insertError as SupabaseErrorLike | null;
-
-          if (isMissingSortOrderColumn(finalInsertError)) {
-            const fallbackInsert = await supabase.from("photos").insert({
-              id: photoId,
-              trip_id: tripId,
-              mission_id: missionId,
-              user_id: userId,
-              image_url: publicUrl,
-              storage_path: storagePath,
-              caption: null,
-              dominant_color: null,
-              color_match_score: null,
-            });
-
-            finalInsertError = fallbackInsert.error;
-          }
-
-          if (finalInsertError) {
-            throw finalInsertError;
-          }
-
-          trackEvent({
-            eventName: "photo_uploaded",
-            tripId,
-            metadata: {
-              missionId,
-              remainingAfterUpload: Math.max(remaining - (index + 1), 0),
-              source: selectedSource ?? "unknown",
-            },
-          });
+        const { data, error: readError } = await supabase.from("photos").select("*").eq("trip_id", tripId).eq("user_id", userId).order("sort_order");
+        if (readError) throw readError;
+        const emptySlots = getPhotoSlots((data ?? []) as Photo[], maxPhotos).flatMap((photo, index) => photo ? [] : [index]);
+        const unsavedFiles = selectedFiles.filter(file => !(data ?? []).some(photo => photo.id === getFileUploadId(file)));
+        const queued = unsavedFiles.slice(0, emptySlots.length);
+        if (!queued.length) { clearSelectedFile(); setStatus("All frames are already filled."); return; }
+        remainingFiles = queued;
+        for (const [index, file] of queued.entries()) {
+          setStatus(`Saving photo ${index + 1} of ${queued.length}...`);
+          const compressed = await imageCompression(file, { maxSizeMB: 0.55, maxWidthOrHeight: 1600, useWebWorker: true, fileType: "image/webp", initialQuality: 0.82 });
+          await savePhotoUpload({ supabase, bucketName, userId, tripId, missionId, slot: emptySlots[index], file: compressed, uploadId: getFileUploadId(file) });
+          savedCount += 1;
+          remainingFiles = queued.slice(index + 1);
+          trackEvent({ eventName: "photo_uploaded", tripId, metadata: { missionId, source: selectedSource ?? "library" } });
         }
-
         clearSelectedFile();
-
-        if (currentCount === 0) {
-          trackEvent({
-            eventName: "first_photo_uploaded",
-            tripId,
-            metadata: {
-              missionId,
-              source: selectedSource ?? "unknown",
-            },
-          });
-        }
-
-        if (currentCount + filesToUpload.length >= maxPhotos) {
-          trackEvent({
-            eventName: "poster_completed",
-            tripId,
-            metadata: {
-              missionId,
-              maxPhotos,
-              source: selectedSource ?? "unknown",
-            },
-          });
+        if ((data?.length ?? 0) + savedCount >= maxPhotos) {
           void warmPosterExports();
-          setStatus("All 9 frames are in. Your poster is ready for the next step.");
-        } else {
-          setStatus(filesToUpload.length > 1 ? `${filesToUpload.length} photos added to your grid.` : "Photo added to your grid.");
+          trackEvent({ eventName: "poster_completed", tripId, metadata: { maxPhotos } });
         }
-        router.refresh();
-      } catch (uploadFailure) {
-        const message =
-          uploadFailure instanceof Error ? uploadFailure.message : "Something went wrong while uploading the photo.";
-        trackEvent({
-          eventName: "photo_upload_failed",
-          tripId,
-          metadata: {
-            message,
-          },
-        });
-        setError(message);
+        setStatus(`${savedCount} photo${savedCount === 1 ? "" : "s"} saved.`);
+      } catch (failure) {
+        setSelectedFiles(remainingFiles);
+        setPreviewUrls(remainingFiles.map(file => URL.createObjectURL(file)));
         setStatus(null);
-      }
+        setError(`${savedCount ? `${savedCount} photos saved. ` : ""}${photoErrorMessage(failure)} Retry the remaining selection.`);
+        trackEvent({ eventName: "photo_upload_failed", tripId, metadata: { savedCount } });
+      } finally { router.refresh(); }
     });
   }
 

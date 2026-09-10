@@ -1,5 +1,7 @@
 "use client";
 
+import { savePhotoUpload } from "@/lib/upload-photo";
+import { getPhotoSlots, selectImageFiles, photoErrorMessage, getFileUploadId } from "@/lib/photo-slots";
 import imageCompression from "browser-image-compression";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -11,16 +13,9 @@ import { trackEvent } from "@/lib/analytics";
 import { getCoverGridColumns, getCoverTemplate, getCoverTemplateSlots } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { getPosterPhotoPlacement } from "@/lib/poster";
+import { getPhotoFilterClassName, getPhotoFilterId, type PhotoFilterId } from "@/lib/photo-filter";
 import { createClient } from "@/lib/supabase/client";
 import type { Photo } from "@/lib/types";
-
-type SupabaseErrorLike = {
-  code?: string;
-};
-
-function isMissingSortOrderColumn(error: SupabaseErrorLike | null | undefined) {
-  return error?.code === "42703" || error?.code === "PGRST204";
-}
 
 type CoverSlotBuilderProps = {
   tripId: string;
@@ -37,7 +32,38 @@ type CoverSlotBuilderProps = {
   variant?: "cover" | "hunt";
 };
 
-const acceptedFileTypes = ["image/jpeg", "image/png", "image/webp"];
+const fileGuidance = "Use JPG, PNG or WebP. For HEIC photos, export as JPG or choose Most Compatible in your camera settings.";
+
+function FilteredCropImage({
+  photo,
+  focalX,
+  focalY,
+  zoom,
+  isWildMemory,
+}: {
+  photo: Photo;
+  focalX: number;
+  focalY: number;
+  zoom: number;
+  isWildMemory: boolean;
+}) {
+  const imageStyle = {
+    objectPosition: `${focalX * 100}% ${focalY * 100}%`,
+    transform: `scale(${zoom})`,
+    transformOrigin: `${focalX * 100}% ${focalY * 100}%`,
+  };
+
+  return <>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={getPhotoUrl(photo)} alt="Crop preview" className={getPhotoFilterClassName(isWildMemory ? "wild-memory-87" : "none")} style={imageStyle} />
+    {isWildMemory ? <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={getPhotoUrl(photo)} alt="" aria-hidden="true" className="photo-filter-channel photo-filter-channel-red" style={{ ...imageStyle, transform: `translateX(-3px) scale(${zoom})` }} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={getPhotoUrl(photo)} alt="" aria-hidden="true" className="photo-filter-channel photo-filter-channel-blue" style={{ ...imageStyle, transform: `translateX(3px) scale(${zoom})` }} />
+    </> : null}
+  </>;
+}
 
 export function CoverSlotBuilder({
   tripId,
@@ -47,37 +73,37 @@ export function CoverSlotBuilder({
   templateId,
   title,
   titleStyle = "default",
-  photos,
+  photos: incomingPhotos,
   maxPhotos,
   inline = false,
   previewId,
   variant = "cover",
 }: CoverSlotBuilderProps) {
   const router = useRouter();
+  const [photos, setPhotos] = useState(incomingPhotos);
+  const [previousPhotos, setPreviousPhotos] = useState(incomingPhotos);
+  const [retryFiles, setRetryFiles] = useState<File[]>([]);
+  const busyRef = useRef(false);
+  if (previousPhotos !== incomingPhotos) {
+    setPreviousPhotos(incomingPhotos);
+    setPhotos(incomingPhotos);
+  }
+
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const cropDialogRef = useRef<HTMLDialogElement>(null);
   const [cropSlot, setCropSlot] = useState<number | null>(null);
   const [cropX, setCropX] = useState(0.5);
   const [cropY, setCropY] = useState(0.5);
   const [cropZoom, setCropZoom] = useState(1);
+  const [cropFilter, setCropFilter] = useState<PhotoFilterId>("none");
   const pendingSlotRef = useRef<number | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
   const batchInputRef = useRef<HTMLInputElement | null>(null);
-  const slotPhotoMap = useMemo(() => {
-    const slots = Array.from({ length: maxPhotos }, () => null as Photo | null);
-
-    for (const photo of photos) {
-      const index = photo.sort_order ?? photos.indexOf(photo);
-      if (index >= 0 && index < maxPhotos) {
-        slots[index] = photo;
-      }
-    }
-
-    return slots;
-  }, [maxPhotos, photos]);
+  const slotPhotoMap = useMemo(() => getPhotoSlots(photos, maxPhotos), [photos, maxPhotos]);
   const selectedPhoto = slotPhotoMap[selectedSlot];
   const filledSlots = slotPhotoMap.filter(Boolean).length;
   const isHunt = variant === "hunt";
@@ -92,12 +118,20 @@ export function CoverSlotBuilder({
       }))
     : getCoverTemplateSlots(templateId, maxPhotos);
   const cropPhoto = cropSlot === null ? null : slotPhotoMap[cropSlot];
+  const cropUsesWildMemory = templateId === "wild-memory-87" || cropFilter === "wild-memory-87";
+  useEffect(() => {
+    const dialog = cropDialogRef.current;
+    if (cropSlot !== null && dialog && !dialog.open) dialog.showModal();
+    return () => { dialog?.close(); };
+  }, [cropSlot]);
+
 
   function openCropEditor(index: number) {
     const photo = slotPhotoMap[index];
     if (!photo) return;
+    setSelectedSlot(index);
     const placement = getPosterPhotoPlacement(photo);
-    setCropSlot(index); setCropX(placement.focalX); setCropY(placement.focalY); setCropZoom(placement.zoom);
+    setCropSlot(index); setCropX(placement.focalX); setCropY(placement.focalY); setCropZoom(placement.zoom); setCropFilter(templateId === "wild-memory-87" ? "wild-memory-87" : getPhotoFilterId(photo.photo_filter));
   }
 
   function saveCrop() {
@@ -106,24 +140,12 @@ export function CoverSlotBuilder({
       try {
         const formData = new FormData();
         formData.set("photo_id", cropPhoto.id); formData.set("trip_id", tripId);
-        formData.set("poster_focal_x", String(cropX)); formData.set("poster_focal_y", String(cropY)); formData.set("poster_zoom", String(cropZoom));
+        formData.set("poster_focal_x", String(cropX)); formData.set("poster_focal_y", String(cropY)); formData.set("poster_zoom", String(cropZoom)); formData.set("photo_filter", cropFilter);
         await updatePhotoPosterPlacementAction(formData);
         setCropSlot(null); router.refresh();
       } catch (cropError) { setError(cropError instanceof Error ? cropError.message : "Unable to save that crop."); }
     });
   }
-
-  useEffect(() => {
-    const firstEmpty = slotPhotoMap.findIndex((photo) => !photo);
-    if (firstEmpty !== -1) {
-      setSelectedSlot((current) => (slotPhotoMap[current] ? firstEmpty : current));
-      return;
-    }
-
-    if (selectedSlot >= slotPhotoMap.length) {
-      setSelectedSlot(0);
-    }
-  }, [selectedSlot, slotPhotoMap]);
 
   function openPreferredPicker(slotIndex: number, hasPhoto: boolean) {
     setSelectedSlot(slotIndex);
@@ -137,257 +159,94 @@ export function CoverSlotBuilder({
     libraryInputRef.current?.click();
   }
 
+  async function refreshPhotos() {
+    const supabase = createClient();
+    const { data, error: readError } = await supabase.from("photos").select("*").eq("trip_id", tripId).eq("user_id", userId).order("sort_order");
+    if (readError) throw readError;
+    const rows = (data ?? []) as Photo[];
+    const signed = rows.length ? await supabase.storage.from(bucketName).createSignedUrls(rows.map(photo => photo.storage_path), 3600) : null;
+    const current = rows.map((photo, index) => ({ ...photo, image_url: signed?.data?.[index]?.signedUrl ?? null }));
+    setPhotos(current);
+    return current;
+  }
+
   function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>, source: "camera" | "library") {
-    const file = Array.from(event.target.files ?? []).find((candidate) => acceptedFileTypes.includes(candidate.type));
+    const selected = Array.from(event.target.files ?? []);
     event.target.value = "";
     const targetSlot = pendingSlotRef.current ?? selectedSlot;
     pendingSlotRef.current = null;
-
-    if (!file) {
-      setError("Choose a JPG, PNG, or WebP image first.");
-      return;
-    }
-
+    if (!selected.length || busyRef.current) return;
+    const { accepted } = selectImageFiles(selected);
+    if (!accepted.length) { setError(fileGuidance); return; }
+    busyRef.current = true;
     setError(null);
-    setStatus(source === "camera" ? "Preparing camera shot..." : "Preparing photo...");
-
     startTransition(async () => {
       try {
-        const supabase = createClient();
-        const compressed = await imageCompression(file, {
-          maxSizeMB: 0.55,
-          maxWidthOrHeight: 1600,
-          useWebWorker: true,
-          fileType: "image/webp",
-          initialQuality: 0.82,
-        });
+        const current = await refreshPhotos();
+        const existing = getPhotoSlots(current, maxPhotos)[targetSlot];
+        // Don't overwrite a new photo added in another tab while this picker was open.
+        if (existing?.id !== slotPhotoMap[targetSlot]?.id) throw new Error("The grid changed.");
+        setStatus("Preparing photo...");
+        const compressed = await imageCompression(accepted[0], { maxSizeMB: 0.55, maxWidthOrHeight: 1600, useWebWorker: true, fileType: "image/webp", initialQuality: 0.82 });
+        setStatus(existing ? "Replacing photo..." : "Saving photo...");
+        const saved = await savePhotoUpload({ supabase: createClient(), bucketName, userId, tripId, missionId, slot: targetSlot, file: compressed, existingPhoto: existing });
+        setPhotos(current.filter(photo => photo.id !== saved.id).concat(saved));
+        setStatus(`Photo ${targetSlot + 1} ${existing ? "replaced" : "saved"}.`);
+        trackEvent({ eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled", tripId, metadata: { slotIndex: targetSlot, source } });
+      } catch (failure) {
+        setStatus(null); setError(photoErrorMessage(failure));
+        trackEvent({ eventName: isHunt ? "hunt_upload_failed" : "cover_upload_failed", tripId, metadata: { source } });
+      } finally {
+        await refreshPhotos().catch(() => undefined);
+        router.refresh(); busyRef.current = false;
+      }
+    });
+  }
 
-        const existingPhoto = slotPhotoMap[targetSlot];
-        const photoId = existingPhoto?.id ?? crypto.randomUUID();
-        const previousStoragePath = existingPhoto?.storage_path ?? null;
-        const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
-        const uploadFile = new File([compressed], `${photoId}.webp`, {
-          type: "image/webp",
-        });
-
-        setStatus(existingPhoto ? "Replacing photo..." : "Uploading photo...");
-
-        const { error: uploadError } = await supabase.storage.from(bucketName).upload(storagePath, uploadFile, {
-          cacheControl: "3600",
-          contentType: "image/webp",
-          upsert: true,
-        });
-
-        if (uploadError) {
-          throw uploadError;
+  function uploadBatch(files: File[]) {
+    if (busyRef.current || !files.length) return;
+    busyRef.current = true;
+    setRetryFiles([]); setError(null);
+    startTransition(async () => {
+      let savedCount = 0;
+      let remainingFiles = files;
+      try {
+        const current = await refreshPhotos();
+        const emptySlots = getPhotoSlots(current, maxPhotos).flatMap((photo, index) => photo ? [] : [index]);
+        if (!emptySlots.length) { setStatus("All frames are filled. Tap a photo to replace it."); return; }
+        const unsavedFiles = files.filter(file => !current.some(photo => photo.id === getFileUploadId(file)));
+        const queued = unsavedFiles.slice(0, emptySlots.length);
+        remainingFiles = queued;
+        for (const [index, file] of queued.entries()) {
+          setStatus(`Saving photo ${index + 1} of ${queued.length}...`);
+          const compressed = await imageCompression(file, { maxSizeMB: 0.55, maxWidthOrHeight: 1600, useWebWorker: true, fileType: "image/webp", initialQuality: 0.82 });
+          const saved = await savePhotoUpload({ supabase: createClient(), bucketName, userId, tripId, missionId, slot: emptySlots[index], file: compressed, uploadId: getFileUploadId(file) });
+          savedCount += 1;
+          remainingFiles = queued.slice(index + 1);
+          setPhotos(previous => [...previous.filter(photo => photo.id !== saved.id), saved]);
+          trackEvent({ eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled", tripId, metadata: { slotIndex: emptySlots[index], source: "library_batch" } });
         }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
-
-        if (existingPhoto) {
-          const { error: updateError } = await supabase
-            .from("photos")
-            .update({
-              image_url: publicUrl,
-              storage_path: storagePath,
-              sort_order: targetSlot,
-            })
-            .eq("id", existingPhoto.id)
-            .eq("user_id", userId);
-
-          let finalUpdateError = updateError as SupabaseErrorLike | null;
-
-          if (isMissingSortOrderColumn(finalUpdateError)) {
-            const fallbackUpdate = await supabase
-              .from("photos")
-              .update({
-                image_url: publicUrl,
-                storage_path: storagePath,
-              })
-              .eq("id", existingPhoto.id)
-              .eq("user_id", userId);
-
-            finalUpdateError = fallbackUpdate.error as SupabaseErrorLike | null;
-          }
-
-          if (finalUpdateError) {
-            throw finalUpdateError;
-          }
-        } else {
-          const { error: insertError } = await supabase.from("photos").insert({
-            id: photoId,
-            trip_id: tripId,
-            mission_id: missionId,
-            user_id: userId,
-            image_url: publicUrl,
-            storage_path: storagePath,
-            sort_order: targetSlot,
-            caption: null,
-            dominant_color: null,
-            color_match_score: null,
-          });
-
-          let finalInsertError = insertError as SupabaseErrorLike | null;
-
-          if (isMissingSortOrderColumn(finalInsertError)) {
-            const fallbackInsert = await supabase.from("photos").insert({
-              id: photoId,
-              trip_id: tripId,
-              mission_id: missionId,
-              user_id: userId,
-              image_url: publicUrl,
-              storage_path: storagePath,
-              caption: null,
-              dominant_color: null,
-              color_match_score: null,
-            });
-
-            finalInsertError = fallbackInsert.error as SupabaseErrorLike | null;
-          }
-
-          if (finalInsertError) {
-            throw finalInsertError;
-          }
-        }
-
-        if (previousStoragePath && previousStoragePath !== storagePath) {
-          await supabase.storage.from(bucketName).remove([previousStoragePath]);
-        }
-
-        trackEvent({
-          eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled",
-          tripId,
-          metadata: {
-            templateId: isHunt ? null : templateId,
-            slotIndex: targetSlot,
-            source,
-            filledSlotsAfterUpload: Math.min(filledSlots + (existingPhoto ? 0 : 1), maxPhotos),
-          },
-        });
-
-        const nextEmpty = slotPhotoMap.findIndex((photo, index) => index !== targetSlot && !photo);
-        if (nextEmpty !== -1) {
-          setSelectedSlot(nextEmpty);
-        } else {
-          setSelectedSlot(targetSlot);
-        }
-
-        setStatus(existingPhoto ? `Photo updated in slot ${targetSlot + 1}.` : `Photo added to slot ${targetSlot + 1}.`);
-        router.refresh();
-      } catch (uploadFailure) {
+        setStatus(`${savedCount} photo${savedCount === 1 ? "" : "s"} saved.${files.length > queued.length ? ` Only ${queued.length} frames were available.` : " Tap a photo to adjust it."}`);
+        trackEvent({ eventName: isHunt ? "hunt_batch_uploaded" : "cover_batch_uploaded", tripId, metadata: { photoCount: savedCount } });
+      } catch (failure) {
+        setRetryFiles(remainingFiles);
         setStatus(null);
-        setError(uploadFailure instanceof Error ? uploadFailure.message : "Unable to upload this photo right now.");
+        setError(`${savedCount ? `${savedCount} photos saved. ` : ""}${photoErrorMessage(failure)}`);
+        trackEvent({ eventName: isHunt ? "hunt_upload_failed" : "cover_upload_failed", tripId, metadata: { source: "library_batch", savedCount } });
+      } finally {
+        await refreshPhotos().catch(() => undefined);
+        router.refresh(); busyRef.current = false;
       }
     });
   }
 
   function handleBatchFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).filter((candidate) => acceptedFileTypes.includes(candidate.type));
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-
-    const emptySlots = slotPhotoMap
-      .map((photo, index) => (photo ? null : index))
-      .filter((index): index is number => index !== null);
-    const queuedFiles = files.slice(0, emptySlots.length);
-
-    if (queuedFiles.length === 0) {
-      setError(emptySlots.length === 0 ? `All ${maxPhotos} photos are already in place.` : "Choose JPG, PNG, or WebP images first.");
-      return;
-    }
-
-    setError(null);
-    setStatus(`Adding ${queuedFiles.length} photo${queuedFiles.length === 1 ? "" : "s"}...`);
-
-    startTransition(async () => {
-      try {
-        const supabase = createClient();
-
-        for (const [queueIndex, file] of queuedFiles.entries()) {
-          const targetSlot = emptySlots[queueIndex];
-          const photoId = crypto.randomUUID();
-          const storagePath = `${userId}/${tripId}/${missionId}/${photoId}.webp`;
-          const compressed = await imageCompression(file, {
-            maxSizeMB: 0.55,
-            maxWidthOrHeight: 1600,
-            useWebWorker: true,
-            fileType: "image/webp",
-            initialQuality: 0.82,
-          });
-          const uploadFile = new File([compressed], `${photoId}.webp`, { type: "image/webp" });
-          const { error: uploadError } = await supabase.storage.from(bucketName).upload(storagePath, uploadFile, {
-            cacheControl: "3600",
-            contentType: "image/webp",
-          });
-
-          if (uploadError) {
-            throw uploadError;
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
-          const { error: insertError } = await supabase.from("photos").insert({
-            id: photoId,
-            trip_id: tripId,
-            mission_id: missionId,
-            user_id: userId,
-            image_url: publicUrl,
-            storage_path: storagePath,
-            sort_order: targetSlot,
-            caption: null,
-            dominant_color: null,
-            color_match_score: null,
-          });
-
-          let finalInsertError = insertError as SupabaseErrorLike | null;
-
-          if (isMissingSortOrderColumn(finalInsertError)) {
-            const fallbackInsert = await supabase.from("photos").insert({
-              id: photoId,
-              trip_id: tripId,
-              mission_id: missionId,
-              user_id: userId,
-              image_url: publicUrl,
-              storage_path: storagePath,
-              caption: null,
-              dominant_color: null,
-              color_match_score: null,
-            });
-
-            finalInsertError = fallbackInsert.error as SupabaseErrorLike | null;
-          }
-
-          if (finalInsertError) {
-            throw finalInsertError;
-          }
-
-          trackEvent({
-            eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled",
-            tripId,
-            metadata: {
-              templateId: isHunt ? null : templateId,
-              slotIndex: targetSlot,
-              source: "library_batch",
-              filledSlotsAfterUpload: filledSlots + queueIndex + 1,
-            },
-          });
-        }
-
-        trackEvent({
-          eventName: isHunt ? "hunt_batch_uploaded" : "cover_batch_uploaded",
-          tripId,
-          metadata: { templateId: isHunt ? null : templateId, photoCount: queuedFiles.length },
-        });
-        setSelectedSlot(Math.min(emptySlots[queuedFiles.length] ?? 0, maxPhotos - 1));
-        setStatus(`${queuedFiles.length} photo${queuedFiles.length === 1 ? "" : "s"} added. Adjust any crop that needs it.`);
-        router.refresh();
-      } catch (uploadFailure) {
-        setStatus(null);
-        setError(uploadFailure instanceof Error ? uploadFailure.message : "Unable to add those photos right now.");
-      }
-    });
+    if (!files.length) return;
+    const { accepted, rejected } = selectImageFiles(files);
+    if (rejected) { setError(`${rejected} unsupported photo${rejected === 1 ? "" : "s"}. ${fileGuidance} Please select supported photos.`); return; }
+    uploadBatch(accepted);
   }
 
   function handleDelete() {
@@ -412,7 +271,8 @@ export function CoverSlotBuilder({
           throw deleteError;
         }
 
-        await supabase.storage.from(bucketName).remove([selectedPhoto.storage_path]);
+        setPhotos(current => current.filter(photo => photo.id !== selectedPhoto.id));
+        await supabase.storage.from(bucketName).remove([selectedPhoto.storage_path]).catch(() => undefined);
 
         trackEvent({
           eventName: isHunt ? "hunt_slot_cleared" : "cover_slot_cleared",
@@ -432,6 +292,8 @@ export function CoverSlotBuilder({
       }
     });
   }
+
+  const retryButton = retryFiles.length ? <button type="button" className="button-secondary mt-3" disabled={isPending} onClick={() => uploadBatch(retryFiles)}>Retry {retryFiles.length} remaining photo{retryFiles.length === 1 ? "" : "s"}</button> : null;
 
   if (inline) {
     return (
@@ -459,11 +321,22 @@ export function CoverSlotBuilder({
           <div id={previewId} className={`cover-preview-shell${isHunt ? " hunt-slot-shell" : ""}`}>
             <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${Math.ceil(maxPhotos / gridColumns)}, minmax(0, 1fr))` }}>
               {slotPhotoMap.map((photo, index) => (
-                <div key={`inline-photo-${index}`} className="cover-preview-cell">
-                  {photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={getPhotoUrl(photo)} alt={`Template photo ${index + 1}`} style={{ objectPosition: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%`, transform: `scale(${getPosterPhotoPlacement(photo).zoom})`, transformOrigin: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%` }} />
-                  ) : <div className="cover-preview-placeholder" />}
+                <div key={`inline-photo-${index}`} className={`cover-preview-cell ${getPhotoFilterClassName(templateId === "wild-memory-87" ? "wild-memory-87" : photo?.photo_filter)}`}>
+                  {photo ? (() => {
+                    const placement = getPosterPhotoPlacement(photo);
+                    const isWildMemory = templateId === "wild-memory-87" || getPhotoFilterId(photo.photo_filter) === "wild-memory-87";
+                    const imageStyle = { objectPosition: `${placement.focalX * 100}% ${placement.focalY * 100}%`, transform: `scale(${placement.zoom})`, transformOrigin: `${placement.focalX * 100}% ${placement.focalY * 100}%` };
+                    return <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={getPhotoUrl(photo)} alt={`Template photo ${index + 1}`} className={getPhotoFilterClassName(isWildMemory ? "wild-memory-87" : "none")} style={imageStyle} />
+                      {isWildMemory ? <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={getPhotoUrl(photo)} alt="" aria-hidden="true" className="photo-filter-channel photo-filter-channel-red" style={{ ...imageStyle, transform: `translateX(-3px) scale(${placement.zoom})` }} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={getPhotoUrl(photo)} alt="" aria-hidden="true" className="photo-filter-channel photo-filter-channel-blue" style={{ ...imageStyle, transform: `translateX(3px) scale(${placement.zoom})` }} />
+                      </> : null}
+                    </>;
+                  })() : <div className="cover-preview-placeholder" />}
                 </div>
               ))}
             </div>
@@ -472,13 +345,14 @@ export function CoverSlotBuilder({
             <div className="cover-template-slot-layer" data-export-hidden="true">
               {templateSlots.map((slot, index) => {
                 const hasPhoto = Boolean(slotPhotoMap[index]);
-                const isNext = !hasPhoto && selectedSlot === index;
+                const isNext = !hasPhoto && slotPhotoMap.findIndex(photo => !photo) === index;
                 return (
                   <button
                     key={`${template.id}-inline-slot-${index}`}
                     type="button"
                     className={`cover-template-slot-button cover-template-inline-slot ${hasPhoto ? "is-filled" : "is-empty"} ${isNext ? "is-next" : ""}`}
                     style={{ left: `${slot.left * 100}%`, top: `${slot.top * 100}%`, width: `${slot.width * 100}%`, height: `${slot.height * 100}%` }}
+                    disabled={isPending}
                     onClick={() => hasPhoto ? openCropEditor(index) : openPreferredPicker(index, false)}
                     aria-label={hasPhoto ? `Edit photo ${index + 1}` : isNext ? `Add next photo, slot ${index + 1}` : `Add photo ${index + 1}`}
                   >
@@ -507,7 +381,8 @@ export function CoverSlotBuilder({
             ) : null}
           </div>
         ) : null}
-        {cropPhoto ? <div className="cover-crop-modal" role="dialog" aria-modal="true"><div className="cover-crop-panel"><div className="cover-crop-preview">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={getPhotoUrl(cropPhoto)} alt="Crop preview" style={{ objectPosition: `${cropX * 100}% ${cropY * 100}%`, transform: `scale(${cropZoom})`, transformOrigin: `${cropX * 100}% ${cropY * 100}%` }} /></div><div className="cover-crop-controls"><p className="eyebrow">Adjust photo {(cropSlot ?? 0) + 1}</p><label>Left / right<input type="range" min="0" max="1" step="0.01" value={cropX} onChange={(event) => setCropX(Number(event.target.value))} /></label><label>Up / down<input type="range" min="0" max="1" step="0.01" value={cropY} onChange={(event) => setCropY(Number(event.target.value))} /></label><label>Zoom<input type="range" min="1" max="2.5" step="0.01" value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} /></label><div className="flex gap-3"><button type="button" className="button-secondary flex-1" onClick={() => setCropSlot(null)}>Cancel</button><button type="button" className="button-primary flex-1" disabled={isPending} onClick={saveCrop}>Save crop</button></div></div></div></div> : null}
+        {cropPhoto ? <dialog ref={cropDialogRef} className="cover-crop-modal" aria-label="Edit photo" onCancel={event => { event.preventDefault(); if (!isPending) setCropSlot(null); }}><div className="cover-crop-panel"><div className={`cover-crop-preview ${getPhotoFilterClassName(cropUsesWildMemory ? "wild-memory-87" : "none")}`}><FilteredCropImage photo={cropPhoto} focalX={cropX} focalY={cropY} zoom={cropZoom} isWildMemory={cropUsesWildMemory} /></div><div className="cover-crop-controls"><p className="eyebrow">Adjust photo {(cropSlot ?? 0) + 1}</p><label>Left / right<input type="range" min="0" max="1" step="0.01" value={cropX} onChange={(event) => setCropX(Number(event.target.value))} /></label><label>Up / down<input type="range" min="0" max="1" step="0.01" value={cropY} onChange={(event) => setCropY(Number(event.target.value))} /></label><label>Zoom<input type="range" min="1" max="2.5" step="0.01" value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} /></label>{templateId === "wild-memory-87" ? <p className="cover-filter-lock">Wild Memory &apos;87 is built into this template.</p> : <fieldset className="cover-filter-picker"><legend>Photo treatment</legend><div><button type="button" className={cropFilter === "none" ? "is-selected" : ""} onClick={() => setCropFilter("none")}>Original</button><button type="button" className={cropFilter === "wild-memory-87" ? "is-selected" : ""} onClick={() => setCropFilter("wild-memory-87")}>Wild Memory &apos;87</button></div><p>Warm grain, colour bleed, and a worn camcorder edge.</p></fieldset>}<div className="flex gap-3"><button type="button" className="button-secondary" disabled={isPending} onClick={() => { const slot = cropSlot ?? selectedSlot; setCropSlot(null); openPreferredPicker(slot, true); }}>Replace photo</button><button type="button" className="button-secondary" disabled={isPending} onClick={() => { setCropSlot(null); handleDelete(); }}>Remove photo</button></div><div className="flex gap-3"><button type="button" className="button-secondary flex-1" onClick={() => setCropSlot(null)}>Cancel</button><button type="button" className="button-primary flex-1" disabled={isPending} onClick={saveCrop}>Save photo</button></div></div></div></dialog> : null}
+        {retryButton}
         {status || error ? <FeedbackToast kind={error ? "error" : "success"} message={error ?? status ?? ""} onDismiss={() => { setStatus(null); setError(null); }} /> : null}
       </>
     );
@@ -594,6 +469,7 @@ export function CoverSlotBuilder({
                           width: `${slot.width * 100}%`,
                           height: `${slot.height * 100}%`,
                         }}
+                        disabled={isPending}
                         onClick={() => openPreferredPicker(index, hasPhoto)}
                       >
                         <span className="cover-template-slot-pill">
@@ -665,6 +541,7 @@ export function CoverSlotBuilder({
         </div>
       </div>
 
+      {retryButton}
       {status ? <FeedbackToast kind="success" message={status} onDismiss={() => setStatus(null)} /> : null}
       {error ? <FeedbackToast kind="error" message={error} onDismiss={() => setError(null)} /> : null}
     </>

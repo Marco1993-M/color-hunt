@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { getAnalyticsIds } from "@/lib/analytics";
 
 function readAnalyticsIds() {
@@ -20,16 +20,15 @@ function readAnalyticsIds() {
 }
 
 export function AnalyticsHiddenFields() {
-  const [ids, setIds] = useState(readAnalyticsIds);
-
+  const sessionRef = useRef<HTMLInputElement>(null);
+  const journeyRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    setIds(readAnalyticsIds());
+    const ids = readAnalyticsIds();
+    if (sessionRef.current) sessionRef.current.value = ids.sessionId;
+    if (journeyRef.current) journeyRef.current.value = ids.journeyId;
   }, []);
-
-  return (
-    <>
-      <input type="hidden" name="analytics_session_id" value={ids.sessionId} />
-      <input type="hidden" name="analytics_journey_id" value={ids.journeyId} />
-    </>
-  );
+  return <>
+    <input ref={sessionRef} type="hidden" name="analytics_session_id" defaultValue="" />
+    <input ref={journeyRef} type="hidden" name="analytics_journey_id" defaultValue="" />
+  </>;
 }

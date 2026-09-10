@@ -95,12 +95,13 @@ export function PurpleGlyphTitle({ title, stacked = false }: PurpleGlyphTitlePro
     ? String(title || "").split("\n").slice(0, 2).map((line) => getCoverDisplayTitle(line).slice(0, maxCustomCoverTitleLineLength))
     : [getCoverDisplayTitle(title).slice(0, maxCustomCoverTitleLength)];
   const glyphCharacters = Array.from(new Set(displayLines.join("").replace(/\s/g, "").split("")));
+  const glyphKey = glyphCharacters.join("");
   const [glyphs, setGlyphs] = useState<Record<string, Glyph | null>>({});
 
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all(glyphCharacters.map(async (character) => [character, await loadGlyph(character)] as const)).then((entries) => {
+    Promise.all(Array.from(glyphKey).map(async (character) => [character, await loadGlyph(character)] as const)).then((entries) => {
       if (!cancelled) {
         setGlyphs(Object.fromEntries(entries));
       }
@@ -109,7 +110,7 @@ export function PurpleGlyphTitle({ title, stacked = false }: PurpleGlyphTitlePro
     return () => {
       cancelled = true;
     };
-  }, [glyphCharacters.join("")]);
+  }, [glyphKey]);
 
   return (
     <div className={`purple-glyph-title ${stacked ? "is-stacked" : ""}`} aria-label={title || "Cover title"}>

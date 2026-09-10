@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePhotoPosterPlacementAction } from "@/app/actions";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
@@ -47,19 +47,12 @@ export function PosterPhotoPlacementEditor({
         roundPlacementValue(zoom) !== roundPlacementValue(selectedPlacement.zoom)),
   );
 
-  useEffect(() => {
-    if (!selectedPhoto && photos[0]) {
-      setSelectedPhotoId(photos[0].id);
-      return;
-    }
-
-    if (selectedPhoto) {
-      const placement = getPosterPhotoPlacement(selectedPhoto);
-      setFocalX(placement.focalX);
-      setFocalY(placement.focalY);
-      setZoom(placement.zoom);
-    }
-  }, [photos, selectedPhoto]);
+  const [previousSelectedPhoto, setPreviousSelectedPhoto] = useState<Photo | null>(null);
+  if (previousSelectedPhoto !== selectedPhoto) {
+    setPreviousSelectedPhoto(selectedPhoto);
+    const placement = getPosterPhotoPlacement(selectedPhoto);
+    setFocalX(placement.focalX); setFocalY(placement.focalY); setZoom(placement.zoom);
+  }
 
   if (photos.length === 0 || !selectedPhoto) {
     return null;

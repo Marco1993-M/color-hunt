@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { updateTripTitleAction } from "@/app/actions";
 import { AnalyticsHiddenFields } from "@/components/analytics/analytics-hidden-fields";
@@ -33,7 +33,7 @@ type NewCoverBuilderProps = {
 };
 
 export function NewCoverBuilder({ createAction, templateId, userId, bucketName, isGuest = false, initialDraft = null }: NewCoverBuilderProps) {
-  const [photoCount, setPhotoCount] = useState<4 | 6>(4);
+  const [photoCount, setPhotoCount] = useState<1 | 4 | 6>(getCoverTemplate(templateId).photoCount === 1 ? 1 : 4);
   const [title, setTitle] = useState("");
   const [secondTitleLine, setSecondTitleLine] = useState("");
   const [titleLayout, setTitleLayout] = useState<"purple" | "purple-stacked">("purple");
@@ -43,6 +43,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
   const [hasSavedOutput, setHasSavedOutput] = useState(false);
   const activeTemplate = useMemo(() => getCoverTemplate(templateId), [templateId]);
   const isCustomTitle = Boolean(activeTemplate.isCustomTitle);
+  const isSinglePhotoTemplate = activeTemplate.photoCount === 1;
   const isDraftComplete = Boolean(draft && draft.photos.length >= draft.maxPhotos);
   const posterData = draft ? {
     posterTitle: draft.title,
@@ -53,9 +54,12 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
     posterTone: "#2d224a",
     photoUrls: draft.photos.map(getPhotoUrl),
     photoPlacements: draft.photos.map(getPosterPhotoPlacement),
+    photoFilters: draft.photos.map((photo) => templateId === "wild-memory-87" ? "wild-memory-87" : photo.photo_filter ?? "none"),
   } : null;
 
-  useEffect(() => {
+  const [previousDraft, setPreviousDraft] = useState(initialDraft);
+  if (previousDraft !== initialDraft) {
+    setPreviousDraft(initialDraft);
     setDraft(initialDraft);
     setHasSavedOutput(false);
     if (initialDraft?.title) {
@@ -64,7 +68,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
       setSecondTitleLine(secondLine);
       setTitleLayout(initialDraft.titleStyle === "purple-stacked" ? "purple-stacked" : "purple");
     }
-  }, [initialDraft]);
+  }
 
   function saveCustomTitle() {
     if (!draft || !title.trim()) {
@@ -132,9 +136,11 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
         <div className={`${draft ? "order-2 is-locked" : "order-1"} cover-creator-setup glass-panel rounded-[2rem] p-5 sm:p-7 lg:order-2`}>
           <div className="cover-creator-intro">
             <p className="eyebrow">{isCustomTitle ? "Create your own" : activeTemplate.label}</p>
-            <h1 className="panel-title mt-2 text-3xl font-semibold">How much of the moment?</h1>
+            <h1 className="panel-title mt-2 text-3xl font-semibold">{isSinglePhotoTemplate ? "Make one photo feel found." : "How much of the moment?"}</h1>
             <p className="body-copy mt-3 text-sm sm:text-base">
-              {isCustomTitle
+              {isSinglePhotoTemplate
+                ? "Add one image, adjust the crop if it needs it, and we will give it the warm grain and colour bleed of a worn camcorder memory."
+                : isCustomTitle
                 ? "Give it a short title, then choose a tighter edit or a fuller story."
                 : "Pick a tighter edit or a fuller story. The template artwork stays exactly as designed."}
             </p>
@@ -166,7 +172,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
             </div>
           ) : null}
 
-          <fieldset className="cover-creator-photo-controls">
+          {isSinglePhotoTemplate ? <div className="cover-single-photo-note">One photo · Wild Memory &apos;87 treatment included</div> : <fieldset className="cover-creator-photo-controls">
             <legend className="field-label">How many photos?</legend>
             <div className="mt-2 grid grid-cols-2 gap-3">
               {[4, 6].map((count) => (
@@ -184,7 +190,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
                 </button>
               ))}
             </div>
-          </fieldset>
+          </fieldset>}
 
           {draft ? (
             <div className="cover-creator-progress mt-1">
@@ -232,7 +238,7 @@ export function NewCoverBuilder({ createAction, templateId, userId, bucketName, 
               disabled={isCreating}
               onClick={() => trackEvent({ eventName: "cover_template_started", metadata: { templateId } })}
             >
-              {isCreating ? "Opening your photo slots..." : `Add ${photoCount} photos`}
+              {isCreating ? "Opening your photo slot..." : isSinglePhotoTemplate ? "Add your photo" : `Add ${photoCount} photos`}
             </button>
           )}
           {createError ? <p className="mt-3 text-sm text-[var(--brand-coral)]">{createError}</p> : null}

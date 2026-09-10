@@ -93,19 +93,9 @@ export function NewTripBuilder({
     }));
   }, [baseSeed, groupSeedOffset, groupSize, missionSeeds]);
 
-  useEffect(() => {
-    if (huntMode !== "group") {
-      return;
-    }
-
-    if (selectedColor !== "random" && assignments.some((assignment) => assignment.colorName === selectedColor)) {
-      return;
-    }
-
-    if (assignments[0]) {
-      setSelectedColor(assignments[0].colorName);
-    }
-  }, [assignments, huntMode, selectedColor]);
+  if (huntMode === "group" && !assignments.some(assignment => assignment.colorName === selectedColor) && assignments[0]) {
+    setSelectedColor(assignments[0].colorName);
+  }
 
   useEffect(() => {
     if (huntMode !== "group") {
@@ -119,7 +109,7 @@ export function NewTripBuilder({
         isChallengeFlow,
       },
     });
-  }, [groupSize, isChallengeFlow]);
+  }, [groupSize, isChallengeFlow, huntMode]);
 
   return (
     <>

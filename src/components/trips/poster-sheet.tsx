@@ -1,13 +1,19 @@
-import { Cormorant_Garamond } from "next/font/google";
+import localFont from "next/font/local";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { buildPosterFrameSlots, getPosterPhotoPlacement, getPosterSubtitle, getPosterTitleLabel } from "@/lib/poster";
 import type { Mission, Photo, Trip } from "@/lib/types";
 
-const posterSerif = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+const posterSerif = localFont({
+  src: [
+    { path: "../../../node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../../../node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../../../node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../../../node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "../../../node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../../../node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-italic.woff2", weight: "600", style: "italic" }
+  ],
   variable: "--font-poster-serif",
+  display: "swap",
 });
 
 type PosterSheetProps = {

@@ -87,6 +87,22 @@ export function SocialAuthButtons({
         return;
       }
 
+      if (mode === "upgrade" && tripId) {
+        try {
+          const response = await fetch("/api/trips/prepare-upgrade", {
+            method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tripId }),
+          });
+          if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || "Unable to prepare sign-in.");
+          }
+          window.sessionStorage.setItem("colorhunt-upgrade-context", JSON.stringify({ tripId, guestUserId: existingUser?.id, nextPath }));
+        } catch (failure) {
+          setError(failure instanceof Error ? failure.message : "Please check your connection and try again.");
+          return;
+        }
+      }
+
       setActiveProvider(provider);
 
       const redirectTo =

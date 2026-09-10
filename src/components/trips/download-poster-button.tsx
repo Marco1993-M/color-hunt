@@ -34,7 +34,11 @@ function requiresPreparedDownload(themeId: PosterThemeId) {
   return themeId === "story-scrapbook";
 }
 
-export function DownloadPosterButton({
+export function DownloadPosterButton(props: DownloadPosterButtonProps) {
+  return <PosterDownloadOptions key={JSON.stringify(props.posterData ?? props.exportUrls)} {...props} />;
+}
+
+function PosterDownloadOptions({
   shareId,
   exportUrls,
   posterData,
@@ -48,6 +52,7 @@ export function DownloadPosterButton({
   const [preparedDownloadUrls, setPreparedDownloadUrls] = useState<Record<string, string>>({});
   const [warmingOptions, setWarmingOptions] = useState<Record<string, boolean>>({});
   const preparedUrlRefs = useRef<Record<string, string>>({});
+  const inFlightRef = useRef(new Set<string>());
 
   const options: PosterDownloadOption[] = useMemo(
     () => [
@@ -78,10 +83,11 @@ export function DownloadPosterButton({
   );
 
   async function warmOption(option: PosterDownloadOption) {
-    if (!posterData || preparedOptions[option.key] || warmingOptions[option.key]) {
+    if (!posterData || preparedOptions[option.key] || inFlightRef.current.has(option.key)) {
       return;
     }
 
+    inFlightRef.current.add(option.key);
     setFailedOptions((current) => ({ ...current, [option.key]: false }));
     setWarmingOptions((current) => ({ ...current, [option.key]: true }));
 
@@ -111,6 +117,7 @@ export function DownloadPosterButton({
       setFailedOptions((current) => ({ ...current, [option.key]: true }));
       setError(message);
     } finally {
+      inFlightRef.current.delete(option.key);
       setWarmingOptions((current) => ({ ...current, [option.key]: false }));
     }
   }
@@ -139,26 +146,6 @@ export function DownloadPosterButton({
     };
   }, []);
 
-  useEffect(() => {
-    if (!isOpen || !posterData) {
-      return;
-    }
-
-    options
-      .filter((option) => requiresPreparedDownload(option.themeId))
-      .forEach((option) => {
-        if (
-          preparedOptions[option.key] ||
-          warmingOptions[option.key] ||
-          failedOptions[option.key]
-        ) {
-          return;
-        }
-
-        void warmOption(option);
-      });
-  }, [failedOptions, isOpen, options, posterData, preparedOptions, warmingOptions]);
-
   async function handleDownload(option: PosterDownloadOption) {
     setError(null);
 
@@ -166,7 +153,7 @@ export function DownloadPosterButton({
       const preparedUrl = preparedDownloadUrls[option.key];
 
       if (!preparedUrl) {
-        if (!warmingOptions[option.key] && !failedOptions[option.key]) {
+        if (!warmingOptions[option.key]) {
           void warmOption(option);
         }
         setError(
@@ -281,7 +268,7 @@ export function DownloadPosterButton({
               disabled={
                 isPending ||
                 warmingOptions[option.key] ||
-                (requiresPreparedDownload(option.themeId) && !preparedDownloadUrls[option.key]) ||
+                (requiresPreparedDownload(option.themeId) && !preparedDownloadUrls[option.key] && !failedOptions[option.key]) ||
                 (!posterData && !exportUrls?.[option.formatId])
               }
             >

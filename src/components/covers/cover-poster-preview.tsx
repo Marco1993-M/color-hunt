@@ -3,6 +3,7 @@ import { PurpleGlyphTitle } from "@/components/covers/purple-glyph-title";
 import { getCoverGridColumns, getCoverTemplate } from "@/lib/covers";
 import { getPhotoUrl } from "@/lib/photo-url";
 import { getPosterPhotoPlacement } from "@/lib/poster";
+import { getPhotoFilterClassName } from "@/lib/photo-filter";
 import type { Photo } from "@/lib/types";
 
 type CoverPosterPreviewProps = {
@@ -26,22 +27,22 @@ export function CoverPosterPreview({ id, templateId, photos, title = null, title
     <div id={id} className="cover-preview-shell">
       <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${getCoverGridColumns(photoCount)}, minmax(0, 1fr))` }}>
         {previewPhotos.map((photo, index) => (
-          <div key={`cover-photo-${index}`} className="cover-preview-cell">
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={getPhotoUrl(photo)}
-                alt={`Cover photo ${index + 1}`}
-                crossOrigin="anonymous"
-                loading="eager"
-                decoding="async"
-                style={{
-                  objectPosition: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%`,
-                  transform: `scale(${getPosterPhotoPlacement(photo).zoom})`,
-                  transformOrigin: `${getPosterPhotoPlacement(photo).focalX * 100}% ${getPosterPhotoPlacement(photo).focalY * 100}%`,
-                }}
-              />
-            ) : (
+          <div key={`cover-photo-${index}`} className={`cover-preview-cell ${getPhotoFilterClassName(template.id === "wild-memory-87" ? "wild-memory-87" : photo?.photo_filter)}`}>
+            {photo ? (() => {
+              const placement = getPosterPhotoPlacement(photo);
+              const isWildMemory = template.id === "wild-memory-87" || photo.photo_filter === "wild-memory-87";
+              const imageStyle = { objectPosition: `${placement.focalX * 100}% ${placement.focalY * 100}%`, transform: `scale(${placement.zoom})`, transformOrigin: `${placement.focalX * 100}% ${placement.focalY * 100}%` };
+              return <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={getPhotoUrl(photo)} alt={`Cover photo ${index + 1}`} className={getPhotoFilterClassName(isWildMemory ? "wild-memory-87" : "none")} crossOrigin="anonymous" loading="eager" decoding="async" style={imageStyle} />
+                {isWildMemory ? <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={getPhotoUrl(photo)} alt="" aria-hidden="true" className="photo-filter-channel photo-filter-channel-red" style={{ ...imageStyle, transform: `translateX(-3px) scale(${placement.zoom})` }} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={getPhotoUrl(photo)} alt="" aria-hidden="true" className="photo-filter-channel photo-filter-channel-blue" style={{ ...imageStyle, transform: `translateX(3px) scale(${placement.zoom})` }} />
+                </> : null}
+              </>;
+            })() : (
               <div className="cover-preview-placeholder">
                 <span>Photo {index + 1}</span>
               </div>

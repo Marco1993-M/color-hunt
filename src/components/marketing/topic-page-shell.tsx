@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Fredoka } from "next/font/google";
+import localFont from "next/font/local";
 
-const fredoka = Fredoka({
-  subsets: ["latin"],
-  weight: ["500", "600"],
+const fredoka = localFont({
+  src: "../../../node_modules/@fontsource-variable/fredoka/files/fredoka-latin-wght-normal.woff2",
+  display: "swap",
 });
 
 type TopicPageShellProps = {
