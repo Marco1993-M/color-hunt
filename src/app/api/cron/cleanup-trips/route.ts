@@ -1,159 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/admin-supabase";
 import { getSupabaseEnv } from "@/lib/env";
-import { getPosterExportBucketName } from "@/lib/poster-cache";
 import { getRetentionDays, retentionPolicy } from "@/lib/retention";
+import { drainAssetCleanupQueue } from "@/lib/asset-cleanup";
 
 export const runtime = "nodejs";
-
-type CleanupTripRecord = {
-  id: string;
-  created_at: string;
-  is_public: boolean;
-  photos: Array<{ id: string; storage_path: string; created_at: string }> | null;
-  poster_exports: Array<{ storage_path: string }> | null;
-  missions: Array<{ max_photos: number }> | null;
-};
-
-function isAuthorized(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-
-  if (secret) {
-    return authHeader === `Bearer ${secret}`;
-  }
-
-  return process.env.NODE_ENV !== "production";
-}
-
-function getLastActivityAt(trip: CleanupTripRecord) {
-  const photoTimestamps = (trip.photos ?? []).map((photo) => new Date(photo.created_at).getTime());
-  const tripCreatedAt = new Date(trip.created_at).getTime();
-  const latestTimestamp = Math.max(tripCreatedAt, ...photoTimestamps);
-  return new Date(latestTimestamp);
-}
-
-function shouldDeleteTrip(trip: CleanupTripRecord, now: Date) {
-  const photoCount = trip.photos?.length ?? 0;
-  const maxPhotos = trip.missions?.[0]?.max_photos ?? retentionPolicy.defaultMaxPhotos;
-  const retentionDays = getRetentionDays({
-    isPublic: trip.is_public,
-    photoCount,
-    maxPhotos,
-  });
-  const lastActivityAt = getLastActivityAt(trip);
-  const expiresAt = new Date(
-    lastActivityAt.getTime() + (photoCount === 0
-      ? retentionPolicy.emptyDraftHours * 60 * 60 * 1000
-      : retentionDays * 24 * 60 * 60 * 1000),
-  );
-
-  return {
-    photoCount,
-    maxPhotos,
-    retentionDays,
-    lastActivityAt,
-    expiresAt,
-    isExpired: expiresAt <= now,
-  };
-}
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  const secret = process.env.CRON_SECRET;
+  if (secret ? request.headers.get("authorization") !== `Bearer ${secret}` : process.env.NODE_ENV === "production") {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
-
+  const dryRun = request.nextUrl.searchParams.get("dryRun") === "true";
   try {
-    const supabase = createAdminClient();
-    const bucketName = getSupabaseEnv().storageBucket;
-    const posterExportBucketName = getPosterExportBucketName();
-    const now = new Date();
-
-    const { data, error } = await supabase
-      .from("trips")
-      .select("id, created_at, is_public, photos(id, storage_path, created_at), poster_exports(storage_path), missions(max_photos)")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      throw error;
+    const admin = createAdminClient();
+    const now = Date.now();
+    const startedAt = now;
+    const state = dryRun ? null : await admin.from("cleanup_scan_state").select("after_id").eq("id", true).single();
+    if (state?.error) throw state.error;
+    let afterId: string | null = dryRun ? request.nextUrl.searchParams.get("after") : state?.data?.after_id ?? null;
+    let scanned = 0, expired = 0, deleted = 0;
+    let more = true;
+    // Keyset pagination remains correct while rows are deleted. Leave time for queued storage cleanup.
+    while (more && Date.now() - startedAt < 35_000) {
+      let query = admin.from("trips").select("id, last_activity_at, is_public, photos(id), missions(max_photos)").order("id").limit(100);
+      if (afterId) query = query.gt("id", afterId);
+      const { data: trips, error } = await query;
+      if (error) throw error;
+      more = (trips?.length ?? 0) === 100;
+      for (const trip of trips ?? []) {
+        scanned += 1;
+        afterId = trip.id;
+        const count = trip.photos?.length ?? 0;
+        const maxPhotos = trip.missions?.[0]?.max_photos ?? retentionPolicy.defaultMaxPhotos;
+        const duration = count === 0 ? retentionPolicy.emptyDraftHours * 3_600_000
+          : getRetentionDays({ isPublic: trip.is_public, photoCount: count, maxPhotos }) * 86_400_000;
+        if (new Date(trip.last_activity_at).getTime() + duration > now) continue;
+        expired += 1;
+        if (dryRun) continue;
+        const result = await admin.rpc("enqueue_trip_deletion", { p_trip_id: trip.id, p_expected_activity: trip.last_activity_at, p_photo_bucket: getSupabaseEnv().storageBucket });
+        if (result.error) throw result.error;
+        if (result.data) deleted += 1;
+      }
     }
-
-    const trips = (data ?? []) as CleanupTripRecord[];
-    const expiredTrips = trips
-      .map((trip) => ({
-        trip,
-        ...shouldDeleteTrip(trip, now),
-      }))
-      .filter((entry) => entry.isExpired);
-
-    let deletedTrips = 0;
-    let deletedPhotos = 0;
-    const failures: Array<{ tripId: string; message: string }> = [];
-
-    for (const entry of expiredTrips) {
-      const storagePaths = (entry.trip.photos ?? []).map((photo) => photo.storage_path);
-      const posterExportPaths = (entry.trip.poster_exports ?? []).map((posterExport) => posterExport.storage_path);
-
-      if (storagePaths.length > 0) {
-        const { error: storageError } = await supabase.storage.from(bucketName).remove(storagePaths);
-
-        if (storageError) {
-          failures.push({
-            tripId: entry.trip.id,
-            message: storageError.message,
-          });
-          continue;
-        }
-      }
-
-      if (posterExportPaths.length > 0) {
-        const { error: exportStorageError } = await supabase.storage.from(posterExportBucketName).remove(posterExportPaths);
-
-        if (exportStorageError) {
-          failures.push({
-            tripId: entry.trip.id,
-            message: exportStorageError.message,
-          });
-          continue;
-        }
-      }
-
-      const { error: tripDeleteError } = await supabase.from("trips").delete().eq("id", entry.trip.id);
-
-      if (tripDeleteError) {
-        failures.push({
-          tripId: entry.trip.id,
-          message: tripDeleteError.message,
-        });
-        continue;
-      }
-
-      deletedTrips += 1;
-      deletedPhotos += storagePaths.length;
+    if (!dryRun) {
+      const savedCursor = await admin.from("cleanup_scan_state").update({ after_id: more ? afterId : null }).eq("id", true);
+      if (savedCursor.error) throw savedCursor.error;
     }
-
-    return NextResponse.json({
-      ok: true,
-      policy: {
-        emptyDraftHours: retentionPolicy.emptyDraftHours,
-        incompleteDays: retentionPolicy.incompleteDays,
-        completePrivateDays: retentionPolicy.completePrivateDays,
-        publicDays: retentionPolicy.publicDays,
-      },
-      scannedTrips: trips.length,
-      expiredTrips: expiredTrips.length,
-      deletedTrips,
-      deletedPhotos,
-      failures,
-      runAt: now.toISOString(),
-    });
+    const cleanup = dryRun ? { processed: 0, failures: [] } : await drainAssetCleanupQueue(admin);
+    if (!dryRun) await admin.from("guest_trip_transfers").delete().lt("expires_at", new Date(now).toISOString());
+    return NextResponse.json({ ok: !cleanup.failures.length, dryRun, scanned, expired, deleted, more, nextCursor: more ? afterId : null, cleanup }, { status: cleanup.failures.length ? 503 : 200 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Cleanup failed",
-      },
-      { status: 500 },
-    );
+    console.error("Trip cleanup failed", error);
+    return NextResponse.json({ ok: false, error: "Cleanup needs attention. Pending asset removals will be retried." }, { status: 503 });
   }
 }

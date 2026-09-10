@@ -2,10 +2,10 @@
 
 export default function GlobalError({
   error,
-  unstable_retry,
+  retry,
 }: {
   error: Error & { digest?: string };
-  unstable_retry: () => void;
+  retry: () => void;
 }) {
   return (
     <html lang="en">
@@ -15,18 +15,18 @@ export default function GlobalError({
             <p className="eyebrow">Something slipped</p>
             <h1 className="panel-title mt-3 text-3xl font-semibold sm:text-4xl">The hunt hit a weird moment.</h1>
             <p className="body-copy mt-3 text-base">
-              Nothing is lost. Try the page again and we&apos;ll take another run at it.
+              Your saved photos will be here when the connection recovers. Try loading the page again.
             </p>
             {error?.digest ? (
               <p className="micro-copy mt-4 text-[rgba(67,58,97,0.58)]">Reference {error.digest}</p>
             ) : null}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <button className="button-primary" type="button" onClick={() => unstable_retry()}>
+              <button className="button-primary" type="button" onClick={() => retry()}>
                 Try again
               </button>
-              <a className="button-secondary" href="/">
+              <button className="button-secondary" type="button" onClick={() => window.location.assign("/")}>
                 Back home
-              </a>
+              </button>
             </div>
           </div>
         </main>

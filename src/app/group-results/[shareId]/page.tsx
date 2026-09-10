@@ -121,9 +121,9 @@ export default async function PublicGroupResultsPage({ params }: PublicGroupResu
                   }}
                   className="button-primary w-full"
                 />
-                <a className="button-secondary w-full text-center" href="/">
+                <Link className="button-secondary w-full text-center" href="/">
                   Start your own group hunt
-                </a>
+                </Link>
               </div>
             </div>
           </div>

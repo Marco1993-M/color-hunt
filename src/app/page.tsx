@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { Fredoka } from "next/font/google";
+import localFont from "next/font/local";
 import { redirect } from "next/navigation";
 import { EventOnView } from "@/components/analytics/event-on-view";
 import { TrackedLink } from "@/components/analytics/tracked-link";
@@ -9,9 +9,9 @@ import { SessionLandingRedirect } from "@/components/auth/session-landing-redire
 import { createClient } from "@/lib/supabase/server";
 import { isAnonymousUser } from "@/lib/user-state";
 
-const fredoka = Fredoka({
-  subsets: ["latin"],
-  weight: ["500", "600"],
+const fredoka = localFont({
+  src: "../../node_modules/@fontsource-variable/fredoka/files/fredoka-latin-wght-normal.woff2",
+  display: "swap",
 });
 
 const steps = [
@@ -39,6 +39,12 @@ const heroChips = [
 ];
 
 const featuredTemplates = [
+  {
+    id: "wild-memory-87",
+    label: "Wild Memory '87",
+    note: "One photo, found on tape",
+    src: null,
+  },
   {
     id: "june",
     label: "June",
@@ -517,11 +523,11 @@ export default async function Home({ searchParams }: HomeProps) {
                       <span />
                       <span />
                     </div>
-                    <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" />
+                    {template.src ? <Image src={template.src} alt="" fill sizes="(min-width: 1024px) 16rem, 58vw" /> : <div className="landing-wild-memory-art"><span>WILD<br />MEMORY</span></div>}
                   </div>
                   <div className="landing-style-card-copy">
                     <span>{template.label}</span>
-                    <p>{template.note} · 4 or 6 photos</p>
+                    <p>{template.note} · {template.id === "wild-memory-87" ? "1 photo" : "4 or 6 photos"}</p>
                   </div>
                 </TrackedLink>
               ))}

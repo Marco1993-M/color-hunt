@@ -135,9 +135,9 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
   });
   const shareUrl = `/poster/${shareId}`;
   const [postExport, storyExport, squareExport] = await Promise.all([
-    getPosterExportForTrip(trip.id, "post"),
-    getPosterExportForTrip(trip.id, "story"),
-    getPosterExportForTrip(trip.id, "square"),
+    getPosterExportForTrip(trip.id, "post", bundle),
+    getPosterExportForTrip(trip.id, "story", bundle),
+    getPosterExportForTrip(trip.id, "square", bundle),
   ]);
   const exportUrls = {
     post: postExport?.image_url,
@@ -232,6 +232,7 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
             templateId={coverTemplate.id}
             photos={buildPosterFrameSlots(photos, mission.max_photos)}
             title={posterTitle}
+            titleStyle={trip.title_style}
           />
         ) : (
           <PosterSheet

@@ -7,7 +7,7 @@ import { getCoverTemplate, isCoverTemplateId, maxCustomCoverTitleLength, maxCust
 import { ensureProfile, getGroupParticipantByInviteToken } from "@/lib/data";
 import { getSupabaseEnv } from "@/lib/env";
 import { getMissionByColorName, getRandomMission } from "@/lib/missions";
-import { getPosterExportBucketName } from "@/lib/poster-cache";
+
 import { trackServerEvent } from "@/lib/server-analytics";
 import { createClient } from "@/lib/supabase/server";
 
@@ -90,6 +90,7 @@ function isMissingPhotoCropColumns(error: SupabaseErrorLike | null | undefined) 
 }
 
 function clampPhotoPlacement(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) throw new Error("Choose a valid photo adjustment.");
   return Math.min(max, Math.max(min, value));
 }
 
@@ -176,42 +177,11 @@ async function removeTripAssetsByTripIds({
   admin: ReturnType<typeof createAdminClient>;
   tripIds: string[];
 }) {
-  if (tripIds.length === 0) {
-    return;
-  }
-
-  const [photosResult, exportsResult] = await Promise.all([
-    admin.from("photos").select("storage_path").in("trip_id", tripIds),
-    admin.from("poster_exports").select("storage_path").in("trip_id", tripIds),
-  ]);
-
-  if (photosResult.error) {
-    throw photosResult.error;
-  }
-
-  if (exportsResult.error) {
-    throw exportsResult.error;
-  }
-
-  const photoPaths = (photosResult.data ?? []).map((photo) => photo.storage_path).filter(Boolean);
-  const exportPaths = (exportsResult.data ?? []).map((posterExport) => posterExport.storage_path).filter(Boolean);
-  const photoBucket = getSupabaseEnv().storageBucket;
-  const exportBucket = getPosterExportBucketName();
-
-  if (photoPaths.length > 0) {
-    const { error: photoStorageError } = await admin.storage.from(photoBucket).remove(photoPaths);
-
-    if (photoStorageError) {
-      throw photoStorageError;
-    }
-  }
-
-  if (exportPaths.length > 0) {
-    const { error: exportStorageError } = await admin.storage.from(exportBucket).remove(exportPaths);
-
-    if (exportStorageError) {
-      throw exportStorageError;
-    }
+  for (const tripId of tripIds) {
+    const { error } = await admin.rpc("enqueue_trip_deletion", {
+      p_trip_id: tripId, p_expected_activity: null, p_photo_bucket: getSupabaseEnv().storageBucket,
+    });
+    if (error) throw error;
   }
 }
 
@@ -342,7 +312,7 @@ export async function createCoverAction(formData: FormData) {
   const requestedTitleStyle = String(formData.get("title_style") || "default");
   const requestedPhotoCount = Number(formData.get("image_count") || 4);
   const template = getCoverTemplate(templateId);
-  const photoCount = requestedPhotoCount === 6 ? 6 : 4;
+  const photoCount = template.photoCount === 1 ? 1 : requestedPhotoCount === 6 ? 6 : 4;
   const titleStyle = template.isCustomTitle && requestedTitleStyle === "purple-stacked" ? "purple-stacked" : template.isCustomTitle ? "purple" : "default";
   const title = template.isCustomTitle
     ? titleStyle === "purple-stacked"
@@ -576,52 +546,10 @@ export async function joinGroupHuntAction(formData: FormData) {
     throw new Error("This invite link has already been claimed.");
   }
 
-  const { data: existingTrip, error: existingTripError } = await admin
-    .from("trips")
-    .select("id")
-    .eq("group_participant_id", participant.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (existingTripError) {
-    throw existingTripError;
-  }
-
-  if (!participant.user_id) {
-    const { error: updateError } = await admin
-      .from("group_hunt_participants")
-      .update({
-        user_id: user.id,
-        status: "joined",
-        joined_at: new Date().toISOString(),
-      })
-      .eq("id", participant.id)
-      .is("user_id", null);
-
-    if (updateError) {
-      throw updateError;
-    }
-  }
-
-  const tripId =
-    existingTrip?.id ??
-    (await createTripForParticipant({
-      admin,
-      userId: user.id,
-      title: hunt.title,
-      location: hunt.location,
-      startDate: hunt.start_date ?? "",
-      endDate: hunt.end_date ?? "",
-      groupHuntId: hunt.id,
-      groupParticipantId: participant.id,
-      mission: {
-        color_name: participant.assigned_color_name,
-        color_hex: participant.assigned_color_hex,
-        prompt: participant.assigned_prompt,
-      },
-    }));
-
-  await admin.from("group_hunts").update({ status: "active" }).eq("id", hunt.id);
+  const { data: tripId, error: joinError } = await admin.rpc("join_group_hunt", {
+    p_invite_token: inviteToken, p_user_id: user.id,
+  });
+  if (joinError || !tripId) throw new Error(joinError?.message || "Unable to join this hunt. Please try again.");
 
   await trackServerEvent({
     eventName: "group_hunt_joined",
@@ -739,6 +667,8 @@ export async function updatePhotoPosterPlacementAction(formData: FormData) {
   const focalX = clampPhotoPlacement(Number(formData.get("poster_focal_x") ?? 0.5), 0, 1);
   const focalY = clampPhotoPlacement(Number(formData.get("poster_focal_y") ?? 0.5), 0, 1);
   const zoom = clampPhotoPlacement(Number(formData.get("poster_zoom") ?? 1), 1, 2.5);
+  const requestedFilter = String(formData.get("photo_filter") ?? "none");
+  const photoFilter = requestedFilter === "wild-memory-87" ? "wild-memory-87" : "none";
 
   if (!photoId || !tripId) {
     throw new Error("Photo ID and trip ID are required.");
@@ -753,6 +683,7 @@ export async function updatePhotoPosterPlacementAction(formData: FormData) {
       poster_focal_x: focalX,
       poster_focal_y: focalY,
       poster_zoom: zoom,
+      photo_filter: photoFilter,
     })
     .eq("id", photoId)
     .eq("trip_id", tripId)

@@ -11,7 +11,7 @@ function isAllowedPosterImageUrl(value: string) {
       return false;
     }
 
-    return source.pathname.startsWith(`/storage/v1/object/public/${storageBucket}/`);
+    return source.pathname.startsWith(`/storage/v1/object/sign/${storageBucket}/`) && source.searchParams.has("token");
   } catch {
     return false;
   }
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   return new NextResponse(arrayBuffer, {
     headers: {
       "content-type": contentType,
-      "cache-control": "public, max-age=300",
+      "cache-control": "private, no-store",
     },
   });
 }

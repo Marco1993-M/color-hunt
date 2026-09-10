@@ -1,3 +1,4 @@
+import { safeNextPath } from "@/lib/safe-next-path";
 import { AuthFinishClient } from "@/components/auth/auth-finish-client";
 
 type AuthFinishPageProps = {
@@ -10,7 +11,7 @@ type AuthFinishPageProps = {
 
 export default async function AuthFinishPage({ searchParams }: AuthFinishPageProps) {
   const params = await searchParams;
-  const nextPath = params.next && params.next.startsWith("/") ? params.next : "/dashboard";
+  const nextPath = safeNextPath(params.next);
   const transferTripId = params.transferTripId?.trim() || null;
   const guestUserId = params.guestUserId?.trim() || null;
 

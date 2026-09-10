@@ -66,7 +66,7 @@ export default async function CoverTemplateLibraryPage() {
 
               <div className="cover-library-card-copy mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="cover-library-card-text">
-                  <p className="eyebrow">{template.isCustomTitle ? "Custom text · 4 or 6 photos" : "4 or 6 photos · ready to post"}</p>
+                  <p className="eyebrow">{template.id === "wild-memory-87" ? "One photo · analogue treatment" : template.isCustomTitle ? "Custom text · 4 or 6 photos" : "4 or 6 photos · ready to post"}</p>
                   <h2 className="panel-title mt-2 text-2xl font-semibold">{template.label}</h2>
                   <p className="body-copy mt-2 text-sm sm:text-base">{template.description}</p>
                 </div>

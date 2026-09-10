@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: RouteProps) {
     const format = getPosterExportFormat(searchParams.get("format"));
     const disposition = searchParams.get("disposition") === "inline" ? "inline" : "attachment";
     const fileName = getPosterExportFileName(bundle.trip.location, format.id);
-    const cachedExport = await getPosterExportForTrip(bundle.trip.id, format.id);
+    const cachedExport = await getPosterExportForTrip(bundle.trip.id, format.id, bundle);
 
     if (cachedExport?.image_url) {
       try {
@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: RouteProps) {
             headers: {
               "content-type": cachedResponse.headers.get("content-type") ?? "image/png",
               "content-disposition": `${disposition}; filename="${fileName}"`,
-              "cache-control": "public, max-age=300",
+              "cache-control": "private, no-store",
             },
           });
         }
@@ -60,7 +60,7 @@ export async function GET(request: Request, { params }: RouteProps) {
       headers: {
         "content-type": "image/png",
         "content-disposition": `${disposition}; filename="${fileName}"`,
-        "cache-control": "public, max-age=300",
+        "cache-control": "private, no-store",
       },
     });
   } catch (error) {

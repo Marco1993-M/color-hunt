@@ -21,9 +21,9 @@ export async function GET(request: Request) {
     }
 
     const [postExport, storyExport, squareExport] = await Promise.all([
-      getPosterExportForTrip(tripId, "post"),
-      getPosterExportForTrip(tripId, "story"),
-      getPosterExportForTrip(tripId, "square"),
+      getPosterExportForTrip(tripId, "post", bundle),
+      getPosterExportForTrip(tripId, "story", bundle),
+      getPosterExportForTrip(tripId, "square", bundle),
     ]);
 
     return NextResponse.json({

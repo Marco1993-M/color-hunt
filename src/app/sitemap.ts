@@ -47,6 +47,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.75,
     },
+    {
+      url: `${origin}/group-photo-challenge`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.78,
+    },
+    {
+      url: `${origin}/travel-games-for-friends`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.76,
+    },
+    {
+      url: `${origin}/weekend-activities-with-friends`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.76,
+    },
   ];
 
   const publicTrips = await getPublicTripsForSitemap();

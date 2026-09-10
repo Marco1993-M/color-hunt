@@ -96,6 +96,9 @@ export default async function NewTripPage({ searchParams }: NewTripPageProps) {
             isChallengeFlow={isChallengeFlow}
           />
         </div> : <NewHuntBuilder
+          challengeColor={challengeColor}
+          challengeTitle={challengeTitle}
+          challengeLocation={challengeLocation}
           createAction={createQuickHuntAction}
           missionSeeds={missionSeeds}
           userId={user.id}

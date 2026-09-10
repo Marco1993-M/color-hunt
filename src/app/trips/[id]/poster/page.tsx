@@ -47,9 +47,9 @@ export default async function PosterPage({ params }: PosterPageProps) {
   const isComplete = isPosterComplete(photos, mission.max_photos);
   const [postExport, storyExport, squareExport] = isComplete
     ? await Promise.all([
-        getPosterExportForTrip(trip.id, "post"),
-        getPosterExportForTrip(trip.id, "story"),
-        getPosterExportForTrip(trip.id, "square"),
+        getPosterExportForTrip(trip.id, "post", bundle),
+        getPosterExportForTrip(trip.id, "story", bundle),
+        getPosterExportForTrip(trip.id, "square", bundle),
       ])
     : [null, null, null];
   const exportUrls = {
