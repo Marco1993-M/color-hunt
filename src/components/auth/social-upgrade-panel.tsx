@@ -76,7 +76,7 @@ export function SocialUpgradePanel({ tripId, nextPath }: SocialUpgradePanelProps
         <p className="eyebrow">Save this poster</p>
         <h3 className="panel-title text-2xl font-semibold">Keep this edit and make the next one faster.</h3>
         <p className="body-copy max-w-2xl text-sm sm:text-base">
-          Your download is yours either way. Connect Google to keep this editable, return to it later, and build a personal library of posters.
+          Connect Google to return to this hunt on another device and keep your posters together.
         </p>
       </div>
 

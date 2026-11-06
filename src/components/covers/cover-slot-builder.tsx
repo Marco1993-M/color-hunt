@@ -105,6 +105,8 @@ export function CoverSlotBuilder({
   const batchInputRef = useRef<HTMLInputElement | null>(null);
   const slotPhotoMap = useMemo(() => getPhotoSlots(photos, maxPhotos), [photos, maxPhotos]);
   const selectedPhoto = slotPhotoMap[selectedSlot];
+  const nextEmptySlot = slotPhotoMap.findIndex(photo => !photo);
+  const [failedSlot, setFailedSlot] = useState<number | null>(null);
   const filledSlots = slotPhotoMap.filter(Boolean).length;
   const isHunt = variant === "hunt";
   const template = getCoverTemplate(templateId);
@@ -177,7 +179,12 @@ export function CoverSlotBuilder({
     pendingSlotRef.current = null;
     if (!selected.length || busyRef.current) return;
     const { accepted } = selectImageFiles(selected);
-    if (!accepted.length) { setError(fileGuidance); return; }
+    if (!accepted.length) {
+      if (isHunt) setFailedSlot(targetSlot);
+      setError(fileGuidance);
+      return;
+    }
+    setFailedSlot(null);
     busyRef.current = true;
     setError(null);
     startTransition(async () => {
@@ -194,6 +201,7 @@ export function CoverSlotBuilder({
         setStatus(`Photo ${targetSlot + 1} ${existing ? "replaced" : "saved"}.`);
         trackEvent({ eventName: isHunt ? "hunt_slot_filled" : "cover_slot_filled", tripId, metadata: { slotIndex: targetSlot, source } });
       } catch (failure) {
+        if (isHunt) setFailedSlot(targetSlot);
         setStatus(null); setError(photoErrorMessage(failure));
         trackEvent({ eventName: isHunt ? "hunt_upload_failed" : "cover_upload_failed", tripId, metadata: { source } });
       } finally {
@@ -206,7 +214,7 @@ export function CoverSlotBuilder({
   function uploadBatch(files: File[]) {
     if (busyRef.current || !files.length) return;
     busyRef.current = true;
-    setRetryFiles([]); setError(null);
+    setRetryFiles([]); setFailedSlot(null); setError(null);
     startTransition(async () => {
       let savedCount = 0;
       let remainingFiles = files;
@@ -317,6 +325,22 @@ export function CoverSlotBuilder({
           disabled={isPending}
           tabIndex={-1}
         />
+        {isHunt && nextEmptySlot >= 0 ? (
+          <div className="mb-4 grid gap-2">
+            <button type="button" className="button-primary w-full" disabled={isPending} onClick={() => openPreferredPicker(nextEmptySlot, false)}>
+              {filledSlots === 0 ? "Add your first photo" : "Add next photo"}
+            </button>
+            <p className="text-center text-sm text-[var(--muted)]" aria-live="polite">{filledSlots} of {maxPhotos} found</p>
+          </div>
+        ) : null}
+        {isHunt && failedSlot !== null ? (
+          <div className="mb-4 grid gap-2">
+            <p className="text-sm" role="status">Photo {failedSlot + 1} could not be confirmed. Check the grid or choose the photo again.</p>
+            <button type="button" className="button-secondary" disabled={isPending} onClick={() => openPreferredPicker(failedSlot, Boolean(slotPhotoMap[failedSlot]))}>
+              Choose photo {failedSlot + 1} again
+            </button>
+          </div>
+        ) : null}
         <div className="cover-template-interactive">
           <div id={previewId} className={`cover-preview-shell${isHunt ? " hunt-slot-shell" : ""}`}>
             <div className="cover-preview-grid" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${Math.ceil(maxPhotos / gridColumns)}, minmax(0, 1fr))` }}>
@@ -345,7 +369,7 @@ export function CoverSlotBuilder({
             <div className="cover-template-slot-layer" data-export-hidden="true">
               {templateSlots.map((slot, index) => {
                 const hasPhoto = Boolean(slotPhotoMap[index]);
-                const isNext = !hasPhoto && slotPhotoMap.findIndex(photo => !photo) === index;
+                const isNext = !hasPhoto && nextEmptySlot === index;
                 return (
                   <button
                     key={`${template.id}-inline-slot-${index}`}
@@ -365,7 +389,7 @@ export function CoverSlotBuilder({
         </div>
         {isHunt && filledSlots < maxPhotos ? (
           <div className="cover-inline-momentum" data-export-hidden="true">
-            <span>{filledSlots === 0 ? "Start with a set, or tap any frame." : `${filledSlots}/${maxPhotos} frames ready. Next slot is highlighted.`}</span>
+            <span>{filledSlots === 0 ? "Already have photos? Add a few together." : "Tap a photo to crop or replace it."}</span>
             {filledSlots === 0 ? (
               <button
                 type="button"

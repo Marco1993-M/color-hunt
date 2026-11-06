@@ -12,9 +12,10 @@ type EditTripTitleFormProps = {
   titleStyle?: "default" | "purple" | "purple-stacked" | null;
   showCustomFont?: boolean;
   compact?: boolean;
+  editLocation?: boolean;
 };
 
-export function EditTripTitleForm({ tripId, currentTitle, location, titleStyle = "default", showCustomFont = false, compact = false }: EditTripTitleFormProps) {
+export function EditTripTitleForm({ tripId, currentTitle, location, titleStyle = "default", showCustomFont = false, compact = false, editLocation = false }: EditTripTitleFormProps) {
   const [customStyle, setCustomStyle] = useState<"purple" | "purple-stacked">(titleStyle === "purple-stacked" ? "purple-stacked" : "purple");
   const [firstLine, secondLine = ""] = currentTitle.split("\n", 2);
   const isStacked = showCustomFont && customStyle === "purple-stacked";
@@ -40,6 +41,12 @@ export function EditTripTitleForm({ tripId, currentTitle, location, titleStyle =
           required
         />
       </div>
+      {editLocation ? (
+        <div>
+          <label className="field-label" htmlFor={`trip-location-${tripId}`}>Place (optional)</label>
+          <input id={`trip-location-${tripId}`} name="location" className="field-input" defaultValue={location === "Everywhere" ? "" : location} />
+        </div>
+      ) : null}
       {showCustomFont ? (
         <div>
           <label className="field-label" htmlFor={`trip-title-style-${tripId}`}>
@@ -56,7 +63,7 @@ export function EditTripTitleForm({ tripId, currentTitle, location, titleStyle =
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-[var(--muted)]">Update the title here and every poster format will use it.</p>
         <button type="submit" className="button-secondary w-full sm:w-auto">
-          Save title
+          {editLocation ? "Save details" : "Save title"}
         </button>
       </div>
     </form>
