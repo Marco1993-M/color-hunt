@@ -121,16 +121,12 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
   }
 
   const challengeColor = challengeParams.challengeColor?.trim() || mission.color_name;
-  const challengeLocation = challengeParams.challengeLocation?.trim() || trip.location;
-  const challengeTitle = challengeParams.challengeTitle?.trim() || trip.title;
-  const challengeStartDate = challengeParams.challengeStartDate?.trim() || trip.start_date || "";
-  const challengeEndDate = challengeParams.challengeEndDate?.trim() || trip.end_date || "";
   const challengeHref = buildChallengeStartHref({
     challengeColor,
-    challengeLocation,
-    challengeTitle,
-    challengeStartDate,
-    challengeEndDate,
+    challengeLocation: challengeParams.challengeLocation?.trim(),
+    challengeTitle: challengeParams.challengeTitle?.trim(),
+    challengeStartDate: challengeParams.challengeStartDate?.trim(),
+    challengeEndDate: challengeParams.challengeEndDate?.trim(),
     challengeShareId: shareId,
   });
   const shareUrl = `/poster/${shareId}`;
@@ -212,17 +208,17 @@ export default async function PublicPosterPage({ params, searchParams }: PublicP
             <PublicPosterCtaLink
               shareId={shareId}
               href={isCover ? "/covers/new" : challengeHref}
-              label={isCover ? "Make your own cover" : `Start the ${challengeColor} challenge`}
+              label={isCover ? "Make your own cover" : "Hunt this color"}
             />
           </div>
         </div>
 
         <div className="mb-6 rounded-[1.5rem] border border-[rgba(47,97,223,0.12)] bg-[rgba(255,255,255,0.55)] p-4">
-          <p className="eyebrow">{isCover ? "Make it yours" : "Challenge this poster"}</p>
+          <p className="eyebrow">{isCover ? "Make it yours" : "Try this color"}</p>
           <p className="body-copy mt-2 text-sm sm:text-base">
             {isCover
               ? "Pick a style, add four photos, and turn your own camera roll into something worth posting."
-              : <>Same place, same trip window, different eye. Start your own <strong>{challengeColor}</strong> version and turn the same day into a completely different poster.</>}
+              : <>Take <strong>{challengeColor}</strong> into your own neighborhood and see what nine things you find.</>}
           </p>
         </div>
 

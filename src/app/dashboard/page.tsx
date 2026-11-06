@@ -150,7 +150,7 @@ export default async function DashboardPage() {
             </h1>
             <p className="body-copy mt-3 max-w-2xl text-base">
               {isGuest
-                ? "Your active hunts, covers, and group moments all stay here while you work toward the final poster."
+                ? "Continue your hunt or start a new one."
                 : "Keep the next move obvious: continue what’s active, jump into group plans, or open something ready to share."}
             </p>
             {isGuest ? (
@@ -163,9 +163,6 @@ export default async function DashboardPage() {
           <div className="dashboard-topbar-actions">
             <Link className="button-primary w-full sm:w-auto" href="/trips/new">
               Start a hunt
-            </Link>
-            <Link className="button-secondary w-full sm:w-auto" href="/covers/new">
-              Choose a template
             </Link>
             <SignOutButton isAnonymous={isGuest} />
           </div>
@@ -382,16 +379,13 @@ export default async function DashboardPage() {
           <section className="mt-8">
             <div className="empty-state-card rounded-[2rem] p-10 text-center">
               <p className="eyebrow">Nothing started yet</p>
-              <h2 className="panel-title mt-3 text-2xl font-semibold">Begin with a hunt or jump straight into a template.</h2>
+              <h2 className="panel-title mt-3 text-2xl font-semibold">Your first Color Hunt starts here.</h2>
               <p className="body-copy mt-3 text-base">
-                Choose the route that feels most familiar: collect nine moments around one color, or turn four photos into a styled cover.
+                Pick a color and collect nine photos to make your first hunt poster.
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link className="button-primary" href="/trips/new">
                   Start a Color Hunt
-                </Link>
-                <Link className="button-secondary" href="/covers/custom-title/new">
-                  Choose a template
                 </Link>
               </div>
             </div>

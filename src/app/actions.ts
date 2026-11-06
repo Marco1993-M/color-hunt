@@ -581,6 +581,10 @@ export async function signOutAction() {
 export async function updateTripTitleAction(formData: FormData) {
   const analytics = getAnalyticsContext(formData);
   const tripId = String(formData.get("trip_id") || "").trim();
+  const submittedLocation = formData.get("location");
+  const details = typeof submittedLocation === "string"
+    ? { location: submittedLocation.trim() || "Everywhere" }
+    : {};
   let nextTitle = String(formData.get("title") || "").trim();
   const requestedTitleStyle = String(formData.get("title_style") || "default");
   const titleStyle = requestedTitleStyle === "purple-stacked" ? "purple-stacked" : requestedTitleStyle === "purple" ? "purple" : "default";
@@ -609,6 +613,7 @@ export async function updateTripTitleAction(formData: FormData) {
     .from("trips")
     .update({
       title: nextTitle,
+      ...details,
       title_style: titleStyle,
     })
     .eq("id", tripId)
@@ -620,7 +625,7 @@ export async function updateTripTitleAction(formData: FormData) {
   if (isUnsupportedCoverMetadata(tripError)) {
     const fallback = await supabase
       .from("trips")
-      .update({ title: nextTitle })
+      .update({ title: nextTitle, ...details })
       .eq("id", tripId)
       .eq("user_id", user.id)
       .select("id, title, location, share_id")
@@ -649,6 +654,9 @@ export async function updateTripTitleAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  if (typeof submittedLocation === "string") {
+    revalidatePath("/trips/new");
+  }
   revalidatePath(`/trips/${trip.id}`);
   revalidatePath(`/trips/${trip.id}/poster`);
   if (isCoverTitle) {
